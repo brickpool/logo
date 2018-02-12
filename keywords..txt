@@ -1,0 +1,17 @@
+LogoHelper	KEYWORD1
+LogoClient	KEYWORD1
+BitAt	KEYWORD2
+ByteAt	KEYWORD2
+WordAt	KEYWORD2
+IntegerAt	KEYWORD2
+SetConnectionParams	KEYWORD2
+SetConnectionType	KEYWORD2
+ConnectTo	KEYWORD2
+Connect	KEYWORD2
+Disconnect	KEYWORD2
+ReadArea	KEYWORD2
+GetPDULength	KEYWORD2
+PlcStart	KEYWORD2
+PlcStop	KEYWORD2
+GetPlcStatus	KEYWORD2
+ErrorText	KEYWORD2
