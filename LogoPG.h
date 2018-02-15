@@ -1,3 +1,35 @@
+/*
+ * LogoPG library, pre alpha version
+ * 
+ * Portion copyright (c) 2018 by Jan Schneider
+ * 
+ * LogoPG provided a library under ARDUINO to read data from a
+ * Siemens(tm) LOGO! PLC via the serial programing interface.
+ * Only LOGO 0BA4 to 0BA6 are supported.
+ * 
+ ***********************************************************************
+ *
+ * This file is based on the implementation of SETTIMINO Version 1.1.0
+ * The project SETTIMINO is an ARDUINO Ethernet communication library
+ * for S7 Siemens(tm) PLC
+ * 
+ * Copyright (c) of SETTIMINO 2013 by Davide Nardella
+ * 
+ * SETTIMINO is free software: we can redistribute it and/or modify
+ * it under the terms of the Lesser GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License.
+ * 
+ * Please visit http://settimino.sourceforge.net/ for more information
+ * of SETTIMINO
+ * 
+ ***********************************************************************
+ *
+ * Changelog: 
+ *  2018-02-07: Initial version created
+ *  
+*/
+
 #ifndef LogoPG_h_
 #define LogoPG_h_
 
@@ -22,27 +54,23 @@
 #define errLogoDataRead             0x0300
 #define errLogoDataWrite            0x0400
 #define errLogoFunction             0x0500
-
 #define errBufferTooSmall           0x0600
 
 // Connection Type
 #define PG          0x01
-#define OP          0x02
 
 // PDU related constants
-#define MinPduSize  666     // Minimum LOGO valid telegram size
-#define MaxPduSize  80      // Maximum LOGO valid telegram size
-#define CC          0x06    // Connection confirmed
-#define NOK         0x14    // Connection not confirmed
+#define PduSize0BA4   68    // LOGO 0BA4 telegram size
+#define PduSize0BA5   70    // LOGO 0BA5 telegram size
+#define PduSize0BA6   80    // LOGO 0BA6 telegram size
+#define MinPduSize    68    // Minimum valid telegram size (negotiate 0BA4)
+#define MaxPduSize    80    // Maximum valid telegram size (negotiate 0BA6)
 
-// Ist jedoch ein Fehler aufgetreten, dann sendet die LOGO! eine negative Bestätigung (21)
-// und anschließend ein Fehlerbyte mit folgenden Codes:
-#define PDU_BUSY    0x01    // LOGO! kann kein Telegramm annehmen
-#define PDU_INVALID 0x03    // Nicht zulässiger Zugriff
-#define PDU_ERR     0x04    // Paritäts-, Überlauf- oder Telegramm-Fehler
-#define PDU_UNKNOWN 0x05    // Unbekanntes Kommando
-#define PDU_XOR_ERR 0x06    // XOR-Summe fehlerhaft
-#define PDU_SIM_ERR 0x07    // Simulationsfehler
+#define ACK         0x06    // ACK request
+#define RUN         0x01    // Mode run
+#define STOP        0x41    // Mode stop
+#define NOK         0x14    // Request not confirmed
+#define AA          0xAA    // End delimiter of telegram
 
 // LOGO ID Area (Area that we want to read/write)
 #define LogoAreaDB  0x84
@@ -51,306 +79,196 @@ const byte LogoCpuStatusUnknown = 0x00;
 const byte LogoCpuStatusRun     = 0x08;
 const byte LogoCpuStatusStop    = 0x04;
 
-extern byte RxOffsetQ;
-extern byte RxOffsetS;
-#define Size_RD     666
-#define Size_WR     27
+#define Size_0BA4     26
+#define Size_0BA6     36
 
-typedef HardwareSerial  *pserial;
-typedef byte            *pbyte;
-typedef word            *pword;
-typedef int             *pint;
+typedef Stream *pstream;
+typedef byte   *pbyte;
+typedef int    *pint;
 
 typedef struct {
-	byte H[Size_WR];                // PDU Header
-	byte DATA[MaxPduSize-Size_WR];  // PDU Data
+  byte H[Size_0BA6];                // PDU Header
+  byte DATA[MaxPduSize-Size_0BA6];  // PDU Data
 } TPDU;
 extern TPDU PDU;
+
+// LOGO 0BA4 and 0BA5 offset values in PDU.DATA
+#define I_0BA4        0
+#define Q_0BA4        3
+#define M_0BA4        5
+#define C_0BA4        8
+#define S_0BA4        9
+#define AI_0BA4       10
+#define AQ_0BA4       26
+#define AM_0BA4       30
+
+// LOGO 0BA6 offset values in PDU.DATA
+#define I_0BA6        0
+#define F_0BA6        3
+#define Q_0BA6        4
+#define M_0BA6        6
+#define C_0BA6        10
+#define S_0BA6        11
+#define AI_0BA6       12
+#define AQ_0BA6       28
+#define AM_0BA6       32
+
+// LOGO 0BA7 adress values in VM memory
+#define I_ADDR_0BA7   923
+#define AI_ADDR_0BA7  926
+#define Q_ADDR_0BA7   942
+#define AQ_ADDR_0BA7  944
+#define M_ADDR_0BA7   948
+#define AM_ADDR_0BA7  952
 
 class LogoHelper
 {
 public:
-    bool BitAt(void *Buffer, int ByteIndex, byte BitIndex);
-    bool BitAt(int ByteIndex, int BitIndex);
-    byte ByteAt(void *Buffer, int index);
-    byte ByteAt(int index);
-    word WordAt(void *Buffer, int index);
-    word WordAt(int index);
-    int IntegerAt(void *Buffer, int index);
-    int IntegerAt(int index);
+  bool BitAt(void *Buffer, int ByteIndex, byte BitIndex);
+  bool BitAt(int ByteIndex, int BitIndex);
+
+  byte ByteAt(void *Buffer, int index);
+  byte ByteAt(int index);
+
+  word WordAt(void *Buffer, int index);
+  word WordAt(int index);
+
+  int IntegerAt(void *Buffer, int index);
+  int IntegerAt(int index);
 };
 extern LogoHelper LH;
 
 class LogoClient
 {
-private:
-	uint8_t LastPDUType;
-	uint16_t ConnType;
-	
-	pserial SerialClient;
-	
-	int PDULength;    // PDU Length negotiated
-	int WaitForData(uint16_t Size, uint16_t Timeout);
-	int RecvIOPacket(uint16_t *Size);
-	int RecvPacket(uint8_t *buf, uint16_t Size);
-	int SerialConnect();
-	int LogoConnect();
-	int NegotiatePduLength();
-	int SetLastError(int Error);
 public:
-	// Output properties
-	bool Connected;   // true if the Client is connected
-	int LastError;    // Last Operation error
-	// Input properties
-	uint16_t RecvTimeout; // Receving timeour
-	// Methods
-	LogoClient();
-	LogoClient(pserial Interface);
-	~LogoClient();
-	// Basic functions
-	void SetConnectionParams(pserial Interface);
-	void SetConnectionType(uint16_t ConnectionType);
-	int ConnectTo(pserial Interface);
-	int Connect();
-	void Disconnect();
-	int ReadArea(int Area, uint16_t DBNumber, uint16_t Start, uint16_t Amount, void *ptrData); 
-	int GetPDULength() { return PDULength; }
-	// Extended functions
-  int PlcStart(); // Warm start
-  int PlcStop();
+  // Output properties
+  bool Connected;   // true if the Client is connected
+  int LastError;    // Last Operation error
+
+  // Input properties
+  unsigned long RecvTimeout; // Receving timeout in millis
+
+  // Methods
+  LogoClient();
+  LogoClient(pstream Interface);
+  ~LogoClient();
+
+  // Basic functions
+  void SetConnectionParams(pstream Interface);
+  void SetConnectionType(word ConnectionType);
+  int ConnectTo(pstream Interface);
+  int Connect();
+  void Disconnect();
+  int ReadArea(int Area, word DBNumber, word Start, word Amount, void *ptrData);
+  int GetPDULength() { return PDULength; }
+  int GetPDUHeaderLen() { return Size_0BA4+OffsetI; }
+
+  // Extended functions
+  int PlcStart();   // start PLC
+  int PlcStop();    // stop PLC
   int GetPlcStatus(int *Status);
-	void ErrorText(int Error, char *Text, int TextLen);
+
+private:
+  byte LastPDUType; // First byte of a received message
+  word ConnType;    // Programming or running mode
+  
+  pstream StreamClient;
+  
+  int PDULength;    // PDU Length negotiated (0 if not negotiated)
+  int OffsetI;      // PDU Data offset negotiated for input
+  int OffsetF;      // ... function keys
+  int OffsetQ;      // ... output
+  int OffsetM;      // ... merker
+  int OffsetS;      // ... shift register
+  int OffsetC;      // ... cursor keys
+  int OffsetAI;     // ... analog input
+  int OffsetAQ;     // ... analog output
+  int OffsetAM;     // ... analog merker
+
+  int RecvIOPacket(size_t *Size);
+  int RecvPacket(byte buf[], size_t Size);
+  int StreamConnect();
+  int LogoConnect();
+  int NegotiatePduLength();
+  int SetLastError(int Error);
 };
 
 
 /*
--------------------------------------------------------------------------------------------
- Logo-Parameter
- 0BA4 0BA5 0BA6
- Pos  Pos  Pos      Bezeichnung
------------------------------------
- 27   29   37       Eingänge 1-8
- 28   30   38       Eingänge 9-16
- 29   31   39       Eingänge 17-24
+ ***********************************************************************
+ * PDU header
+ * position           description
+ * 0BA4 0BA5 0BA6
+ ***********************************************************************
+    0    0    0       Start delimiter
+                      0x06  Connection Connect (CC)
+                      0x14  Request not confirmed (NOK)
 
-           40       TD-Funktionstasten
- 
- 30   32   41       Ausgänge 1-8
- 31   33   42       Ausgänge 9-16
- 
- 32   34   43       Merker 1-8
- 33   35   44       Merker 9-16
- 34   36   45       Merker 17-24
-           46       Merker 25-27
+    ...               Data (see above)
 
- 35   37   47       Schieberegister 1-8
- 36   38   48       Cursortasten C1-C4
- 
- 37   39   49       Analogeingang 1 Low
- 38   40   50       Analogeingang 1 High
- 39   41   51       Analogeingang 2 Low
- 40   42   52       Analogeingang 2 High
- 41   43   53       Analogeingang 3 Low
- 42   44   54       Analogeingang 3 High
- 43   45   55       Analogeingang 4 Low
- 44   46   56       Analogeingang 4 High
- 45   47   57       Analogeingang 5 Low
- 46   48   58       Analogeingang 5 High
- 47   49   59       Analogeingang 6 Low
- 48   50   60       Analogeingang 6 High
- 49   51   61       Analogeingang 7 Low
- 50   52   62       Analogeingang 7 High
- 51   53   63       Analogeingang 8 Low
- 52   54   64       Analogeingang 8 High
+    68   70   80      End delimiter
+                      AA
+ ***********************************************************************
 
- 53   55   65       Analogausgang 1 Low
- 54   56   66       Analogausgang 1 High
- 55   57   67       Analogausgang 2 Low
- 56   58   68       Analogausgang 2 High
- 
- 57   59   69       Analogmerker 1 Low
- 58   60   70       Analogmerker 1 High
- 59   61   71       Analogmerker 2 Low
- 61   62   72       Analogmerker 2 High
- 61   63   73       Analogmerker 3 Low
- 62   64   74       Analogmerker 3 High
- 63   65   75       Analogmerker 4 Low
- 64   66   76       Analogmerker 4 High
- 65   67   77       Analogmerker 5 Low
- 66   68   78       Analogmerker 5 High
- 67   69   79       Analogmerker 6 Low
- 68   70   80       Analogmerker 6 High
+
+ ***********************************************************************
+ * PDU data
+ * position           description
+ * 0BA4 0BA5 0BA6
+ ***********************************************************************
+    27   29   37      input 1-8
+    28   30   38      input 9-16
+    29   31   39      input 17-24
+   
+              40      TD function key F1-F4
+    
+    30   32   41      output 1-8
+    31   33   42      output 9-16
+    
+    32   34   43      merker 1-8
+    33   35   44      merker 9-16
+    34   36   45      merker 17-24
+              46      merker 25-27
+   
+    35   37   47      shift register 1-8
+
+    36   38   48      cursor key C1-C4
+    
+    37   39   49      analog input 1 low
+    38   40   50      analog input 1 high
+    39   41   51      analog input 2 low
+    40   42   52      analog input 2 high
+    41   43   53      analog input 3 low
+    42   44   54      analog input 3 high
+    43   45   55      analog input 4 low
+    44   46   56      analog input 4 high
+    45   47   57      analog input 5 low
+    46   48   58      analog input 5 high
+    47   49   59      analog input 6 low
+    48   50   60      analog input 6 high
+    49   51   61      analog input 7 low
+    50   52   62      analog input 7 high
+    51   53   63      analog input 8 low
+    52   54   64      analog input 8 high
+   
+    53   55   65      analog output 1 low
+    54   56   66      analog output 1 high
+    55   57   67      analog output 2 low
+    56   58   68      analog output 2 high
+    
+    57   59   69      analog merker 1 low
+    58   60   70      analog merker 1 high
+    59   61   71      analog merker 2 low
+    61   62   72      analog merker 2 high
+    61   63   73      analog merker 3 low
+    62   64   74      analog merker 3 high
+    63   65   75      analog merker 4 low
+    64   66   76      analog merker 4 high
+    65   67   77      analog merker 5 low
+    66   68   78      analog merker 5 high
+    67   69   79      analog merker 6 low
+    68   70   80      analog merker 6 high
+ ***********************************************************************
 */
-
-
-//#define LOGO_0BA4
-//#define LOGO_0BA5
-#define LOGO_0BA6
-
-#ifdef LOGO_0BA4
-#define I_OFFSET  27
-#define Q_OFFSET  30
-#define M_OFFSET  32
-#define C_OFFSET  36
-#undef  F_OFFSET
-#define S_OFFSET  35
-#define AI_OFFSET 37
-#define AQ_OFFSET 53
-#define AM_OFFSET 57
-#define AA_END    69
-#endif
-
-#ifdef LOGO_0BA5
-#define I_OFFSET  29
-#define Q_OFFSET  32
-#define M_OFFSET  34
-#define C_OFFSET  38
-#define S_OFFSET  37
-#define AI_OFFSET 39
-#define AQ_OFFSET 55
-#define AM_OFFSET 59
-#define AA_END    71
-#endif
-
-#ifdef LOGO_0BA6
-#define I_OFFSET  37
-#define Q_OFFSET  41
-#define M_OFFSET  43
-#define C_OFFSET  48
-#define F_OFFSET  40
-#define S_OFFSET  47
-#define AI_OFFSET 49
-#define AQ_OFFSET 65
-#define AM_OFFSET 69
-#define AA_END    81
-#endif
-
-extern byte range[AA_END];
-
-// Eingänge (datatype: bit)
-#define I1    ((range[I_OFFSET+0] & (1 << 0)) > 0)
-#define I2    ((range[I_OFFSET+0] & (1 << 1)) > 0)
-#define I3    ((range[I_OFFSET+0] & (1 << 2)) > 0)
-#define I4    ((range[I_OFFSET+0] & (1 << 3)) > 0)
-#define I5    ((range[I_OFFSET+0] & (1 << 4)) > 0)
-#define I6    ((range[I_OFFSET+0] & (1 << 5)) > 0)
-#define I7    ((range[I_OFFSET+0] & (1 << 6)) > 0)
-#define I8    ((range[I_OFFSET+0] & (1 << 7)) > 0)
-#define I9    ((range[I_OFFSET+1] & (1 << 0)) > 0)
-#define I10   ((range[I_OFFSET+1] & (1 << 1)) > 0)
-#define I11   ((range[I_OFFSET+1] & (1 << 2)) > 0)
-#define I12   ((range[I_OFFSET+1] & (1 << 3)) > 0)
-#define I13   ((range[I_OFFSET+1] & (1 << 4)) > 0)
-#define I14   ((range[I_OFFSET+1] & (1 << 5)) > 0)
-#define I15   ((range[I_OFFSET+1] & (1 << 6)) > 0)
-#define I16   ((range[I_OFFSET+1] & (1 << 7)) > 0)
-#define I17   ((range[I_OFFSET+2] & (1 << 0)) > 0)
-#define I18   ((range[I_OFFSET+2] & (1 << 1)) > 0)
-#define I19   ((range[I_OFFSET+2] & (1 << 2)) > 0)
-#define I20   ((range[I_OFFSET+2] & (1 << 3)) > 0)
-#define I21   ((range[I_OFFSET+2] & (1 << 4)) > 0)
-#define I22   ((range[I_OFFSET+2] & (1 << 5)) > 0)
-#define I23   ((range[I_OFFSET+2] & (1 << 6)) > 0)
-#define I24   ((range[I_OFFSET+2] & (1 << 7)) > 0)
-
-// Ausgänge (datatype: bit)
-#define Q1    ((range[Q_OFFSET+0] & (1 << 0)) > 0)
-#define Q2    ((range[Q_OFFSET+0] & (1 << 1)) > 0)
-#define Q3    ((range[Q_OFFSET+0] & (1 << 2)) > 0)
-#define Q4    ((range[Q_OFFSET+0] & (1 << 3)) > 0)
-#define Q5    ((range[Q_OFFSET+0] & (1 << 4)) > 0)
-#define Q6    ((range[Q_OFFSET+0] & (1 << 5)) > 0)
-#define Q7    ((range[Q_OFFSET+0] & (1 << 6)) > 0)
-#define Q8    ((range[Q_OFFSET+0] & (1 << 7)) > 0)
-#define Q9    ((range[Q_OFFSET+1] & (1 << 0)) > 0)
-#define Q10   ((range[Q_OFFSET+1] & (1 << 1)) > 0)
-#define Q11   ((range[Q_OFFSET+1] & (1 << 2)) > 0)
-#define Q12   ((range[Q_OFFSET+1] & (1 << 3)) > 0)
-#define Q13   ((range[Q_OFFSET+1] & (1 << 4)) > 0)
-#define Q14   ((range[Q_OFFSET+1] & (1 << 5)) > 0)
-#define Q15   ((range[Q_OFFSET+1] & (1 << 6)) > 0)
-#define Q16   ((range[Q_OFFSET+1] & (1 << 7)) > 0)
-
-// Merker (datatype: bit)
-#define M1    ((range[M_OFFSET+0] & (1 << 0)) > 0)
-#define M2    ((range[M_OFFSET+0] & (1 << 1)) > 0)
-#define M3    ((range[M_OFFSET+0] & (1 << 2)) > 0)
-#define M4    ((range[M_OFFSET+0] & (1 << 3)) > 0)
-#define M5    ((range[M_OFFSET+0] & (1 << 4)) > 0)
-#define M6    ((range[M_OFFSET+0] & (1 << 5)) > 0)
-#define M7    ((range[M_OFFSET+0] & (1 << 6)) > 0)
-#define M8    ((range[M_OFFSET+0] & (1 << 7)) > 0)
-#define M9    ((range[M_OFFSET+1] & (1 << 0)) > 0)
-#define M10   ((range[M_OFFSET+1] & (1 << 1)) > 0)
-#define M11   ((range[M_OFFSET+1] & (1 << 2)) > 0)
-#define M12   ((range[M_OFFSET+1] & (1 << 3)) > 0)
-#define M13   ((range[M_OFFSET+1] & (1 << 4)) > 0)
-#define M14   ((range[M_OFFSET+1] & (1 << 5)) > 0)
-#define M15   ((range[M_OFFSET+1] & (1 << 6)) > 0)
-#define M16   ((range[M_OFFSET+1] & (1 << 7)) > 0)
-#define M17   ((range[M_OFFSET+2] & (1 << 0)) > 0)
-#define M18   ((range[M_OFFSET+2] & (1 << 1)) > 0)
-#define M19   ((range[M_OFFSET+2] & (1 << 2)) > 0)
-#define M20   ((range[M_OFFSET+2] & (1 << 3)) > 0)
-#define M21   ((range[M_OFFSET+2] & (1 << 4)) > 0)
-#define M22   ((range[M_OFFSET+2] & (1 << 5)) > 0)
-#define M23   ((range[M_OFFSET+2] & (1 << 6)) > 0)
-#define M24   ((range[M_OFFSET+2] & (1 << 7)) > 0)
-#ifdef LOGO_0BA6
-#define M25   ((range[M_OFFSET+3] & (1 << 0)) > 0)
-#define M26   ((range[M_OFFSET+4] & (1 << 1)) > 0)
-#define M27   ((range[M_OFFSET+4] & (1 << 2)) > 0)
-#define M28   ((range[M_OFFSET+4] & (1 << 3)) > 0)
-#define M29   ((range[M_OFFSET+4] & (1 << 4)) > 0)
-#define M30   ((range[M_OFFSET+4] & (1 << 5)) > 0)
-#define M31   ((range[M_OFFSET+4] & (1 << 6)) > 0)
-#define M32   ((range[M_OFFSET+4] & (1 << 7)) > 0)
-#endif
-
-// Cursortaste C1 - C4 (datatype: bit)
-#define C1    ((range[C_OFFSET+0] & (1 << 0)) > 0)
-#define C2    ((range[C_OFFSET+0] & (1 << 1)) > 0)
-#define C3    ((range[C_OFFSET+0] & (1 << 2)) > 0)
-#define C4    ((range[C_OFFSET+0] & (1 << 3)) > 0)
-
-// Funktionstaste F1 - F4 (datatype: bit)
-#ifdef F_OFFSET
-#define F1    ((range[F_OFFSET+0] & (1 << 0)) > 0)
-#define F2    ((range[F_OFFSET+0] & (1 << 1)) > 0)
-#define F3    ((range[F_OFFSET+0] & (1 << 2)) > 0)
-#define F4    ((range[F_OFFSET+0] & (1 << 3)) > 0)
-#endif
-
-// Schieberegister (datatype: bit)
-#define S1    ((range[S_OFFSET+0] & (1 << 0)) > 0)
-#define S2    ((range[S_OFFSET+0] & (1 << 1)) > 0)
-#define S3    ((range[S_OFFSET+0] & (1 << 2)) > 0)
-#define S4    ((range[S_OFFSET+0] & (1 << 3)) > 0)
-#define S5    ((range[S_OFFSET+0] & (1 << 4)) > 0)
-#define S6    ((range[S_OFFSET+0] & (1 << 5)) > 0)
-#define S7    ((range[S_OFFSET+0] & (1 << 6)) > 0)
-#define S8    ((range[S_OFFSET+0] & (1 << 7)) > 0)
-
-// Analoge Eingänge (datatype: word)
-#define AI1   ((word)(range[AI_OFFSET+ 1] << 8) + range[AI_OFFSET+ 0])
-#define AI2   ((word)(range[AI_OFFSET+ 3] << 8) + range[AI_OFFSET+ 2])
-#define AI3   ((word)(range[AI_OFFSET+ 5] << 8) + range[AI_OFFSET+ 4])
-#define AI4   ((word)(range[AI_OFFSET+ 7] << 8) + range[AI_OFFSET+ 6])
-#define AI5   ((word)(range[AI_OFFSET+ 9] << 8) + range[AI_OFFSET+ 8])
-#define AI6   ((word)(range[AI_OFFSET+11] << 8) + range[AI_OFFSET+10])
-#define AI7   ((word)(range[AI_OFFSET+13] << 8) + range[AI_OFFSET+12])
-#define AI8   ((word)(range[AI_OFFSET+15] << 8) + range[AI_OFFSET+14])
-
-// Analoge Ausgänge (datatype: word)
-#define AQ1   ((word)(range[AQ_OFFSET+ 1] << 8) + range[AQ_OFFSET+ 0])
-#define AQ2   ((word)(range[AQ_OFFSET+ 3] << 8) + range[AQ_OFFSET+ 2])
-
-// Analoge Merker (datatype: word)
-#define AM1   ((word)(range[AM_OFFSET+ 1] << 8) + range[AM_OFFSET+ 0])
-#define AM2   ((word)(range[AM_OFFSET+ 3] << 8) + range[AM_OFFSET+ 2])
-#define AM3   ((word)(range[AM_OFFSET+ 5] << 8) + range[AM_OFFSET+ 4])
-#define AM4   ((word)(range[AM_OFFSET+ 7] << 8) + range[AM_OFFSET+ 6])
-#define AM5   ((word)(range[AM_OFFSET+ 9] << 8) + range[AM_OFFSET+ 8])
-#define AM6   ((word)(range[AM_OFFSET+11] << 8) + range[AM_OFFSET+10])
 
 #endif
