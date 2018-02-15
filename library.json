@@ -1,0 +1,15 @@
+{
+  "name": "LogoPG",
+  "keywords": "LOGO programming interface",
+  "description": "Allows easy use of read IO from a LOGO PLC",
+  "repository":
+  {
+    "type": "",
+    "url": ""
+  },
+  "frameworks": "arduino",
+  "platforms":
+  [
+    "atmelavr"
+  ]
+}
