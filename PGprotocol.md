@@ -2,84 +2,104 @@
 
 ### General commands
 >LOGO! response OK
-...
+```
 :06
-...
+```
 
 >LOGO! response NOK
-...
-**:15**02
-...
+```
+:15
+:02
+```
 
 >LOGO! end delimiter
-...
+```
 :aa
-...
+```
 
 
 ### Operating mode commands
 Send to LOGO! to ask operation mode:
-...
-:55**:17:17**:aa
-...
+```
+:55
+:17:17
+:aa
+```
 
 >LOGO! in RUN mode
-...
-:06**:01**
-...
+```
+:06
+:01
+```
 
 >LOGO! in STOP mode
-...
-:06**:42**
-...
+```
+:06
+:42
+```
 
 Send to LOGO! to change to operation mode to RUN:
-...
-:55**:18:18**:aa
-...
+```
+:55
+:18:18
+:aa
+```
 
 Send to LOGO! to to change to operation mode to STOP:
-...
-:55**:12:12**:aa
-...
+```
+:55
+:12:12
+:aa
+```
 
 >LOGO! has successfully executed the operation command
-...
+```
 :06
-...
+```
 
 
 ### Connection
 Send to LOGO! a connection request
-...
+```
 02:1f:02
-...
+```
 
 >LOGO! 0BA4.Standard connection established
-...
-:06**:03**:1f:02**:40**
-...
+```
+:06:03
+:1f
+:02:40
+```
 
 >LOGO! 0BA6.Standard connection established
-...
-:06**:03**_:00:ff_:1f:02**:43**
-...
+```
+:06:03
+:00:ff
+:1f
+:02:43
+```
 
 
 ### Data communication
 Send to LOGO! to ask data:
-...
-:55**:13:13:00**:aa
-...
+```
+:55
+:13:13:00
+:aa
+```
 
 >LOGO! 0BA6.Standard data response (80 bytes)
-...
+```
 :06
-:55**:11:11_:4a_**:00:b7:c4:19:2c:00:10:84:6b:00:00:00
+:55
+:11:11
+:4a
+:00:b7:c4:19:2c:00:10:84:6b:00:00:00
 :00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
 :00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
 :00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
-:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00__:aa__
-...
+:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
+:aa
+```
 
->0x4A = 74 bytes
+0x4A = 74 bytes
