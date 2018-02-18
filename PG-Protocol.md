@@ -134,13 +134,13 @@ Data length (incl. end delimiter `:aa`)
 Read commands for RTC:
 1. Device status inquiry
 2. Write byte `:00` to Address 00 FF 44 00 to initialize reading
-3. Read bytes
-  + _day_ to Address 00 FF FB 00
-  + _month_ to address 00 FF FB 01
-  + _year_ to address 00 FF FB 02
-  + _minute_ to address 00 FF FB 03
-  + _hour_ to address 00 FF FB 04
-  + _day-of-week_ to address 00 FF FB 05
+3. Read byte(s)
+  + _day_ at Address 00 FF FB 00
+  + _month_ at address 00 FF FB 01
+  + _year_ at address 00 FF FB 02
+  + _minute_ at address 00 FF FB 03
+  + _hour_ at address 00 FF FB 04
+  + _day-of-week_ at address 00 FF FB 05
 
 >Example: sent _read clock_:
 ```
@@ -197,10 +197,10 @@ Read commands for RTC:
 
 Write commands for RTC:
 1. Device status inquiry
-2. Write bytes
-  + _day_ to Address 00 FF FB 00
-  + _month_ to address 00 FF FB 01
-  + _year_ to address 00 FF FB 02
+2. Write byte(s)
+  + _day_ to Address 00 FF FB 00
+  + _month_ to address 00 FF FB 01
+  + _year_ to address 00 FF FB 02
   + _minute_ to address 00 FF FB 03
   + _hour_ to address 00 FF FB 04
   + _day-of-week_ to address 00 FF FB 05
