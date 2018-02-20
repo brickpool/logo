@@ -27,10 +27,28 @@ Refer to the following publication for details about the LOGO address layout:
   * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") decodes most of the functions and the 0BA5 data address space (@post 42)
 
 Refer to the following publication for details about the RS232 specifications and use cases:
- * [RS232 Specifications and standard](https://www.lammertbies.nl/comm/info/RS-232_specs.html) by Lammert Bies
- * [LOGO! Interface](https://www.elektormagazine.com/magazine/elektor-199907/34458) by W. Kriegmaier Elektor 7/1999 page 55
- * [Get power out of PC RS-232 port](http://www.epanorama.net/circuits/rspower.html) by Tomi Engdahl
- * [RS-232 vs. TTL Serial Communication](https://www.sparkfun.com/tutorials/215) by SparkFun
+  * [RS232 Specifications and standard](https://www.lammertbies.nl/comm/info/RS-232_specs.html) by Lammert Bies
+  * [LOGO! Interface](https://www.elektormagazine.com/magazine/elektor-199907/34458) by W. Kriegmaier Elektor 7/1999 page 55
+  * [Get power out of PC RS-232 port](http://www.epanorama.net/circuits/rspower.html) by Tomi Engdahl
+  * [RS-232 vs. TTL Serial Communication](https://www.sparkfun.com/tutorials/215) by SparkFun
+
+## Contents
+1) [Chapter 1 - PG Protocol](#chapter-1---pg-protocol)
+  - [Introducing PG Protocol](#introducing-pg-protocol)
+  - [The Serial Transmission Mode](#the-serial-transmission-mode)
+  - [PG Message Frame](#pg-message-frame)
+  - [Error Checking Methods](#error-checking-methods)
+2) [Chapter 2 - Data and Control Commands](#chapter-2---data-and-control-commands)
+  - [Command Formats](#command-formats)
+  - [Command Codes Supported by LOGO](#command-codes-supported-by-logo)
+  - [Hello Request 21](#hello-request-21)
+3) [Chapter 3 - Control Functions](#chapter-3---control-functions)
+  - [Function Codes Supported by LOGO](#function-codes-supported-by-logo)
+4) [Chapter 4 - Errors and Confirmations](#chapter-4---errors-and-confirmations)
+  - [Confirmed Codes Used by LOGO](#confirmed-codes-used-by-logo)
+  - [Acknowledge Response 06](#acknowledge-response-06)
+  - [Exception Responses 15](#exception-responses-15)
+5) [Appendix A - Application Examples](#appendix-a---application-examples)
 
 # Chapter 1 - PG Protocol
 
