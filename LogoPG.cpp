@@ -27,17 +27,24 @@
  *
  * Changelog: 
  *  2018-02-07: Initial version created
- *  
+ *  2018-02-15: alpha Version
+ *  2018-02-20: Version 0.3
 */
 
 #include "Arduino.h"
 #include "LogoPG.h"
+#include <avr/pgmspace.h>
 
 // For further informations about structures (the byte arrays and they meanins)
 // see http://github.com/brickpool/logo
 
 // LOGO Connection Request
 const byte LOGO_CR[] = {
+  0x21
+};
+
+// LOGO Read Revision Request
+const byte LOGO_REVISION[] = {
   0x02, 0x1F, 0x02
 };
 
@@ -64,28 +71,90 @@ const byte LOGO_MODE[] = {
 // If an error has occurred, the LOGO send a negative confirmation 0x14 (NOK)
 // and then an error byte with the following codes
 #define PDU_BUSY    0x01  // LOGO can not accept a telegram
+#define PDU_TIMEOUT 0x02  // Resource unavailable
 #define PDU_INVALID 0x03  // Illegal access
-#define PDU_ERR     0x04  // parity error-, overflow or telegram error
+#define PDU_PAR_ERR 0x04  // parity error-, overflow or telegram error
 #define PDU_UNKNOWN 0x05  // Unknown command
 #define PDU_XOR_ERR 0x06  // XOR-check incorrect
 #define PDU_SIM_ERR 0x07  // Faulty on simulation 
 
-#define TIMEOUT     500   // 500 ms
+#define TIMEOUT     500   // set timeout between 75 and 600 ms
 
-// The LOGO has reserved fixed memory addresses for inputs, outputs, flags in the VM memory above the 850th byte.
-// These depending on the model (Logo 0BA7 or 0BA8). Our library should represent the VM memory as 0BA7 address scheme.
-#define VM_I_ADDR     I_ADDR_0BA7
-#define VM_AI_ADDR    AI_ADDR_0BA7
-#define VM_Q_ADDR     Q_ADDR_0BA7
-#define VM_AQ_ADDR    AQ_ADDR_0BA7
-#define VM_M_ADDR     M_ADDR_0BA7
-#define VM_AM_ADDR    AM_ADDR_0BA7
-#define VM_I_SIZE     3
-#define VM_AI_SIZE    16
-#define VM_Q_SIZE     2
-#define VM_AQ_SIZE    4
-#define VM_M_SIZE     4
-#define VM_AM_SIZE    12
+#define VM_START      0     // first valid address
+#define VM_USER_AREA  0     // user defined area
+#define VM_NDEF_AREA1 851   // not defined area #1
+#define VM_0BA7_AREA  923   // area for 0BA7
+#define VM_DDT_AREA   984   // diagnostic, date and time area
+#define VM_NDEF_AREA2 1003  // not defined area #2
+#define VM_END        1023  // last valid address
+
+// Store mapping in flash (program) memory instead of SRAM
+
+/*
+// VM Mapping byte 851 to 922
+const PROGMEM byte VM_MAP_851_922[] =
+{
+                    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 851-855
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 856-863
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 872-863
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 880-887
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 888-895
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 896-903
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 896-903
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 904-911
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 912-919
+  0xFF, 0xFF, 0xFF,                               // 920-922
+}
+*/
+
+// VM 0BA7 Mapping for 0BA4 and 0BA5
+const PROGMEM byte VM_MAP_923_983_0BA4[] =
+{
+  0x00, 0x01, 0x02,                               // 923-925  : input 1-24
+  0x0B, 0x0A, 0x0D, 0x0C, 0x0F, 0x0E, 0x11, 0x10, // 926-933  : analoge input 1-4
+  0x13, 0x12, 0x15, 0x14, 0x17, 0x16, 0x19, 0x18, // 934-941  : analoge input 5-8
+  0x03, 0x04,                                     // 942-943  : output 1-16
+  0x1B, 0x1A, 0x1D, 0x1C,                         // 944-947  : analoge output 1-2
+  0x05, 0x06, 0x07, 0xFF,                         // 948-951  : merker 1-27
+  0x1F, 0x1E, 0x21, 0x20, 0x23, 0x22, 0x25, 0x24, // 952-959  : analoge merker 1-4
+  0x27, 0x26, 0x29, 0x28, 0xFF, 0xFF, 0xFF, 0xFF, // 960-967  : analoge merker 5-8
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 968-975  : analoge merker 9-12
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 976-983  : analoge merker 13-16
+};
+  
+// VM 0BA7 Mapping for 0BA6
+const PROGMEM byte VM_MAP_923_983_0BA6[] =
+{
+  0x00, 0x01, 0x02,                               // 923-925  : input 1-24
+  0x0D, 0x0C, 0x0F, 0x0E, 0x11, 0x10, 0x13, 0x12, // 926-933  : analoge input 1-4
+  0x15, 0x14, 0x17, 0x16, 0x19, 0x18, 0x1B, 0x1A, // 934-941  : analoge input 5-8
+  0x04, 0x05,                                     // 942-943  : output 1-16
+  0x1D, 0x1C, 0x1F, 0x1E,                         // 944-947  : analoge output 1-2
+  0x06, 0x07, 0x08, 0x09,                         // 948-951  : merker 1-27
+  0x21, 0x20, 0x23, 0x22, 0x25, 0x24, 0x27, 0x26, // 952-959  : analoge merker 1-4
+  0x29, 0x28, 0x2B, 0x2A, 0xFF, 0xFF, 0xFF, 0xFF, // 960-967  : analoge merker 5-8
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 968-975  : analoge merker 9-12
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 976-983  : analoge merker 13-16
+};
+
+/*  
+// VM Mapping for diagnostic, date and time
+const PROGMEM byte VM_MAP_984_1002[] =
+{
+  0xFF,                                           // 984      : Diagnostic bit array
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,             // 985-990  : RTC (YY-MM-DD-hh:mm:ss)
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 991-998  : S7 date time (YYYY-MM-DD-hh:mm:ss)
+  0xFF, 0xFF, 0xFF, 0xFF,                         // 999-1002 : S7 date time (nanoseconds)
+}
+
+// VM Mapping byte 1003 to 1023
+const PROGMEM byte VM_MAP_1003_1023[] =
+{
+  0xFF, 0xFF, 0xFF, 0xFF,                         // 1003-1007
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 1008-1015
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF  // 1016-1023
+}
+*/
 
 TPDU PDU;
 
@@ -145,40 +214,26 @@ int LogoHelper::IntegerAt(int index)
 //***********************************************************************
 LogoClient::LogoClient()
 {
-  ConnType  = PG;
-  Connected = false;
-  LastError = 0;
-  PDULength = 0;
-  OffsetI   = I_0BA6;
-  OffsetF   = F_0BA6;
-  OffsetQ   = Q_0BA6;
-  OffsetM   = M_0BA6;
-  OffsetS   = S_0BA6;
-  OffsetC   = C_0BA6;
-  OffsetAI  = AI_0BA6;
-  OffsetAQ  = AQ_0BA6;
-  OffsetAM  = AM_0BA6;
-  RecvTimeout = TIMEOUT;
-  StreamClient = NULL;
+  ConnType      = PG;
+  Connected     = false;
+  LastError     = 0;
+  PDULength     = 0;
+  PDUHeaderLen  = Size_0BA6;
+  Mapping       = VM_MAP_923_983_0BA6;
+  RecvTimeout   = TIMEOUT;
+  StreamClient  = NULL;
 }
 
 LogoClient::LogoClient(pstream Interface)
 {
-  ConnType  = PG;
-  Connected = false;
-  LastError = 0;
-  PDULength = 0;
-  OffsetI   = I_0BA6;
-  OffsetF   = F_0BA6;
-  OffsetQ   = Q_0BA6;
-  OffsetM   = M_0BA6;
-  OffsetS   = S_0BA6;
-  OffsetC   = C_0BA6;
-  OffsetAI  = AI_0BA6;
-  OffsetAQ  = AQ_0BA6;
-  OffsetAM  = AM_0BA6;
-  RecvTimeout = TIMEOUT;
-  StreamClient = Interface;
+  ConnType      = PG;
+  Connected     = false;
+  LastError     = 0;
+  PDULength     = 0;
+  PDUHeaderLen  = Size_0BA6;
+  Mapping       = VM_MAP_923_983_0BA6;
+  RecvTimeout   = TIMEOUT;
+  StreamClient  = Interface;
 }
 
 LogoClient::~LogoClient()
@@ -248,12 +303,17 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
 
   pbyte Target = pbyte(ptrData);
   size_t Offset = 0;
+	const int WordSize = 1;  // DB1 element has a size of one byte
 
-  // For LOGO 0BA4 to 0BA6 the only compatible memory that we can read is the IO-buffer.
+  // For LOGO 0BA4 to 0BA6 the only compatible information that we can read are inputs, outputs, flags and rtc.
   // We will represented this as V memory, that is seen by all HMI as DB 1.
   if (Area != LogoAreaDB && DBNumber != 1)
     SetLastError(errPGInvalidPDU | errLogoInvalidPDU);
 
+  // Access only allowed between 0 and 1023
+  if (Start < VM_START && Start > VM_END)
+    SetLastError(errPGInvalidPDU | errLogoInvalidPDU);
+    
   size_t Length;
   RecvIOPacket(&Length);
   if (LastError)
@@ -266,21 +326,20 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
   if (ptrData == NULL)
     return SetLastError(0);
 
-  // Mapping 0BA4, 0BA5 or 0BA6 PDU.DATA to 0BA7 VM-adresses
-  TotElements = Amount; // WordSize = 1 (An element has a size of one byte)
+  TotElements = Amount;
 
   // Set buffer to 0
-  SizeRequested = TotElements;
+  SizeRequested = TotElements * WordSize;
   memset(Target+Offset, 0, SizeRequested);
 
-  // Skip if Start before first VM address
-  Address = VM_I_ADDR;
-  if (Start < Address)
+  // Skip if Start points to user defined VM memory
+  if (Start >= VM_USER_AREA && Start < VM_NDEF_AREA1)
   {
-    MaxElements = Address - Start;
+    MaxElements = VM_NDEF_AREA1 - Start;
     NumElements = MaxElements > TotElements ? TotElements : MaxElements;
 
-    SizeRequested = NumElements;
+    Address = Start - VM_USER_AREA;
+    SizeRequested = NumElements * WordSize;
     // no copy
 
     TotElements -= NumElements;
@@ -289,96 +348,67 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
     Offset += SizeRequested;
   }
 
-  // Copy 'input' PDU data to 'input' VM memory
-  Address = VM_I_ADDR+VM_I_SIZE+1;
-  if (Start < Address)
+  // Map 851 to 922 VM memory
+  if (Start >= VM_NDEF_AREA1 && Start < VM_0BA7_AREA)
   {
-    MaxElements = Address - Start;
+    MaxElements = VM_0BA7_AREA - Start;
     NumElements = MaxElements > TotElements ? TotElements : MaxElements;
 
-    SizeRequested = NumElements;
-    memcpy(Target+Offset, &PDU.DATA[OffsetI], SizeRequested);
-
-    TotElements -= NumElements;
-    Start += NumElements;
-
-    Offset += SizeRequested;
-  }
-
-  // Copy 'analoge intput' PDU data to 'analoge intput' VM memory
-  Address = VM_AI_ADDR+VM_AI_SIZE+1;
-  if (Start < Address)
-  {
-    MaxElements = Address - Start;
-    NumElements = MaxElements > TotElements ? TotElements : MaxElements;
-
-    SizeRequested = NumElements;
-    memcpy(Target+Offset, &PDU.DATA[OffsetAI], SizeRequested);
-
-    TotElements -= NumElements;
-    Start += NumElements;
-
-    Offset += SizeRequested;
-  }
-
-  // Copy 'output' PDU data to 'output' VM memory
-  Address = VM_Q_ADDR+VM_Q_SIZE+1;
-  if (Start < Address)
-  {
-    MaxElements = Address - Start;
-    NumElements = MaxElements > TotElements ? TotElements : MaxElements;
-
-    SizeRequested = NumElements;
-    memcpy(Target+Offset, &PDU.DATA[OffsetQ], SizeRequested);
-
-    TotElements -= NumElements;
-    Start += NumElements;
-
-    Offset += SizeRequested;
-  }
-
-  // Copy 'analoge output' PDU data to 'analoge output' VM memory
-  Address = VM_AQ_ADDR+VM_AQ_SIZE+1;
-  if (Start < Address)
-  {
-    MaxElements = Address - Start;
-    NumElements = MaxElements > TotElements ? TotElements : MaxElements;
-
-    SizeRequested = NumElements;
-    memcpy(Target+Offset, &PDU.DATA[OffsetAQ], SizeRequested);
-
-    TotElements -= NumElements;
-    Start += NumElements;
-
-    Offset += SizeRequested;
-  }
-
-  // Copy 'merker' PDU data to 'merker' VM memory
-  Address = VM_M_ADDR+VM_M_SIZE+1;
-  if (Start < Address)
-  {
-    MaxElements = Address - Start;
-    NumElements = MaxElements > TotElements ? TotElements : MaxElements;
-
-    SizeRequested = NumElements;
-    memcpy(Target+Offset, &PDU.DATA[OffsetM], SizeRequested);
-
-    TotElements -= NumElements;
-    Start += NumElements;
-
-    Offset += SizeRequested;
-  }
-
-  // Copy 'analoge merker' PDU data to 'merker' VM memory
-  Address = VM_AM_ADDR+VM_AM_SIZE+1;
-  if (Start < Address)
-  {
-    MaxElements = Address - Start;
-    NumElements = MaxElements > TotElements ? TotElements : MaxElements;
-
-    SizeRequested = NumElements;
-    memcpy(Target+Offset, &PDU.DATA[OffsetAM], SizeRequested);
+    Address = Start - VM_NDEF_AREA1;
+    SizeRequested = NumElements * WordSize;
+    // tbd, no copy yet
     
+    TotElements -= NumElements;
+    Start += NumElements;
+  }
+
+  // Copy PDU data to VM 0BA7 memory
+  if (Start >= VM_0BA7_AREA && Start < VM_DDT_AREA)
+  {
+    MaxElements = VM_DDT_AREA - Start;
+    NumElements = MaxElements > TotElements ? TotElements : MaxElements;
+
+    Address = Start - VM_0BA7_AREA;
+    SizeRequested = NumElements * WordSize;
+    while (SizeRequested-- > 0)
+    {
+      byte val = PDU.DATA[Mapping[Address++]];
+      if (val != 0xFF)
+        Target[Offset++] = val;
+    }
+
+    TotElements -= NumElements;
+    Start += NumElements;
+
+    Offset += SizeRequested;
+  }
+
+  // Copy telemetry data to 'diagnostic, date and time' VM memory
+  if (Start >= VM_DDT_AREA && Start < VM_NDEF_AREA2)
+  {
+    MaxElements = VM_NDEF_AREA2 - Start;
+    NumElements = MaxElements > TotElements ? TotElements : MaxElements;
+
+    Address = Start - VM_DDT_AREA;
+    SizeRequested = NumElements * WordSize;
+    // tbd, no copy yet
+
+    TotElements -= NumElements;
+    Start += NumElements;
+
+    Offset += SizeRequested;
+  }
+
+  // Map 1003 to 1023 VM memory
+  if (Start >= VM_NDEF_AREA2 && Start < VM_END)
+  {
+    MaxElements = VM_END - Start;
+    NumElements = MaxElements > TotElements ? TotElements : MaxElements;
+
+    Address = Start - VM_NDEF_AREA2;
+    SizeRequested = NumElements * WordSize;
+    // tbd, no copy yet
+
     /* last one, we don't need it
     TotElements -= NumElements;
     Start += NumElements;
@@ -400,12 +430,12 @@ int LogoClient::PlcStart()
   int Status;
   GetPlcStatus(&Status);
   if (LastError)
-    return SetLastError(LastError | errLogoFunction);
+    return LastError;
 
-  if (Status != LogoCpuStatusStop)
+  if (Status == LogoCpuStatusStop)
   {
     if (StreamClient->write(LOGO_START, sizeof(LOGO_START)) != sizeof(LOGO_START))
-      return SetLastError(errStreamDataSend | errLogoSendingPDU);
+      return SetLastError(errStreamDataSend);
   
     // Setup the telegram
     memset(&PDU, 0, sizeof(PDU));
@@ -413,7 +443,7 @@ int LogoClient::PlcStart()
     // Get 1 Byte
     RecvPacket(PDU.H, 1); 
     if (LastError)
-      return SetLastError(LastError | errLogoDataRead);
+      return SetLastError(LastError | errLogoFunction);
   
     LastPDUType = PDU.H[0];   // Store PDU Type
     if (LastPDUType != ACK)   // Connection confirmed
@@ -431,12 +461,12 @@ int LogoClient::PlcStop()
   int Status;
   GetPlcStatus(&Status);
   if (LastError)
-    return SetLastError(LastError | errLogoFunction);
+    return LastError;
 
-  if (Status != LogoCpuStatusRun)
+  if (Status == LogoCpuStatusRun)
   {
     if (StreamClient->write(LOGO_STOP, sizeof(LOGO_STOP)) != sizeof(LOGO_STOP))
-      return SetLastError(errStreamDataSend | errLogoSendingPDU);
+      return SetLastError(errStreamDataSend);
   
     // Setup the telegram
     memset(&PDU, 0, sizeof(PDU));
@@ -444,7 +474,7 @@ int LogoClient::PlcStop()
     // Get 1 Byte
     RecvPacket(PDU.H, 1);
     if (LastError)
-      return SetLastError(LastError | errLogoDataRead);
+      return SetLastError(LastError | errLogoFunction);
   
     LastPDUType = PDU.H[0];   // Store PDU Type
     if (LastPDUType != ACK)   // Connection confirmed
@@ -458,11 +488,8 @@ int LogoClient::GetPlcStatus(int *Status)
 {
   *Status = LogoCpuStatusUnknown;
   
-  if (!Connected) // Exit with Error if not connected
-    return SetLastError(errPGConnectionFailed | errLogoInvalidPDU);
-
   if (StreamClient->write(LOGO_MODE, sizeof(LOGO_MODE)) != sizeof(LOGO_MODE))
-    return SetLastError(errStreamDataSend | errLogoSendingPDU);
+    return SetLastError(errStreamDataSend);
 
   memset(&PDU, 0, sizeof(PDU));  // Setup the telegram
   
@@ -484,7 +511,7 @@ int LogoClient::GetPlcStatus(int *Status)
   }
   else
   {
-    return SetLastError(errPGInvalidPDU | errLogoDataRead);
+    return SetLastError(errPGInvalidPDU | errLogoFunction);
   }
 	
   return SetLastError(0);
@@ -504,14 +531,14 @@ int LogoClient::RecvIOPacket(size_t *Size)
   int Status;
   GetPlcStatus(&Status);
   if (LastError)
-    return SetLastError(LastError | errLogoFunction);
+    return SetLastError(LastError);
   
   // Operation mode must be RUN if we use LOGO_GET
   if (Status != LogoCpuStatusRun) // Exit with Error if the LOGO is not in operation mode RUN
-    return SetLastError(errPGInvalidPDU);
+    return SetLastError(errPGInvalidPDU | errLogoFunction);
 
   if (StreamClient->write(LOGO_GET, sizeof(LOGO_GET)) != sizeof(LOGO_GET))
-    return SetLastError(errStreamDataSend | errLogoSendingPDU);
+    return SetLastError(errStreamDataSend);
 
   // Setup the telegram
   memset(&PDU, 0, sizeof(PDU));  
@@ -550,22 +577,27 @@ int LogoClient::RecvIOPacket(size_t *Size)
       case PDU_BUSY:
         // LOGO can not accept a telegram
         return SetLastError(errPGInvalidPDU | errLogoSendingPDU);
-      case PDU_INVALID:
-        // Illegal access
-        return SetLastError(errPGInvalidPDU | errLogoDataWrite);
-      case PDU_ERR:
-        // parity error-, overflow or telegram error
+      case PDU_TIMEOUT:
+        // Resource unavailable, the second cycle of the write operation timed out
         return SetLastError(errPGInvalidPDU | errLogoDataRead);
+      case PDU_INVALID:
+        // Illegal access, read across the border
+        return SetLastError(errPGInvalidPDU | errLogoDataWrite);
+      case PDU_PAR_ERR:
+        // parity error-, overflow or telegram error
+        return SetLastError(errPGInvalidPDU | errLogoInvalidPDU);
       case PDU_UNKNOWN: 
-        // Unknown command
-        return SetLastError(errPGInvalidPDU | errLogoFunction);
+        // Unknown command, this mode is not supported
+        return SetLastError(errPGInvalidPDU | errLogoInvalidPDU);
       case PDU_XOR_ERR:
         // XOR-check incorrect
+        return SetLastError(errPGInvalidPDU | errLogoDataRead);
         break;
       case PDU_SIM_ERR:
-        return SetLastError(errPGInvalidPDU | errLogoInvalidPDU);
+        // Faulty on simulation, RUN is not supported in this mode
+        return SetLastError(errPGInvalidPDU | errLogoDataRead);
       default:
-        return SetLastError(errPGInvalidPDU | errLogoInvalidPDU);
+        return SetLastError(errPGInvalidPDU | errLogoDataRead);
     }
 
   }
@@ -577,9 +609,6 @@ int LogoClient::RecvIOPacket(size_t *Size)
 
 int LogoClient::RecvPacket(byte buf[], size_t Size)
 {
-  if (!Connected) // Exit with Error if not connected
-    return SetLastError(errPGConnectionFailed);
-
 /*
   // If you doesn't need to transfer more than 80 byte (the length of a PDU) you can uncomment the next two lines
   if (Size > MaxPduSize)
@@ -616,9 +645,9 @@ int LogoClient::RecvPacket(byte buf[], size_t Size)
 
     if ((i > 0) && (buf[i-1] == AA))
       // Timeout, but we have an End delimiter
-      return SetLastError(errStreamConnectionReset | errLogoDataRead);
+      return SetLastError(errStreamConnectionReset);
 
-    return SetLastError(errStreamDataRecvTout | errLogoDataRead);
+    return SetLastError(errStreamDataRecvTout);
   }
 
   return SetLastError(0);
@@ -638,19 +667,29 @@ int LogoClient::LogoConnect()
     return SetLastError(errStreamConnectionFailed);
 
   if (StreamClient->write(LOGO_CR, sizeof(LOGO_CR)) != sizeof(LOGO_CR))
-    return SetLastError(errStreamDataSend | errLogoSendingPDU);
+    return SetLastError(errStreamDataSend);
 
   // Setup the telegram
   memset(&PDU, 0, sizeof(PDU));
   
-  // Get 5 bytes
-  RecvPacket(PDU.H, 5);
-  if (LastError)
-    return SetLastError(LastError | errLogoDataRead);
+  // Get 4 bytes
+  RecvPacket(PDU.H, 4);
+  if (LastError == errStreamDataRecvTout)   // 0BA4 doesn't support a connection request
+  {
+    if (StreamClient->write(LOGO_REVISION, sizeof(LOGO_REVISION)) != sizeof(LOGO_REVISION))
+      return SetLastError(errStreamDataSend);
+
+    // Get 5 bytes
+    RecvPacket(PDU.H, 5);
+    if (LastError)
+      return SetLastError(errPGConnectionFailed);
+  }  
+  else if (LastError)
+    return SetLastError(errPGConnectionFailed);
 
   LastPDUType = PDU.H[0];   // Store PDU Type
   if (LastPDUType != ACK)   // Connection confirm
-    return SetLastError(errPGConnectionFailed | errLogoFunction);
+    return SetLastError(errPGConnectionFailed);
 
   return SetLastError(0);
 }
@@ -662,76 +701,57 @@ int LogoClient::NegotiatePduLength()
   
   PDULength = 0;
 
-  if (!Connected) // Exit with Error if not connected
-    return SetLastError(errPGConnectionFailed);
-
-  int Status;
-  GetPlcStatus(&Status);
-  if (LastError)
-    return SetLastError(LastError | errLogoFunction);
-  
-  // Operation mode must be RUN if we use LOGO_GET
-  if (Status != LogoCpuStatusRun) // Exit with Error if the LOGO is not in operation mode RUN
-    return SetLastError(errPGInvalidPDU);
-
-
-  if (StreamClient->write(LOGO_GET, sizeof(LOGO_GET)) != sizeof(LOGO_GET))
-    return SetLastError(errStreamDataSend | errLogoSendingPDU);
+  if (StreamClient->write(LOGO_REVISION, sizeof(LOGO_REVISION)) != sizeof(LOGO_REVISION))
+    return SetLastError(errStreamDataSend);
   
   // Setup the telegram
   memset(&PDU, 0, sizeof(PDU));
   
-  // Get 26 bytes
-  RecvPacket(PDU.H, Size_0BA4);
+  // Get 5 bytes
+  RecvPacket(PDU.H, 5);
   if (LastError)
     return SetLastError(LastError | errLogoDataRead);
 
   LastPDUType = PDU.H[0];   // Store PDU Type
   if (LastPDUType != ACK)   // Connection confirm
-    return SetLastError(errPGNegotiatingPDU | errLogoFunction);
+    return SetLastError(errPGNegotiatingPDU);
 
-  // Get next bytes and count number of received bytes
-  PDULength = Size_0BA4;
-  while (StreamClient->available() > 0)
+  byte revision = 0;        // Revision Byte
+  if (PDU.H[3] == 0xFF)     // 0BA6 and response a dword address
   {
-    if (StreamClient->read() > 0)
-      PDULength++;
-  }
-
-  if (PDULength == PduSize0BA4 || PDULength == PduSize0BA5)
-  {
-    OffsetI   = I_0BA4;
-    OffsetF   = 0;
-    OffsetQ   = Q_0BA4;
-    OffsetM   = M_0BA4;
-    OffsetS   = S_0BA4;
-    OffsetC   = C_0BA4;
-    OffsetAI  = AI_0BA4;
-    OffsetAQ  = AQ_0BA4;
-    OffsetAM  = AM_0BA4;
-  }
-  else if (PDULength == PduSize0BA6)
-  {
-    OffsetI   = I_0BA6;
-    OffsetF   = F_0BA6;
-    OffsetQ   = Q_0BA6;
-    OffsetM   = M_0BA6;
-    OffsetS   = S_0BA6;
-    OffsetC   = C_0BA6;
-    OffsetAI  = AI_0BA6;
-    OffsetAQ  = AQ_0BA6;
-    OffsetAM  = AM_0BA6;
-  }
-  else if (PDULength > MaxPduSize)
-  {
-    PDULength = 0;
-    return SetLastError(errPGNegotiatingPDU | errBufferTooSmall);
-  }
+    // Get 2 more bytes
+    RecvPacket(&PDU.H[5], 2);
+    if (LastError)
+      return SetLastError(LastError | errLogoDataRead);
+    revision = PDU.H[6];
+  } 
   else
-  {
-    PDULength = 0;
-    return SetLastError(errPGNegotiatingPDU | errLogoDataRead);
-  }
+    revision = PDU.H[4];
+
+  switch (revision) {
+    case 0x40:
+      // 0BA4
+      PDULength = PduSize0BA4;
+      PDUHeaderLen = Size_0BA4;
+      Mapping = VM_MAP_923_983_0BA4;
+      break;
+    case 0x42:
+      // 0BA5
+      PDULength = PduSize0BA5;
+      PDUHeaderLen = Size_0BA5;
+      Mapping = VM_MAP_923_983_0BA4;
+      break;
+    case 0x43:
+    case 0x44:
+      // 0BA6
+      PDULength = PduSize0BA6;
+      PDUHeaderLen = Size_0BA6;
+      Mapping = VM_MAP_923_983_0BA6;
+      break;
+    default:
+      // 0BAx
+      return SetLastError(errPGNegotiatingPDU);
+  } 
 
   return SetLastError(0);
 }

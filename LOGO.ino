@@ -1,11 +1,11 @@
-#include <SoftwareSerial.h>
+#include <CustomSoftwareSerial.h>
 #include "LogoPG.h"
 
 const byte rxPin = 2;
 const byte txPin = 3;
 
 // set up the SoftwareSerial object
-SoftwareSerial LogoSerial(rxPin, txPin);
+CustomSoftwareSerial LogoSerial(rxPin, txPin);
 // set up the LogoClient object
 LogoClient LOGO(&LogoSerial);
 
@@ -17,7 +17,7 @@ void setup() {
   }
 
   // Start the SoftwareSerial Library
-  LogoSerial.begin(9600);
+  LogoSerial.begin(9600, CSERIAL_8E1);
   // Setup Time, 1s.
   delay(1000); 
   Serial.println("");
@@ -37,6 +37,8 @@ void loop()
       delay(2000);
   }
   
+  delay(3000);
+
   Result = LOGO.GetPlcStatus(&Status);
   if (Result == 0)
   {
@@ -48,13 +50,11 @@ void loop()
     else
     {
       Serial.println("STARTING THE PROG");
-      LOGO.PlcStart();  
+      LOGO.PlcStart(); 
     }
   }
   else
     CheckError(Result);
-    
-  delay(3000);  
 }
 
 bool Connect()
@@ -68,7 +68,9 @@ bool Connect()
     Serial.println(LOGO.GetPDULength());
   }
   else
+  {
     Serial.println("Connection error!");
+  }
   return Result == 0;
 }
 
@@ -84,4 +86,5 @@ void CheckError(int ErrNo)
     LOGO.Disconnect(); 
   }
 }
+
 
