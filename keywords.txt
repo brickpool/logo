@@ -14,4 +14,3 @@ GetPDULength	KEYWORD2
 PlcStart	KEYWORD2
 PlcStop	KEYWORD2
 GetPlcStatus	KEYWORD2
-ErrorText	KEYWORD2
