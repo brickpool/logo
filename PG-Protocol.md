@@ -26,9 +26,11 @@ Refer to the following publications for details about the related communications
 Refer to the following publication for details about the LOGO address layout:
   * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") decodes most of the functions and the 0BA5 data address space (@post 42)
 
-Refer to the following publication for details about the RS232 specifications:
-  * [https://www.lammertbies.nl](https://www.lammertbies.nl/comm/info/RS-232_specs.html "RS232 Specifications and standard") by Lammert Bies
-  * 
+Refer to the following publication for details about the RS232 specifications and use cases:
+ * [RS232 Specifications and standard](https://www.lammertbies.nl/comm/info/RS-232_specs.html) by Lammert Bies
+ * [LOGO! Interface](https://www.elektormagazine.com/magazine/elektor-199907/34458) by W. Kriegmaier Elektor 7/1999 page 55
+ * [Get power out of PC RS-232 port](http://www.epanorama.net/circuits/rspower.html) by Tomi Engdahl
+ * [RS-232 vs. TTL Serial Communication](https://www.sparkfun.com/tutorials/215) by SparkFun
 
 # Chapter 1 - PG Protocol
 
