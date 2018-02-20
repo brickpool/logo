@@ -5,4 +5,4 @@ The library is based on the implementation of Settimino http://settimino.sourcef
 
 Only LOGO 0BA4 to 0BA6 are supported via the serial programming interface.
 
-Rec B, Februar 2018
+Rev. B, Februar 2018
