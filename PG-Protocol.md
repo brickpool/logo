@@ -35,11 +35,11 @@ Refer to the following publication for details about the RS232 specifications:
 ## Introducing PG Protocol
 The common language used by all LOGO! devices is the PG protocol. This protocol defines a message structure that controllers will recognize and use, regardless of the type of networks over which they communicate.
 
-Standard Interface cable for LOGO! 0BA0 to 0BA6 controllers use an [5-wire RS–232C](https://en.wikipedia.org/wiki/RS-232#3-wire_and_5-wire_RS-232) compatible serial interfacethat defines connector pinouts, cabling, signal levels, transmission baud rates, and parity checking.
+Standard Interface cable for LOGO! 0BA0 to 0BA6 controllers use an [5-wire RSâ€“232C](https://en.wikipedia.org/wiki/RS-232#3-wire_and_5-wire_RS-232) compatible serial interfacethat defines connector pinouts, cabling, signal levels, transmission baud rates, and parity checking.
 
-The Siemens Software LOGO! Comfort communicate using a _master–slave technique_, in which only a personal computer called _DTE_ (data terminal equipment) can initiate transactions (called _queries_). The LOGO! device called _DCE_ (data communication equipment) respond by supplying the requested data to the DTE, or by taking the action requested in the query.
+The Siemens Software LOGO! Comfort communicate using a _masterâ€“slave technique_, in which only a personal computer called _DTE_ (data terminal equipment) can initiate transactions (called _queries_). The LOGO! device called _DCE_ (data communication equipment) respond by supplying the requested data to the DTE, or by taking the action requested in the query.
 
-### The Query–Response Cycle
+### The Queryâ€“Response Cycle
 
 Direction | Query message from DTE | Response message from DCE
 --- | --- | ---
@@ -48,7 +48,7 @@ LOGO->PC | | Confimation \[data\]
 PC->LOGO | Command \[data\] | 
 LOGO->PC | | Confimation \[data\]
 ... | ... | ...
->Figure DTE-DCE Query–Response Cycle
+>Figure DTE-DCE Queryâ€“Response Cycle
 
 __The Query__: The command code in the query tells the LOGO device what kind of action to perform. The data bytes contain any additional information that the LOGO will need to perform the function. 
 
@@ -58,7 +58,7 @@ __The Response__: If the LOGO makes a normal response, the first byte in the res
 
 ## The Serial Transmission Mode
 
-When the PC communicate to the LOGO controller with using the PG protocol, each 8–bit byte in a message contains hexadecimal characters. The main advantage of using hexadecimal characters is that its greater character density allows better data throughput than for example ASCII for the same baud rate. Each message must be transmitted in a continuous stream. 
+When the PC communicate to the LOGO controller with using the PG protocol, each 8â€“bit byte in a message contains hexadecimal characters. The main advantage of using hexadecimal characters is that its greater character density allows better data throughput than for example ASCII for the same baud rate. Each message must be transmitted in a continuous stream. 
 
 The specification for each communication via the PG Interface:
 
@@ -85,7 +85,7 @@ The specification for each communication via the PG Interface:
 - DTS (or RTS) set to high (>= 5V)
 
 ### Coding System:
-- 8–bit binary, hexadecimal 0–9, A–F
+- 8â€“bit binary, hexadecimal 0â€“9, Aâ€“F
 
 ## PG Message Frame
 In either of the two transmission modes (query or request), all datas are placed by the transmitting device into a message that has a known beginning and ending point. This allows receiving devices to begin at the start of the message, read the address portion and determine which data is addressed, and to know when the message is completed. Partial messages can be detected and errors can be set as a result.
@@ -108,7 +108,7 @@ Command Code | Optional
 >Figure Command Message Frame
 
 ### Confirmation Response
-When the LOGO responds to the DTE, it uses the confirmation code to indicate either a normal (error–free) response or that some kind of error occurred (called an exception response). For a normal response, the LOGO simply confirm the message with an acknowledgement. For an exception response, the LOGO returns an negative-acknowledgement with an exception code.
+When the LOGO responds to the DTE, it uses the confirmation code to indicate either a normal (errorâ€“free) response or that some kind of error occurred (called an exception response). For a normal response, the LOGO simply confirm the message with an acknowledgement. For an exception response, the LOGO returns an negative-acknowledgement with an exception code.
 
 In addition to the error confirmation code for an exception response, the LOGO places a unique code into the data field of the response message. This tells the DTE what kind of error occurred, or the reason for the exception. The DTE application program has the responsibility of handling exception responses. Typical processes are to post subsequent retries of the message, to try diagnostic messages to the LOGO, and to notify the operator.
 
@@ -124,7 +124,7 @@ The function field can be nonexistent (length of zero) in certain kinds of messa
 If the function code field exists, then this consists of two bytes with same value. Valid function codes are in the range of `11 11` to `18 18` hexadecimal. Functions that are inserted into a message without addressing something in the memory use a terminator (called end delimiter) `AA`. The allowable bytes transmitted for the content are hexadecimal `00` to `FF` (including `AA`).
 
 Command | Function | Content | End
---- | --- | ---
+--- | --- | --- | ---
 1 byte | 2 bytes | n Bytes | 1 byte
 Command Code | Function Code | Optional | End Delimiter
 >Figure Function Message Frame
@@ -133,7 +133,7 @@ Command Code | Function Code | Optional | End Delimiter
 The address field of a message frame contains two bytes (0BA4, 0BA5) or four bytes (0BA6). Valid device addresses or memory addresses depends on the LOGO controller. A DTE addresses the memory by placing the address in the address field of the message. When the LOGO sends its response, it echos the address in the address field of the response to let the DTE know which address is requested.
 
 Command | Function | Address | Data
---- | --- | --- | --- | ---
+--- | --- | --- | ---
 1 byte | 2 bytes | 2 or 4 bytes | n Bytes
 Command Code | Function Code | Address | Optional
 >Figure Address Message Frame
@@ -161,7 +161,7 @@ Start | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | Par | Stop
 The PG serial communication use two kinds of error checking. Parity checking (even) is applied to each character. Frame checking (XOR) is applied to some kind of messages. Both the character check and message frame check are generated by the device and applied to the message contents before transmission. The receiving device checks each character and the entire message frame during the reception.
 
 The DTE is configured by the user to wait for a predetermined timeout interval before aborting the transaction. This interval is set to be long enough for any
-LOGO to respond normally (in general between 75 and 600 ms). If the LOGO detects a transmission error, the message will be acted upon with an exception response. When the timeout will expire the DTE’s program has to handle these state.
+LOGO to respond normally (in general between 75 and 600 ms). If the LOGO detects a transmission error, the message will be acted upon with an exception response. When the timeout will expire the DTEâ€™s program has to handle these state.
 
 ### Parity Checking
 Users must configure controllers for Even Parity checking. Since Even Parity is specified, the quantity of 1 bits will be counted in the data portion over all eight data bits. The parity bit will then be set to a 0 or 1 to result in an Even total of 1 bits. 
@@ -172,7 +172,7 @@ For example, these eight data bits are contained:
 1100 0101
 ```
 
-The total quantity of 1 bits in the frame is four. If Even Parity is used, the frame’s parity bit will be a 0, making the total quantity of 1 bits still an even number (four). If Odd Parity is used, the parity bit will be a 1, making an odd quantity (five).
+The total quantity of 1 bits in the frame is four. If Even Parity is used, the frameâ€™s parity bit will be a 0, making the total quantity of 1 bits still an even number (four). If Odd Parity is used, the parity bit will be a 1, making an odd quantity (five).
 
 When the message is transmitted, the parity bit is calculated and applied to the frame of each byte. The receiving device counts the quantity of 1 bits and
 sets an error if they are not the same as configured for that device (DTE and DCE must be configured to use the even parity check method).
@@ -180,9 +180,9 @@ sets an error if they are not the same as configured for that device (DTE and DC
 Note that parity checking can only detect an error if an odd number of bits are picked up or dropped in a character frame during transmission. 
 
 ### LRC/CRC/XOR Checking
-For read block commands `02`, the LOGO response messages include an error–checking field that is based on a Cyclical Redundancy Check (or CRC variant) method. The CRC field checks the contents of the entire data. It is applied regardless of any parity check method used for the individual characters of the message. 
+For read block commands `02`, the LOGO response messages include an errorâ€“checking field that is based on a Cyclical Redundancy Check (or CRC variant) method. The CRC field checks the contents of the entire data. It is applied regardless of any parity check method used for the individual characters of the message. 
 
-The CRC field is one byte, containing an 8–bit binary value. The CRC value is calculated by the transmitting device, which appends the CRC to the message. The receiving DTE program must calculate the CRC during receipt of the message, and compares the calculated value to the actual value it received in the CRC field. If the two values are not equal, an error results.
+The CRC field is one byte, containing an 8â€“bit binary value. The CRC value is calculated by the transmitting device, which appends the CRC to the message. The receiving DTE program must calculate the CRC during receipt of the message, and compares the calculated value to the actual value it received in the CRC field. If the two values are not equal, an error results.
 
 >__Note:__ The application of CRC in response message frames are not confirmed yet.
 
@@ -197,7 +197,7 @@ Unless specified otherwise, numerical values (such as addresses, codes, or data)
 ### Data Addresses in PG Messages
 All data addresses in PG messages are referenced to zero. The first occurrence of a data item is addressed as item number zero. For example:
 
-- The input known as _I1_ in a the LOGO address space is addressed as 00 in the data address field of a PG message.
+- The input known as __I1__ in a the LOGO address space is addressed as 00 in the data address field of a PG message.
 - Analog value 126 decimal is defined as 007E hex.
 
 ### Field Contents in PG Messages
@@ -205,7 +205,7 @@ The next two _Figure_ shows an example of a DTE query message and a LOGO normal 
 
 The DTE query is a data monitoring request to the LOGO device. The message requests a data block for monitoring. 
 
-Field Name | Code (hex) | Meaning
+Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 command | `55` | control
 function | `13 13` | data monitoring request
@@ -215,7 +215,7 @@ trailer | `aa` | end delimiter
 
 The LOGO response with an acknowledgement, indicating this is a normal response. The _byte count_ field specifies how many bytes are being returned.
 
-Field Name | Code (hex) | Meaning
+Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 confirmation | `06` | acknowledgement
 command | `55` | control
@@ -233,20 +233,23 @@ The listing below shows the command codes supported by LOGO. Codes are listed in
 _Y_ indicates that the command is supported. _N_ indicates that it is not supported.
 
 Code | Name | 0BA4 | 0BA5 | 0BA6
+--- | --- | --- | --- | ---
 `02` | Write Byte Command | Y | Y | Y
 `02` | Read Byte Command | Y | Y | Y
 `04` | Write Data Block Command | Y | Y | Y
 `05` | Read Data Block Command | Y | Y | Y
-`06` | Confirm and Forward | N | N | Y \1)
-`21` | Connection Request | N | \2) | Y
+`06` | Confirm and Forward | N | N | Y 1)
+`21` | Connection Request | N | 2) | Y
 `55` | Control Command | Y | Y | Y
 
 >__Notes:__
->\1) Fast Monitoring Function is supported by LOGO 0BA6 only
->\2) Function support is not verified yet
+>
+>1) Fast Monitoring Function is supported by LOGO 0BA6 only
+>
+>2) Function support is not verified yet
 
 
-## Hello Request
+## Hello Request `21`
 Send to LOGO a _hello request_ `21`:
 
 LOGO | command | request | response | description
@@ -266,15 +269,18 @@ The listing below shows the function codes supported by LOGO. Codes are listed i
 _Y_ indicates that the function is supported. _N_ indicates that it is not supported.
 
 Code | Name | 0BA4 | 0BA5 | 0BA6
-`11` | Data Response Function \1) | Y | Y | Y
+--- | --- | --- | --- | ---
+`11``11` | Data Response Function 1) | Y | Y | Y
 `12` | Stop Operating Function | Y | Y | Y
-`13` | Data Monitoring Function \2) | Y | Y | Y
+`13` | Data Monitoring Function 2) | Y | Y | Y
 `17` | Operation Mode | Y | Y | Y
 `18` | Start Operating Function | Y | Y | Y
 
 >__Notes:__
->\1) LOGO Response of function `13`
->\2) DTE Query for function `11`
+>
+>1) LOGO Response of function `13`
+>
+>2) DTE Query for function `11`
 
 ## Data Monitoring `55 11` and `55 13`
 
@@ -349,6 +355,7 @@ The listing below shows the confirmation response code used by LOGO. Codes are l
 _Y_ indicates that the confirmation is supported. _N_ indicates that it is not supported.
 
 Code | Name | 0BA4 | 0BA5 | 0BA6
+--- | --- | --- | --- | ---
 `06` | Acknowledge Response | Y | Y | Y
 `15` | Exception Responses | Y | Y | Y
 
@@ -360,7 +367,6 @@ Example:
 :06:42
 ```
 >Figure Operation mode STOP
-
 
 ## Exception Responses `15`
 LOGO confirmation code `15` (NOK), followed by an exception code (1 byte). The exception code can be a transport or protocol error.
@@ -400,10 +406,9 @@ read byte | `02 1f 02` | `06 03  00 ff 1f 02  43` | connection established to 43
 >Figure _Read Revision_
 
 ## Read Clock
-
 Read commands for RTC:
 1. Device status inquiry
-2. Write byte `00` to Address 00 FF 44 00 to initialize reading
+2. Write byte `00` to Address \[00 FF\] 44 00 to initialize reading
 3. Read byte(s)
   + _day_ at Address \[00 FF\] FB 00
   + _month_ at address \[00 FF\] FB 01
@@ -467,7 +472,6 @@ Example Read Clock LOGO 0BA6:
 
 
 ## Write clock
-
 Write commands for RTC:
 1. Device status inquiry
 2. Write byte(s)
