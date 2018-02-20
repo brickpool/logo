@@ -1,5 +1,5 @@
 # LOGO! PG Protocol Reference Guide
-Rev. Ab
+Rev. B
 
 February 2018
 
@@ -8,20 +8,27 @@ This guide is written for persons who will communicate with a Siemens (tm) LOGO!
 
 Siemens and LOGO! are registered trademarks of Siemens AG.
 
-## Related Publications
+## Used and Related Publications
+This reference guide cite and uses passages of text from the following documentation:
+  * [Modicon Modbus Protocol Reference Guide](modbus.org/docs/PI_MBUS_300.pdf) published by Modbus Organization, Inc.
+
 Refer to the following publication for details about well known Monitoring commands:
   * SNATAX @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") data monitoring functions (0BA6)
-  * cacalderon @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") monitoring commands (0BA5) and PC cable pinout
+  * cacalderon @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") data monitoring functions (0BA5) and LOGO DE-9 cable pinout
   * ask @ [https://support.industry.siemens.com](https://support.industry.siemens.com/tf/ww/de/thread/posts/21314/?page=0&pageSize=10 "Logo! Datenlogger") data monitoring phyton script (0BA4)
   * Superbrudi @ [https://support.industry.siemens.com](https://support.industry.siemens.com/tf/ww/de/thread/posts/52023/?page=0&pageSize=10 "Excel Logo Logger Overview") data monitoring excel VBA script (0BA5 and 0BA6)
   * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") low latency data monitoring (@post 29)
 
-Refer to the following publications for details about the related communications for Clock/RTC, Passwort control functions:
+Refer to the following publications for details about the related communications for Clock/RTC, Password control functions:
   * chengrui @ [http://www.ad.siemens.com.cn](http://www.ad.siemens.com.cn/club/bbs/post.aspx?a_id=637887&b_id=3 "Siemens s7-200 and LOGO communication") Clock control function
   * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Password control function (@post 23)
 
 Refer to the following publication for details about the LOGO address layout:
   * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") decodes most of the functions and the 0BA5 data address space (@post 42)
+
+Refer to the following publication for details about the RS232 specifications:
+  * [https://www.lammertbies.nl](https://www.lammertbies.nl/comm/info/RS-232_specs.html "RS232 Specifications and standard") by Lammert Bies
+  * 
 
 # Chapter 1 - PG Protocol
 
@@ -33,15 +40,25 @@ Standard Interface cable for LOGO! 0BA0 to 0BA6 controllers use an [5-wire RS–23
 The Siemens Software LOGO! Comfort communicate using a _master–slave technique_, in which only a personal computer called _DTE_ (data terminal equipment) can initiate transactions (called _queries_). The LOGO! device called _DCE_ (data communication equipment) respond by supplying the requested data to the DTE, or by taking the action requested in the query.
 
 ### The Query–Response Cycle
-__The Query__: The function code in the query tells the LOGO device what kind of action to perform. The data bytes contain any additional information thatthe LOGO will need to perform the function. 
 
-For example, function code `05` will query the LOGO to read a memory block and respond the content. The data field must contain the information telling the LOGO which adress to start at and how many bytes to read.
+Direction | Query message from DTE | Response message from DCE
+--- | --- | ---
+PC->LOGO | Command \[data\] | 
+LOGO->PC | | Confimation \[data\]
+PC->LOGO | Command \[data\] | 
+LOGO->PC | | Confimation \[data\]
+... | ... | ...
+>Figure DTE-DCE Query–Response Cycle
 
-__The Response__: If the LOGO makes a normal response, the first byte in the response is an acknowledgement of the query. The acknowledge code allows the PC to confirm that the message contents are valid. The following data bytes contain the data collected by the LOGO, such a value or status. If an error occurs, the LOGO response is an error response, followed by on byte, which contain a exception code that describes the error.
+__The Query__: The command code in the query tells the LOGO device what kind of action to perform. The data bytes contain any additional information that the LOGO will need to perform the function. 
+
+For example, command code `05` will query the LOGO to read a memory block and respond the content. The data field must contain the information telling the LOGO which adress to start at and how many bytes to read.
+
+__The Response__: If the LOGO makes a normal response, the first byte in the response contains an positive confirmation code. The confirmation code allows the DTE to check that the message contents are valid. The following data bytes contain the data collected by the LOGO, such a value or status. If an error occurs, the LOGO response is an error response, followed by on byte, which contain a exception code that describes the error.
 
 ## The Serial Transmission Mode
 
-When the PC communicate to the LOGO controller with using the PG mode, each 8–bit byte in a message contains hexadecimal characters. The main advantage of this PG mode is that its greater character density allows better data throughput than for example ASCII for the same baud rate. Each message must be transmitted in a continuous stream. 
+When the PC communicate to the LOGO controller with using the PG protocol, each 8–bit byte in a message contains hexadecimal characters. The main advantage of using hexadecimal characters is that its greater character density allows better data throughput than for example ASCII for the same baud rate. Each message must be transmitted in a continuous stream. 
 
 The specification for each communication via the PG Interface:
 
@@ -70,28 +87,63 @@ The specification for each communication via the PG Interface:
 ### Coding System:
 - 8–bit binary, hexadecimal 0–9, A–F
 
-## PG Message Framing
-All functions or commands are packed into a message by the sending device, which have a known structure or a defined end character (called _end delimiter_).
+## PG Message Frame
+In either of the two transmission modes (query or request), all datas are placed by the transmitting device into a message that has a known beginning and ending point. This allows receiving devices to begin at the start of the message, read the address portion and determine which data is addressed, and to know when the message is completed. Partial messages can be detected and errors can be set as a result.
+
+Start | Content
+--- | ---
+1 byte | n Bytes
+Query/Response | Optional
+>Figure Message Frame
+
+### Command Query
+All commands are packed into a message by the DTE sending device, which have a known structure. Valid command codes are in the range of `01` to `55` hexadecimal. Some of these codes apply to all LOGO controllers, while some codes apply only to certain models. Current codes are described in Chapter 2.
+
+When a message is sent from a DTE to a LOGO device the command code field tells the LOGO what kind of action to perform. Examples are to read the RUN/STOP operation mode; to read the data contents; to read the diagnostic status of the LOGO; to write some designated data; or to allow loading, recording, or verifying the program within the LOGO. 
+
+Start | Content
+--- | --- 
+1 byte | n Bytes
+Command Code | Optional
+>Figure Command Message Frame
+
+### Confirmation Response
+When the LOGO responds to the DTE, it uses the confirmation code to indicate either a normal (error–free) response or that some kind of error occurred (called an exception response). For a normal response, the LOGO simply confirm the message with an acknowledgement. For an exception response, the LOGO returns an negative-acknowledgement with an exception code.
+
+In addition to the error confirmation code for an exception response, the LOGO places a unique code into the data field of the response message. This tells the DTE what kind of error occurred, or the reason for the exception. The DTE application program has the responsibility of handling exception responses. Typical processes are to post subsequent retries of the message, to try diagnostic messages to the LOGO, and to notify the operator.
+
+Start | Content
+--- | ---
+1 byte | n bytes
+Confirmation Code | Optional
+>Figure Confirmation Message Frame
 
 ### How the Function Field is Handled
-The function code field of a message frame contains eight bits. Valid codes are in the range of `01` to `55` hexadecimal. Some of these codes apply to all LOGO controllers, while some codes apply only to certain models. Current codes are described in Chapter 2.
+The function field can be nonexistent (length of zero) in certain kinds of messages. For example, in a request from the DTE to the LOGO to respond with his serial no (function code `21` hexadecimal), the LOGO does not require any additional information. The command code alone specifies the action.
 
-When a message is sent from a DTE to a LOGO device the function code field tells the LOGO what kind of action to perform. Examples are to read the RUN/STOP operation mode; to read the data contents; to read the diagnostic status of the LOGO; to write some designated data; or to allow loading, recording, or verifying the program within the LOGO. 
+If the function code field exists, then this consists of two bytes with same value. Valid function codes are in the range of `11 11` to `18 18` hexadecimal. Functions that are inserted into a message without addressing something in the memory use a terminator (called end delimiter) `AA`. The allowable bytes transmitted for the content are hexadecimal `00` to `FF` (including `AA`).
 
-When the LOGO responds to the DTE, it uses the function code field to indicate either a normal (error–free) response orthat some kind of error occurred (called an exception response). For a normal response, the LOGO simply confirm the message with an acknowledge function code. For an exception response, the LOGO returns an error code.
+Command | Function | Content | End
+--- | --- | ---
+1 byte | 2 bytes | n Bytes | 1 byte
+Command Code | Function Code | Optional | End Delimiter
+>Figure Function Message Frame
 
-In addition to the error function code for an exception response, the LOGO places a unique code into the data field of the response message. This tells the DTE what kind of error occurred, or the reason for the exception. The DTE application program has the responsibility of handling exception responses. Typical processes are to post subsequent retries of the message, to try diagnostic messages to the LOGO, and to notify the operator.
+### How the Address Field is Handled
+The address field of a message frame contains two bytes (0BA4, 0BA5) or four bytes (0BA6). Valid device addresses or memory addresses depends on the LOGO controller. A DTE addresses the memory by placing the address in the address field of the message. When the LOGO sends its response, it echos the address in the address field of the response to let the DTE know which address is requested.
+
+Command | Function | Address | Data
+--- | --- | --- | --- | ---
+1 byte | 2 bytes | 2 or 4 bytes | n Bytes
+Command Code | Function Code | Address | Optional
+>Figure Address Message Frame
 
 ### Contents of the Data Field
-The data field is constructed using sets of two hexadecimal digits, in the range of `00` to `FF` hexadecimal.
+The data field of messages sent from a DTE to the LOGO devices contains additional information which the LOGO must use to take the action defined by the function code. The data field is constructed using sets of two hexadecimal digits, in the range of `00` to `FF` hexadecimal.
 
-The data field of messages sent from a DTE to the LOGO devices contains additional information which the LOGO must use to take the action defined by the function code.
-
-For example, if the DTE requests the LOGO to read a group of data (function code `05`), the data field specifies the starting address and how many bytes are to be read. If the DTE writes to a group of data to the LOGO (function code 04), the data field specifies the starting adress, the count of data bytes to follow in the data field, and the data to be written into the registers. 
+For example, if the DTE requests the LOGO to read a group of data (function code `05`), the data field specifies the starting address and how many bytes are to be read. If the DTE writes to a group of data to the LOGO (function code `04`), the data field specifies the starting adress, the count of data bytes to follow in the data field, and the data to be written into the registers. 
 
 If no error occurs, the data field of a response from the LOGO to the DTE contains the data requested. If an error occurs, the field contains an exception code that the PDE application can use to determine the next action to be taken.
-
-The data field can be nonexistent (length of zero) in certain kinds of messages. For example, in a request from the DTE to the LOGO to respond with his serial no (function code `21` hexadecimal), the LOGO does not require any additional information. The function code alone specifies the action.
 
 ### How Characters are Transmitted Serially
 When messages are transmitted via the PG Interface, each byte is sent in this order (left to right):
@@ -105,9 +157,39 @@ Start | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | Par | Stop
 ```
 >Figure Bit Order
 
-# Chapter 2 - Data and Control Functions
+## Error Checking Methods
+The PG serial communication use two kinds of error checking. Parity checking (even) is applied to each character. Frame checking (XOR) is applied to some kind of messages. Both the character check and message frame check are generated by the device and applied to the message contents before transmission. The receiving device checks each character and the entire message frame during the reception.
 
-## Function Formats
+The DTE is configured by the user to wait for a predetermined timeout interval before aborting the transaction. This interval is set to be long enough for any
+LOGO to respond normally (in general between 75 and 600 ms). If the LOGO detects a transmission error, the message will be acted upon with an exception response. When the timeout will expire the DTE’s program has to handle these state.
+
+### Parity Checking
+Users must configure controllers for Even Parity checking. Since Even Parity is specified, the quantity of 1 bits will be counted in the data portion over all eight data bits. The parity bit will then be set to a 0 or 1 to result in an Even total of 1 bits. 
+
+For example, these eight data bits are contained:
+
+```
+1100 0101
+```
+
+The total quantity of 1 bits in the frame is four. If Even Parity is used, the frame’s parity bit will be a 0, making the total quantity of 1 bits still an even number (four). If Odd Parity is used, the parity bit will be a 1, making an odd quantity (five).
+
+When the message is transmitted, the parity bit is calculated and applied to the frame of each byte. The receiving device counts the quantity of 1 bits and
+sets an error if they are not the same as configured for that device (DTE and DCE must be configured to use the even parity check method).
+
+Note that parity checking can only detect an error if an odd number of bits are picked up or dropped in a character frame during transmission. 
+
+### LRC/CRC/XOR Checking
+For read block commands `02`, the LOGO response messages include an error–checking field that is based on a Cyclical Redundancy Check (or CRC variant) method. The CRC field checks the contents of the entire data. It is applied regardless of any parity check method used for the individual characters of the message. 
+
+The CRC field is one byte, containing an 8–bit binary value. The CRC value is calculated by the transmitting device, which appends the CRC to the message. The receiving DTE program must calculate the CRC during receipt of the message, and compares the calculated value to the actual value it received in the CRC field. If the two values are not equal, an error results.
+
+>__Note:__ The application of CRC in response message frames are not confirmed yet.
+
+
+# Chapter 2 - Data and Control Commands
+
+## Command Formats
 
 ### How Numerical Values are Expressed
 Unless specified otherwise, numerical values (such as addresses, codes, or data) are expressed as hexadecimal values in the text and in the message fields of the figures. 
@@ -115,7 +197,7 @@ Unless specified otherwise, numerical values (such as addresses, codes, or data)
 ### Data Addresses in PG Messages
 All data addresses in PG messages are referenced to zero. The first occurrence of a data item is addressed as item number zero. For example:
 
-- The input known as _I1_ in a the LOGO adress space is addressed as 00 in the data address field of a PG message.
+- The input known as _I1_ in a the LOGO address space is addressed as 00 in the data address field of a PG message.
 - Analog value 126 decimal is defined as 007E hex.
 
 ### Field Contents in PG Messages
@@ -125,19 +207,19 @@ The DTE query is a data monitoring request to the LOGO device. The message reque
 
 Field Name | Code (hex) | Meaning
 --- | --- | ---
-function | `55` | control function
-sub–func 1 | `13 13` | data monitoring request
-sub–finc 2 | `00` | continuously requested
+command | `55` | control
+function | `13 13` | data monitoring request
+data | `00` | continuously requested
 trailer | `aa` | end delimiter
 >Figure DTE query message
 
-The LOGO response with the `06` function code, indicating this is a normal response. The _byte count_ field specifies how many bytes are being returned.
+The LOGO response with an acknowledgement, indicating this is a normal response. The _byte count_ field specifies how many bytes are being returned.
 
 Field Name | Code (hex) | Meaning
 --- | --- | ---
-function | `06` | confirmed
-echo response | `55` | control function
-sub–func | `11 11` | data monitoring response
+confirmation | `06` | acknowledgement
+command | `55` | control
+function | `11 11` | data monitoring response
 byte count | `40` | data length 64 (dec) bytes
 data | `00 7f .. 00` | data monitoring block
 trailer | `aa` | end delimiter
@@ -145,34 +227,156 @@ trailer | `aa` | end delimiter
 
 __How to Use the Byte Count Field:__ When storing responses in buffers, you should use the Byte Count value, which is the number of bytes in your message data. The value refers to the following field contents including the end delimiter. The example above shows how the byte count field is implemented in a LOGO 0BA4 data monioring response.
 
+## Command Codes Supported by LOGO
+The listing below shows the command codes supported by LOGO. Codes are listed in hexadecimal.
 
-# Function Codes Supported by Controllers
+_Y_ indicates that the command is supported. _N_ indicates that it is not supported.
 
-The Communication is divided into these categories:
-- write one byte (`01`)
-- read one byte (`02`)
-- write data block (`04`)
-- read data block (`05`)
-- connection request (`21`)
-- function (`55`)
+Code | Name | 0BA4 | 0BA5 | 0BA6
+`02` | Write Byte Command | Y | Y | Y
+`02` | Read Byte Command | Y | Y | Y
+`04` | Write Data Block Command | Y | Y | Y
+`05` | Read Data Block Command | Y | Y | Y
+`06` | Confirm and Forward | N | N | Y \1)
+`21` | Connection Request | N | \2) | Y
+`55` | Control Command | Y | Y | Y
 
-In general, the LOGO! device sends back a telegram for each request, but up to three steps are possible. The most important codes and types for a confirmation are:
-- confirmation (`06`)
-- error (`15`)
-- data feedback (`02` and `55`)
+>__Notes:__
+>\1) Fast Monitoring Function is supported by LOGO 0BA6 only
+>\2) Function support is not verified yet
 
-## General response codes
-LOGO! confirmation `06` (OK), sometimes followed by more data.
-> Example: operation mode STOP
+
+## Hello Request
+Send to LOGO a _hello request_ `21`:
+
+LOGO | command | request | response | description
+--- | --- | --- | --- | ---
+0BA4 | hello request | `21` | _n/a_ | no response
+0BA5 | hello request | `21` | `06 03 21 42` | hello response 42 (LOGO! 0BA5)
+0BA6 | hello request | `21` | `06 03 21 43` | hello response 43 (LOGO! 0BA6.Standard)
+0BA6 | hello request | `21` | `06 03 21 44` | hello response 44 (LOGO! 0BA6)
+>Figure _Hello Request_
+
+
+# Chapter 3 - Control Functions
+
+## Function Codes Supported by LOGO
+The listing below shows the function codes supported by LOGO. Codes are listed in hexadecimal.
+
+_Y_ indicates that the function is supported. _N_ indicates that it is not supported.
+
+Code | Name | 0BA4 | 0BA5 | 0BA6
+`11` | Data Response Function \1) | Y | Y | Y
+`12` | Stop Operating Function | Y | Y | Y
+`13` | Data Monitoring Function \2) | Y | Y | Y
+`17` | Operation Mode | Y | Y | Y
+`18` | Start Operating Function | Y | Y | Y
+
+>__Notes:__
+>\1) LOGO Response of function `13`
+>\2) DTE Query for function `11`
+
+## Data Monitoring `55 11` and `55 13`
+
+Example LOGO query Data Monitoring:
+
+```
+55  13 13  00  aa
+```
+>Figure Query _Data Monitoring_
+
+LOGO! response with ACK (`06`) or NAK (`15`) followed by data (length depends on device type)
+
+Example LOGO 0BA4.Standard response:
+
+```
+:06
+:55:11:11:40:00:7f:66:11:2a:00:80:01:10:00:00:00
+:00:00:00:00:00:00:00:00:00:00:a8:00:00:00:00:00
+:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
+:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
+:00:00:00:00:00:aa
+```
+>Figure 0BA4 Monitoring Response
+
+Example LOGO 0BA6.Standard response:
+```
+:06
+:55:11:11:4a:00:b7:c4:19:2c:00:10:84:6b:00:00:00
+:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
+:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
+:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
+:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:aa
+```
+>Figure 0BA4 Monitoring Response
+
+__Notes:__
+Data length (incl. end delimiter `AA`)
+- 0BA4 = 68 bytes
+- 0BA5 = 70 bytes
+- 0BA6 = 80 bytes
+
+## Stop Operating `55 12`
+
+Send to LOGO! to change the operation mode to _STOP_:
+
+command | request | response | description
+--- | --- | --- | ---
+set operation mode STOP | `55 :12:12 :aa` | `06` | LOGO! has successfully executed the command
+
+## Operating Mode `55 17`
+Send to LOGO! to ask the Operation Mode:
+
+command | request | response | description
+--- | --- | --- | ---
+ask operation mode | `55 :17:17 :aa` | `06 :01` | LOGO! in RUN mode
+ask operation mode | `55 :17:17 :aa` | `06 :42` | LOGO! in STOP mode
+
+## Start Operating `55 18`
+
+Send to LOGO! to change the operation mode _RUN_:
+
+command | request | response | description
+--- | --- | --- | ---
+set operation mode RUN | `55 :18:18 :aa` | `06` | LOGO! has successfully executed the command
+
+
+# Chapter 4 - Errors and Confirmations
+
+## Confirmed Codes Used by LOGO
+The listing below shows the confirmation response code used by LOGO. Codes are listed in hexadecimal.
+
+_Y_ indicates that the confirmation is supported. _N_ indicates that it is not supported.
+
+Code | Name | 0BA4 | 0BA5 | 0BA6
+`06` | Acknowledge Response | Y | Y | Y
+`15` | Exception Responses | Y | Y | Y
+
+## Acknowledge Response `06`
+LOGO! confirmation code `06` (ACK), followed by zero or n bytes of data.
+
+Example:
 ```
 :06:42
 ```
+>Figure Operation mode STOP
 
-### Error / Exception Response
-LOGO error function code `15` (NOK), followed by an exception type (1 byte):
 
-The exception type can be a transport or protocol error:
+## Exception Responses `15`
+LOGO confirmation code `15` (NOK), followed by an exception code (1 byte). The exception code can be a transport or protocol error.
 
+The next Figure shows an example of a DTE query and LOGO exception response. The field examples are shown in hexadecimal. 
+
+```
+Query
+XX XX XX
+
+Response
+15 05
+```
+>Figure DTE Query and LOGO _Exception Response_
+
+## Exception Codes
 Type | Name | Meaning
 --- | --- | ---
 `01` | DEVICE BUSY | LOGO can not accept a telegram
@@ -183,106 +387,39 @@ Type | Name | Meaning
 `06` | XOR INCORRECT | XOR-check incorrect
 `07` | SIMULATION ERROR | Faulty on simulation, RUN is not supported in this mode
 
-> Example: this mode is not supported:
-```
-:15:05
-```
 
-LOGO! end delimiter `aa` at variable data length
+# Appendix A - Application Examples
 
->Example
-```
-:aa
-```
+## Read Revision
+Read the revision byte from the LOGO adress `1f 02`:
 
-## Operating mode commands
-Send to LOGO! to ask operation mode:
-
-command | request | response | description
+command | query | response | description
 --- | --- | --- | ---
-ask operation mode | `55 :17:17 :aa` | `06 :01` | LOGO! in RUN mode
-ask operation mode | `55 :17:17 :aa` | `06 :42` | LOGO! in STOP mode
+read byte | `02 1f 02` | `06 03  1f 02  40` | connection established to 40 (LOGO! 0BA4)
+read byte | `02 1f 02` | `06 03  00 ff 1f 02  43` | connection established to 43 (LOGO! 0BA6)
+>Figure _Read Revision_
 
-Send to LOGO! to change the operation mode:
-
-command | request | response | description
---- | --- | --- | ---
-set operation mode RUN | `55 :18:18 :aa` | `06` | LOGO! has successfully executed the command
-set operation mode STOP | `55 :12:12 :aa` | `06` | LOGO! has successfully executed the command
-
-## Connection
-Send to LOGO! a hello request:
-
-connection command | request | response | description
---- | --- | --- | ---
-hello request to 0BA4 | `21` | _n/a_ | no response
-hello request to 0BA5 | `21` | `06:03 :21:42` | LOGO! 0BA5
-hello request to 0BA6 | `21` | `06:03 :21:43` | LOGO! 0BA6.Standard
-hello request to 0BA6 | `21` | `06:03 :21:44` | LOGO! 0BA6
-
-Send to LOGO! a connection request:
-
-read command | request | response | description
---- | --- | --- | ---
-connection request | `02 :1f:02` | `06:03 :1f :02:40` | LOGO! 0BA4 connection established
-connection request | `02 :1f:02` | `06:03 :00:ff :1f :02:43` | LOGO! 0BA6 connection established
-
-## Data communication
-Send to LOGO! to ask data:
-```
-:55
-:13:13
-:00
-:aa
-```
-
-LOGO! response with NOK (`06`) or OK (`15`) followed by data (length depends on device type)
-
-Data length (incl. end delimiter `aa`)
-- 0BA4 = 68 bytes
-- 0BA5 = 70 bytes
-- 0BA6 = 80 bytes
-
->LOGO! 0BA4.Standard output example:
-```
-:06
-:55:11:11:40:00:7f:66:11:2a:00:80:01:10:00:00:00
-:00:00:00:00:00:00:00:00:00:00:a8:00:00:00:00:00
-:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
-:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
-:00:00:00:00:00:aa
-```
-
->LOGO! 0BA6.Standard output example:
-```
-:06
-:55:11:11:4a:00:b7:c4:19:2c:00:10:84:6b:00:00:00
-:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
-:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
-:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
-:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:aa
-```
-
-### Read Clock
+## Read Clock
 
 Read commands for RTC:
 1. Device status inquiry
 2. Write byte `00` to Address 00 FF 44 00 to initialize reading
 3. Read byte(s)
-  + _day_ at Address 00 FF FB 00
-  + _month_ at address 00 FF FB 01
-  + _year_ at address 00 FF FB 02
-  + _minute_ at address 00 FF FB 03
-  + _hour_ at address 00 FF FB 04
-  + _day-of-week_ at address 00 FF FB 05
+  + _day_ at Address \[00 FF\] FB 00
+  + _month_ at address \[00 FF\] FB 01
+  + _year_ at address \[00 FF\] FB 02
+  + _minute_ at address \[00 FF\] FB 03
+  + _hour_ at address \[00 FF\] FB 04
+  + _day-of-week_ at address \[00 FF\] FB 05
 
->Example: sent _read clock_:
+Example Read Clock LOGO 0BA6:
+
 ```
 :21           hello request
 :55:17:17:aa  ask operation mode
 
 :01           write command
-:00:ff:44:00  address (clock initialized)
+:00:ff:44:00  address (clock reading initialized)
 :00           value = 0x00
 
 :02           read command
@@ -298,13 +435,14 @@ Read commands for RTC:
 :02           read command
 :00:ff:fb:05  address (day of week)
 ```
+>Figure Query _Read Clock_
 
->Example: receive _read clock_:
+
 ```
 :06:03:21:44  inquiry resonse
 :06:42        operation mode STOP
 
-:06           write completed
+:06           write completed (clock reading initialized)
 
 :02           read response
 :00:ff:fb:00  address (day)
@@ -325,22 +463,24 @@ Read commands for RTC:
 :00:ff:fb:05  address (day of week)
 :03           value = 03
 ```
+>Figure Resonse _Read Clock_
 
 
-### Write clock:
+## Write clock
 
 Write commands for RTC:
 1. Device status inquiry
 2. Write byte(s)
-  + _day_ to Address 00 FF FB 00
-  + _month_ to address 00 FF FB 01
-  + _year_ to address 00 FF FB 02
-  + _minute_ to address 00 FF FB 03
-  + _hour_ to address 00 FF FB 04
-  + _day-of-week_ to address 00 FF FB 05
-3. Write byte `00` to Address 00 FF 43 00 to comfirm
+  + _day_ to Address \[00 FF\] FB 00
+  + _month_ to address \[00 FF\] FB 01
+  + _year_ to address \[00 FF\] FB 02
+  + _minute_ to address \[00 FF\] FB 03
+  + _hour_ to address \[00 FF\] FB 04
+  + _day-of-week_ to address \[00 FF\] FB 05
+3. Write byte `00` to Address \[00 FF\] 43 00 writing complete
 
->Example: sent _write clock_:
+Write Clock Example:
+
 ```
 :21           inquiry request
 :55:17:17:aa  ask operation mode
@@ -364,11 +504,12 @@ Write commands for RTC:
 :00:ff:fb:05  address (day of week)
 :03           value = 03
 :01           write command
-:00:ff:43:00  adress (clock confirm)
+:00:ff:43:00  adress (clock writing complete)
 :00           value 0x00
 ```
+>Figure Query _Write Clock_
 
->Example: receive _write clock_:
+
 ```
 :06:03:21:44  inquiry resonse
 :06:42        operation mode STOP
@@ -379,6 +520,6 @@ Write commands for RTC:
 :06           write completed (minute)
 :06           write completed (hour)
 :06           write completed (day of week)
-:06           write completed (clock start/stop)
+:06           write completed (clock writing complete)
 ```
-
+>Figure Resonse _Write Clock_
