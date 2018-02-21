@@ -235,7 +235,7 @@ The CRC field is one byte, containing an 8–bit binary value. The CRC value is 
 ## Message Frame
 
 Command | Address | Content
---- | --- | --- | ---
+--- | --- | ---
 1 byte | 2 or 4 bytes | n Bytes
 Command Code | 16 or 32bit Address | Optional
 >Figure Data Command Frame
@@ -303,7 +303,7 @@ Reads the binary contents in bytes from the LOGO device.
 The query message indicates the start address and the number of data bytes to be read. 
 
 Command | Address | Byte Count
---- | --- | --- | ---
+--- | --- | ---
 1 byte | 2 or 4 bytes | 1 byte
 Command Code | 16/32bit Address | Number of Bytes
 >Figure Read Block Query Message
