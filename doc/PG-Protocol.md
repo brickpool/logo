@@ -1,5 +1,5 @@
 # LOGO! PG Protocol Reference Guide
-Rev. Ba
+Rev. Bb
 
 February 2018
 
@@ -12,16 +12,16 @@ Siemens and LOGO! are registered trademarks of Siemens AG.
 This reference guide cite and uses passages of text from the following documentation:
   * [Modicon Modbus Protocol Reference Guide](modbus.org/docs/PI_MBUS_300.pdf) published by Modbus Organization, Inc.
 
-Refer to the following publication for details about well known Monitoring commands:
-  * SNATAX @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") data monitoring functions (0BA6)
-  * cacalderon @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") data monitoring functions (0BA5) and LOGO DE-9 cable pin-out
+Refer to the following publication for details about well known commands:
+  * SNATAX @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") Data Monitoring, PLC Control, System Info (0BA6)
+  * cacalderon @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") PLC Control, System Info (0BA5) and LOGO DE-9 cable pin-out
   * ask @ [https://support.industry.siemens.com](https://support.industry.siemens.com/tf/ww/de/thread/posts/21314/?page=0&pageSize=10 "Logo! Datenlogger") data monitoring python script (0BA4)
   * Superbrudi @ [https://support.industry.siemens.com](https://support.industry.siemens.com/tf/ww/de/thread/posts/52023/?page=0&pageSize=10 "Excel Logo Logger Overview") data monitoring excel VBA script (0BA5 and 0BA6)
-  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") low latency data monitoring (@post 29)
 
-Refer to the following publications for details about the related communications for Clock/RTC, Password control functions:
-  * chengrui @ [http://www.ad.siemens.com.cn](http://www.ad.siemens.com.cn/club/bbs/post.aspx?a_id=637887&b_id=3 "Siemens s7-200 and LOGO communication") Clock control function
-  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Password control function (@post 23)
+Refer to the following publications for details about the related commands categories of Date and Time, Password Security and Cyclic Data Read
+  * chengrui @ [http://www.ad.siemens.com.cn](http://www.ad.siemens.com.cn/club/bbs/post.aspx?a_id=637887&b_id=3 "Siemens s7-200 and LOGO communication") Date and Time
+  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Password Security  (@post 23)
+  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Cyclic Data Read (@post 29)
 
 Refer to the following publication for details about the LOGO address layout:
   * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") decodes most of the functions and the 0BA5 data address space (@post 42)
@@ -39,10 +39,22 @@ Refer to the following publication for details about the RS232 specifications an
     * [The Message Frame](#the-message-frame)
     * [Error Checking Methods](#error-checking-methods)
   * [Chapter 2 - Data Commands](#chapter-2---data-commands)
+    * [Message Frame](#message-frame)
     * [Data Commands Supported by LOGO](#data-commands-supported-by-logo)
+    * [Write Byte Command `01`](#write-byte-command-01)
+    * [Read Byte Command `02`](#read-byte-command-02)
+    * [Write Block Command `04`](#write-block-command-04)
+    * [Read Block Command `05`](#read-block-command-05)
   * [Chapter 3 - Control Commands](#chapter-3---control-commands)
+    * [Message Frame](#message-frame-1)
     * [Control Commands Supported by LOGO](#control-commands-supported-by-logo)
-  * [Chapter 4 - Connection Commands](#chapter-4---connection-commands)
+    * [Stop Operating `55 12`](#stop-operating-55-12)
+    * [Fetch Data `55 13`](#fetch-data-55-13)
+    * [Operating Mode `55 17`](#operating-mode-55-17)
+    * [Start Operating `55 18`](#start-operating-55-18)
+  * [Chapter 4 - Information Commands](#chapter-4---information-commands)
+    * [Message Frame](#message-frame-2)
+    * [Information Codes Supported by LOGO](#information-codes-supported-by-logo)
     * [Hello Request 21](#hello-request-21)
   * [Chapter 5 - Errors and Confirmations](#chapter-5---errors-and-confirmations)
     * [Confirmed Codes Used by LOGO](#confirmed-codes-used-by-logo)
@@ -319,7 +331,7 @@ Command | Function | Content
 Command Code | Function Field | Optional
 >Figure Control Command Frame
 
-The content field can be nonexistent (length of zero) in certain kinds of messages. The content of a control message sent from a DTE to a LOGO device may contains additional information that the LOGO must use to perform the action defined by the command code.
+The content of a control message sent from a DTE to a LOGO device may contains additional information that the LOGO must use to perform the action defined by the command code. 
 
 ## Control Commands Supported by LOGO
 
@@ -329,25 +341,26 @@ _Y_ indicates that the command is supported. _N_ indicates that it is not suppor
 
 Command | Function | Name | 0BA4 | 0BA5 | 0BA6
 --- | --- | --- | --- | --- | ---
-`55` | `11` | Data Response Function 1) | Y | Y | Y
-`55` | `12` | Stop Operating Function | Y | Y | Y
-`55` | `13` | Data Monitoring Function 2) | Y | Y | Y
+`55` | `12` | Stop Operating  | Y | Y | Y
+`55` | `13` | Fetch Data | Y | Y | Y
 `55` | `17` | Operation Mode | Y | Y | Y
-`55` | `18` | Start Operating Function | Y | Y | Y
+`55` | `18` | Start Operating | Y | Y | Y
 
->__Notes:__
->
->1) LOGO Response of function `13`
->
->2) DTE Query for function `11`
+## Stop Operating `55 12`
 
-## Data Monitoring `55 11` and `55 13`
+Send to LOGO! to change the operation mode to _STOP_:
+
+command | request | response | description
+--- | --- | --- | ---
+set operation mode STOP | `55 :12:12 :aa` | `06` | LOGO! has successfully executed the command
+
+## Fetch Data `55 13`
 
 ### Description
-tbd
+This function fetching the current data from the LOGO device. The LOGO device responds with ACK (`06`), followed by control code `55`, a response function code `11` and the data (length depends on the device type) or NAK (`15`), followed by an exception code. The fetching of the data can be done once or continuously (called cyclic data query).
 
-LOGO! response with ACK (`06`) followed by data (length depends on device type) or NAK (`15`) followed by an exception code. 
-
+To fetch data or start a continuously polling, the data field must be existent and must set to "00". If a confirmation code `06` is sent by the DTE to the LOGO device within 600 ms, the LOGO device sends updated data (cyclic data read). To stop a data reading the data field must be nonexistent (length of zero). The execution of this command completes the monitoring. There are no further return data and any remaining data are discarded.
+ 
 ### Query
 
 Command | Function | Data \1) | End
@@ -356,20 +369,28 @@ Command | Function | Data \1) | End
 Command Code | Function Code | Data Content | End Delimiter
 >Figure Function Message Frame
 
-Here is an example of a request to read the monitoring data from LOGO device:
+>__Notes:__
+>
+>1) Is only omitted if a started request should be aborted
+
+Here is an example of a single request of fechting the monitoring data from LOGO device:
 
 ```
-55  13 13  00  aa
+55 13 13 00 aa
 ```
 >Figure Example Data Monitoring Query
 
 ### Response
 
-Command | Function | Byte Count | Data
---- | --- | --- | ---
-1 Byte | 2 Bytes | 1 Byte | n Bytes
-Command Code | Function Code | Number of Bytes | Data Content
+Command | Function | Byte Count | Padding | Content | End
+--- | --- | --- | --- | --- | ---
+1 Byte | 2 Bytes | 1 Byte | 1 Byte | n Bytes | 1 Byte
+Command Code | Function Code | Number of Bytes | Padding | Blob Content | End Delimiter
 >Figure Function Message with Content
+
+The Byte Count value indicates the number of bytes in content field, followed by `00.
+
+The content field includes input image register, runtime variables, etc. and the data for input, output, cursor key states, and more.
 
 Here is an example of a response to the query above:
 
@@ -395,20 +416,12 @@ Here is an example of a response to the query above:
 >Figure Example 0BA6 Monitoring Response
 
 __Notes:__
-Data length (incl. end delimiter `AA`)
-- 0BA4 = 68 bytes
-- 0BA5 = 70 bytes
-- 0BA6 = 80 bytes
+Content length (excl. end delimiter `AA`)
+- 0BA4 = 64 bytes
+- 0BA5 = 66 bytes
+- 0BA6 = 74 bytes
 
 The examples above shows how the byte count field is implemented in a LOGO data monitoring response.
-
-## Stop Operating `55 12`
-
-Send to LOGO! to change the operation mode to _STOP_:
-
-command | request | response | description
---- | --- | --- | ---
-set operation mode STOP | `55 :12:12 :aa` | `06` | LOGO! has successfully executed the command
 
 ## Operating Mode `55 17`
 Send to LOGO! to ask the Operation Mode:
@@ -427,13 +440,13 @@ command | request | response | description
 set operation mode RUN | `55 :18:18 :aa` | `06` | LOGO! has successfully executed the command
 
 
-# Chapter 4 - Connection Commands
+# Chapter 4 - Information Commands
 
-## Connection Message Frame
+## Message Frame
 For example, in a request from the DTE to the LOGO to respond with his serial no (function code `21` hexadecimal), the LOGO does not require any additional information. The command code alone specifies the action.
 
-## Connection Codes Supported by LOGO
-The listing below shows the connection command codes supported by LOGO. Codes are listed in hexadecimal.
+## Information Codes Supported by LOGO
+The listing below shows the information command codes supported by LOGO. Codes are listed in hexadecimal.
 
 _Y_ indicates that the command is supported. _N_ indicates that it is not supported.
 
@@ -637,3 +650,4 @@ Write Clock Example:
 :06           write completed (clock writing complete)
 ```
 >Figure Response _Write Clock_
+
