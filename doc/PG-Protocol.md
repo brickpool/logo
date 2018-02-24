@@ -1,5 +1,5 @@
 # LOGO! PG Protocol Reference Guide
-Rev. Bc
+Rev. Bd
 
 February 2018
 
@@ -10,57 +10,57 @@ Siemens and LOGO! are registered trademarks of Siemens AG.
 
 ## Used and Related Publications
 This reference guide cite and uses passages of text from the following documentation:
-  * [Modicon Modbus Protocol Reference Guide](modbus.org/docs/PI_MBUS_300.pdf) published by Modbus Organization, Inc.
+ * [Modicon Modbus Protocol Reference Guide](modbus.org/docs/PI_MBUS_300.pdf) published by Modbus Organization, Inc.
 
 Refer to the following publication for details about well known commands:
-  * SNATAX @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") Data Monitoring, PLC Control, System Info (0BA6)
-  * cacalderon @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") PLC Control, System Info (0BA5) and LOGO DE-9 cable pin-out
-  * ask @ [https://support.industry.siemens.com](https://support.industry.siemens.com/tf/ww/de/thread/posts/21314/?page=0&pageSize=10 "Logo! Datenlogger") data monitoring python script (0BA4)
-  * Superbrudi @ [https://support.industry.siemens.com](https://support.industry.siemens.com/tf/ww/de/thread/posts/52023/?page=0&pageSize=10 "Excel Logo Logger Overview") data monitoring excel VBA script (0BA5 and 0BA6)
+ * SNATAX @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") Data Monitoring, PLC Control, System Info (0BA6)
+ * cacalderon @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") PLC Control, System Info (0BA5) and LOGO DE-9 cable pin-out
+ * ask @ [https://support.industry.siemens.com](https://support.industry.siemens.com/tf/ww/de/thread/posts/21314/?page=0&pageSize=10 "Logo! Datenlogger") data monitoring python script (0BA4)
+ * Superbrudi @ [https://support.industry.siemens.com](https://support.industry.siemens.com/tf/ww/de/thread/posts/52023/?page=0&pageSize=10 "Excel Logo Logger Overview") data monitoring excel VBA script (0BA5 and 0BA6)
 
 Refer to the following publications for details about the related commands categories of Date and Time, Password Security and Cyclic Data Read
-  * chengrui @ [http://www.ad.siemens.com.cn](http://www.ad.siemens.com.cn/club/bbs/post.aspx?a_id=637887&b_id=3 "Siemens s7-200 and LOGO communication") Date and Time
-  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Password Security  (@post 23)
-  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Cyclic Data Read (@post 29)
+ * chengrui @ [http://www.ad.siemens.com.cn](http://www.ad.siemens.com.cn/club/bbs/post.aspx?a_id=637887&b_id=3 "Siemens s7-200 and LOGO communication") Date and Time
+ * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Password Security (@post 23)
+ * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Cyclic Data Read (@post 29)
 
 Refer to the following publication for details about the LOGO address layout:
-  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") decodes most of the functions and the 0BA5 data address space (@post 42)
+ * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") decodes most of the functions and the 0BA5 data address space (@post 42)
 
 Refer to the following publication for details about the RS232 specifications and use cases:
-  * [RS232 Specifications and standard](https://www.lammertbies.nl/comm/info/RS-232_specs.html) by Lammert Bies
-  * [LOGO! Interface](https://www.elektormagazine.com/magazine/elektor-199907/34458) by W. Kriegmaier Elektor 7/1999 page 55
-  * [Get power out of PC RS-232 port](http://www.epanorama.net/circuits/rspower.html) by Tomi Engdahl
-  * [RS-232 vs. TTL Serial Communication](https://www.sparkfun.com/tutorials/215) by SparkFun
+ * [RS232 Specifications and standard](https://www.lammertbies.nl/comm/info/RS-232_specs.html) by Lammert Bies
+ * [LOGO! Interface](https://www.elektormagazine.com/magazine/elektor-199907/34458) by W. Kriegmaier Elektor 7/1999 page 55
+ * [Get power out of PC RS-232 port](http://www.epanorama.net/circuits/rspower.html) by Tomi Engdahl
+ * [RS-232 vs. TTL Serial Communication](https://www.sparkfun.com/tutorials/215) by SparkFun
 
 ## Contents
-  * [Chapter 1 - PG Protocol](#chapter-1---pg-protocol)
-    * [Introducing PG Protocol](#introducing-pg-protocol)
-    * [The Serial Transmission Mode](#the-serial-transmission-mode)
-    * [The Message Frame](#the-message-frame)
-    * [Error Checking Methods](#error-checking-methods)
-  * [Chapter 2 - Data Commands](#chapter-2---data-commands)
-    * [Message Frame](#message-frame)
-    * [Data Commands Supported by LOGO](#data-commands-supported-by-logo)
-    * [Write Byte Command `01`](#write-byte-command-01)
-    * [Read Byte Command `02`](#read-byte-command-02)
-    * [Write Block Command `04`](#write-block-command-04)
-    * [Read Block Command `05`](#read-block-command-05)
-  * [Chapter 3 - Control Commands](#chapter-3---control-commands)
-    * [Message Frame](#message-frame-1)
-    * [Control Commands Supported by LOGO](#control-commands-supported-by-logo)
-    * [Stop Operating `55` `12`](#stop-operating-55-12)
-    * [Fetch Data `55` `13`](#fetch-data-55-13)
-    * [Operating Mode `55` `17`](#operating-mode-55-17)
-    * [Start Operating `55` `18`](#start-operating-55-18)
-  * [Chapter 4 - Information Commands](#chapter-4---information-commands)
-    * [Message Frame](#message-frame-2)
-    * [Information Commands Supported by LOGO](#information-commands-supported-by-logo)
-    * [Hello Request 21](#hello-request-21)
-  * [Chapter 5 - Errors and Confirmations](#chapter-5---errors-and-confirmations)
-    * [Confirmed Codes Used by LOGO](#confirmed-codes-used-by-logo)
-    * [Acknowledge Response 06](#acknowledge-response-06)
-    * [Exception Responses 15](#exception-responses-15)
-  * [Appendix A - Application Examples](#appendix-a---application-examples)
+ * [Chapter 1 - PG Protocol](#chapter-1---pg-protocol)
+  * [Introducing PG Protocol](#introducing-pg-protocol)
+  * [The Serial Transmission Mode](#the-serial-transmission-mode)
+  * [The Message Frame](#the-message-frame)
+  * [Error Checking Methods](#error-checking-methods)
+ * [Chapter 2 - Data Commands](#chapter-2---data-commands)
+  * [Message Frame](#message-frame)
+  * [Data Commands Supported by LOGO](#data-commands-supported-by-logo)
+  * [Write Byte Command `01`](#write-byte-command-01)
+  * [Read Byte Command `02`](#read-byte-command-02)
+  * [Write Block Command `04`](#write-block-command-04)
+  * [Read Block Command `05`](#read-block-command-05)
+ * [Chapter 3 - Control Commands](#chapter-3---control-commands)
+  * [Message Frame](#message-frame-1)
+  * [Control Commands Supported by LOGO](#control-commands-supported-by-logo)
+  * [Stop Operating `55` `12`](#stop-operating-55-12)
+  * [Fetch Data `55` `13`](#fetch-data-55-13)
+  * [Operating Mode `55` `17`](#operating-mode-55-17)
+  * [Start Operating `55` `18`](#start-operating-55-18)
+ * [Chapter 4 - Information Commands](#chapter-4---information-commands)
+  * [Message Frame](#message-frame-2)
+  * [Information Commands Supported by LOGO](#information-commands-supported-by-logo)
+  * [Hello Request 21](#hello-request-21)
+ * [Chapter 5 - Errors and Confirmations](#chapter-5---errors-and-confirmations)
+  * [Confirmed Codes Used by LOGO](#confirmed-codes-used-by-logo)
+  * [Acknowledge Response 06](#acknowledge-response-06)
+  * [Exception Responses 15](#exception-responses-15)
+ * [Appendix A - Application Examples](#appendix-a---application-examples)
 
 # Chapter 1 - PG Protocol
 
@@ -176,7 +176,7 @@ Start | Content
 Confirmation Code | Optional
 >Figure Response Message Frame
 
-The _Content_ field can be nonexistent (length of zero) in certain kinds of messages.  
+The _Content_ field can be nonexistent (length of zero) in certain kinds of messages. 
 
 ### How Numerical Values are Expressed
 Unless specified otherwise, numerical values (such as addresses, codes, or data) are expressed as hexadecimal values in the text and in the message fields of the figures. 
@@ -203,7 +203,7 @@ The _Data_ field is constructed using sets of two hexadecimal digits, in the ran
 ### How Characters are Transmitted Serially
 When messages are transmitted via the PG Interface, each byte is sent in this order (left to right):
 
-  _Least Significant Bit (LSB) . . . Most Significant Bit (MSB)_
+ _Least Significant Bit (LSB) . . . Most Significant Bit (MSB)_
 
 As a reminder, the communication takes place with parity check. The bit sequence is:
 
@@ -341,7 +341,7 @@ _Y_ indicates that the command is supported. _N_ indicates that it is not suppor
 
 Command | Function | Name | 0BA4 | 0BA5 | 0BA6
 --- | --- | --- | --- | --- | ---
-`55` | `12` | Stop Operating  | Y | Y | Y
+`55` | `12` | Stop Operating | Y | Y | Y
 `55` | `13` | Fetch Data | Y | Y | Y
 `55` | `17` | Operation Mode | Y | Y | Y
 `55` | `18` | Start Operating | Y | Y | Y
@@ -410,35 +410,37 @@ Trailer | `aa` | End Delimiter
 
 ### Response
 
-Command | Command | Function | Byte Count | Data | Trailer
---- | --- | --- | --- | --- | --- 
-1 byte | 1 byte | 2 bytes | 1 byte | n bytes | 1 byte
-Confirmation Code | Control Code | Function Code | Number of bytes | Data Block | End Delimiter
+Command | Command | Function | Byte Count | Padding | Data | Trailer
+--- | --- | --- | --- | --- | --- | --- 
+1 byte | 1 byte | 2 bytes | 1 byte | 1 byte | n bytes | 1 byte
+Confirmation Code | Control Code | Function Code | Number of bytes | Padding Byte | Data Block | End Delimiter
 >Figure Fetch Data Response Message
 
-The _Byte Count_ value indicates the number of bytes that are followed (excluding the _End Delimiter_ `AA`).
+The _Byte Count_ value indicates the number of bytes that are followed (excluding the _Padding Byte_ and the _End Delimiter_ `AA`).
 
 __Notes:__
-Content length (excl. end delimiter `AA`)
-- 0BA4 = 64 bytes
-- 0BA5 = 64 bytes 1)
-- 0BA6 = 74 bytes
-
->\1) Byte Count returns a value of 64 bytes, but the data length is 66 bytes.
+_Byte Count_ value
+- 0BA4 = 40 (hex) = 64 bytes
+- 0BA5 = 40 (hex) = 64 bytes
+- 0BA6 = 4a (hex) = 74 bytes
 
 The _Data_ field includes input image registers, runtime variables, etc. and the data for input, output, cursor key states, and more.
 
-Register | 0BA4 \(hex\) | 0BA5 \(hex\) | 0BA6 \(hex\)
---- | --- | --- | ---                                     
-I | 15 | 17 | 1E
-F | N | N | 21
-O | 18 | 1A | 22
-M | 1A | 1C | 24
-S | 1D | 1F | 28
-C | 1E | 20 | 29
-AI | 1F | 21 | 2A
-AO | 2F | 31 | 3A
-AM | 33 | 35 | 3E
+The listing below shows the position in the _Data filed_ for the well known values. The positions start at one and are listed in decimal.
+
+_N_ indicates that it is not supported.
+
+Register | 0BA4 | 0BA5 | 0BA6 | Meaning
+--- | --- | --- | --- | ---
+I | 23 | 23 | 33 | input
+F | N | N | 36 | function keys
+O | 26 | 26 | 37 | output
+M | 28 | 38 | 39 | merker
+S | 31 | 31 | 43 | shift register
+C | 32 | 32 | 44 | cursor keys
+AI | 33 | 33 | 45 | analog input
+AO | 49 | 49 | 61 | analog output
+AM | 53 | 53 | 65 | analog merker
 >Figure Position in the Data field
 
 
@@ -450,15 +452,11 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `40` | Number of bytes 64 (dec)
-Data | `00` `7f 66` `11 2a 00 80` `01 10 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 00-15
-Data | `a8 00 00` | I Data Block 16-18
-Data | `00 00` | O Data Block 19-1A
-Data | `00 00 00` | M Data Block 1B-1D
-Data | `00` | S Data Block 1E
-Data | `00` | C Data Block 1F
-Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | AI Data Block 20-2F
-Data | `00 00 00 00` | AO Data Block 30-33
-Data | `00 00 00 00 00 00 00 00 00 00 00 00` | AM Data Block 34-3F
+Padding | `00` | Padding Byte
+Data | `7f 66 11 2a 00 80 01 10 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `00 00 00 00 00 a8` `00 00 00` `00 00` `00 00 00` `00` `00` | Data Block 10-1f
+Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
+Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
 Trailer | `aa` | End Delimiter
 >Figure Example 0BA4 Fetch Response
 
@@ -469,15 +467,11 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `40` | Number of bytes 64 (dec)
-Data | `00` `fb 1d` `2a 00 74 00` `00 11 00 00 00 00 00 00 00 00 00 00 00 00 00 04 09` | Data Block 00-17
-Data | `00 00 01` | I Data Block 18-1A
-Data | `00 02` | O Data Block 1B-1C
-Data | `00 00 00` | M Data Block 1D-1F
-Data | `00` | S Data Block 20
-Data | `00` | C Data Block 21
-Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | AI Data Block 22-31
-Data | `00 00 00 00` | AO Data Block 32-35
-Data | `00 00 00 00 00 00 00 00 00 00 00 00` | AM Data Block 36-41
+Padding | `00` | Padding Byte
+Data | `35 08 11 2a 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `00 00 00 00 00 0C `09 00 00` `01 00` `00 00 00` `00` `00` | Data Block 10-1f
+Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
+Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
 Trailer | `aa` | End Delimiter
 >Figure Example 0BA5 Fetch Response
 
@@ -488,19 +482,13 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `4a` | Number of bytes 74 (dec)
-Data | `00` `b7 c4` `19 2c 00 10` `84 6b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 00-1D
-Data | `00 00 01` | I Data Block 1E-20
-Data | `00` | F Data Block 21
-Data | `00 02` | O Data Block 22-23
-Data | `00 00 00 00` | M Data Block 24-27
-Data | `00` | S Data Block 28
-Data | `00` | C Data Block 29
-Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | AI Data Block 2A-39
-Data | `00 00 00 00` | AO Data Block 3A-3D
-Data | `00 00 00 00 00 00 00 00 00 00 00 00` | AM Data Block 3E-49
+Data | `b7 c4 19 2c 00 10 84 6b 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 10-1f
+Data | `00 00 00` `00` `00 00` `00 00 00 00` `00` `00` `00 00 00 00` | Data Block 20-2f
+Data | `00 00 00 00 00 00 00 00 00 00 00 00` `00 00 00 00` | Data Block 30-3f
+Data | `00 00 00 00 00 00 00 00 00 00` | Data Block 40-49
 Trailer | `aa` | End Delimiter
 >Figure Example 0BA6 Fetch Response
-
 
 ## Operating Mode `55` `17`
 
@@ -649,63 +637,63 @@ Read commands for RTC:
 1. Device status inquiry
 2. Write byte `00` to Address \[00 FF\] 44 00 to initialize reading
 3. Read byte(s)
-  + _day_ at Address \[00 FF\] FB 00
-  + _month_ at address \[00 FF\] FB 01
-  + _year_ at address \[00 FF\] FB 02
-  + _minute_ at address \[00 FF\] FB 03
-  + _hour_ at address \[00 FF\] FB 04
-  + _day-of-week_ at address \[00 FF\] FB 05
+ + _day_ at Address \[00 FF\] FB 00
+ + _month_ at address \[00 FF\] FB 01
+ + _year_ at address \[00 FF\] FB 02
+ + _minute_ at address \[00 FF\] FB 03
+ + _hour_ at address \[00 FF\] FB 04
+ + _day-of-week_ at address \[00 FF\] FB 05
 
 Example Read Clock LOGO 0BA6:
 
 ```
-:21           hello request
-:55:17:17:aa  ask operation mode
+:21      hello request
+:55:17:17:aa ask operation mode
 
-:01           write command
-:00:ff:44:00  address (clock reading initialized)
-:00           value = 0x00
+:01      write command
+:00:ff:44:00 address (clock reading initialized)
+:00      value = 0x00
 
-:02           read command
-:00:ff:fb:00  address (day)
-:02           read command
-:00:ff:fb:01  address (month)
-:02           read command
-:00:ff:fb:02  address (year)
-:02           read command
-:00:ff:fb:03  address (time)
-:02           read command
-:00:ff:fb:04  address (hour)
-:02           read command
-:00:ff:fb:05  address (day of week)
+:02      read command
+:00:ff:fb:00 address (day)
+:02      read command
+:00:ff:fb:01 address (month)
+:02      read command
+:00:ff:fb:02 address (year)
+:02      read command
+:00:ff:fb:03 address (time)
+:02      read command
+:00:ff:fb:04 address (hour)
+:02      read command
+:00:ff:fb:05 address (day of week)
 ```
 >Figure Query _Read Clock_
 
 
 ```
-:06:03:21:44  inquiry response
-:06:42        operation mode STOP
+:06:03:21:44 inquiry response
+:06:42    operation mode STOP
 
-:06           write completed (clock reading initialized)
+:06      write completed (clock reading initialized)
 
-:02           read response
-:00:ff:fb:00  address (day)
-:1e           value = 30
-:02           read response
-:00:ff:fb:01  address (month)
-:0c           value = 12
-:02           read response
-:00:ff:fb:02  address (year)
-:09           value = 09
-:02           read response
-:00:ff:fb:03  address (time)
-:1c           value = 28
-:02           read response
-:00:ff:fb:04  address (hour)
-:14           value = 20
-:02           read response
-:00:ff:fb:05  address (day of week)
-:03           value = 03
+:02      read response
+:00:ff:fb:00 address (day)
+:1e      value = 30
+:02      read response
+:00:ff:fb:01 address (month)
+:0c      value = 12
+:02      read response
+:00:ff:fb:02 address (year)
+:09      value = 09
+:02      read response
+:00:ff:fb:03 address (time)
+:1c      value = 28
+:02      read response
+:00:ff:fb:04 address (hour)
+:14      value = 20
+:02      read response
+:00:ff:fb:05 address (day of week)
+:03      value = 03
 ```
 >Figure Response _Read Clock_
 
@@ -714,56 +702,56 @@ Example Read Clock LOGO 0BA6:
 Write commands for RTC:
 1. Device status inquiry
 2. Write byte(s)
-  + _day_ to Address \[00 FF\] FB 00
-  + _month_ to address \[00 FF\] FB 01
-  + _year_ to address \[00 FF\] FB 02
-  + _minute_ to address \[00 FF\] FB 03
-  + _hour_ to address \[00 FF\] FB 04
-  + _day-of-week_ to address \[00 FF\] FB 05
+ + _day_ to Address \[00 FF\] FB 00
+ + _month_ to address \[00 FF\] FB 01
+ + _year_ to address \[00 FF\] FB 02
+ + _minute_ to address \[00 FF\] FB 03
+ + _hour_ to address \[00 FF\] FB 04
+ + _day-of-week_ to address \[00 FF\] FB 05
 3. Write byte `00` to Address \[00 FF\] 43 00 writing complete
 
 Write Clock Example:
 
 ```
-:21           inquiry request
-:55:17:17:aa  ask operation mode
+:21      inquiry request
+:55:17:17:aa ask operation mode
 
-:01           write command
-:00:ff:fb:00  address (day)
-:1e           value = 30
-:01           write command
-:00:ff:fb:01  address (month)
-:0c           value = 12
-:01           write command
-:00:ff:fb:02  address (year)
-:09           value = 09
-:01           write command
-:00:ff:fb:03  address (minute)
-:24           value = 36
-:01           write command
-:00:ff:fb:04  address (hour)
-:14           value = 20
-:01           write command
-:00:ff:fb:05  address (day of week)
-:03           value = 03
-:01           write command
-:00:ff:43:00  address (clock writing complete)
-:00           value 0x00
+:01      write command
+:00:ff:fb:00 address (day)
+:1e      value = 30
+:01      write command
+:00:ff:fb:01 address (month)
+:0c      value = 12
+:01      write command
+:00:ff:fb:02 address (year)
+:09      value = 09
+:01      write command
+:00:ff:fb:03 address (minute)
+:24      value = 36
+:01      write command
+:00:ff:fb:04 address (hour)
+:14      value = 20
+:01      write command
+:00:ff:fb:05 address (day of week)
+:03      value = 03
+:01      write command
+:00:ff:43:00 address (clock writing complete)
+:00      value 0x00
 ```
 >Figure Query _Write Clock_
 
 
 ```
-:06:03:21:44  inquiry response
-:06:42        operation mode STOP
+:06:03:21:44 inquiry response
+:06:42    operation mode STOP
 
-:06           write completed (day)
-:06           write completed (month)
-:06           write completed (year)
-:06           write completed (minute)
-:06           write completed (hour)
-:06           write completed (day of week)
-:06           write completed (clock writing complete)
+:06      write completed (day)
+:06      write completed (month)
+:06      write completed (year)
+:06      write completed (minute)
+:06      write completed (hour)
+:06      write completed (day of week)
+:06      write completed (clock writing complete)
 ```
 >Figure Response _Write Clock_
 
