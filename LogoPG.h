@@ -29,6 +29,7 @@
  *  2018-02-07: Initial version created
  *  2018-02-15: alpha Version
  *  2018-02-20: Version 0.3
+ *  2018-02-24: Version 0.3.1, change PDUSize and mapping
 */
 
 #ifndef LogoPG_h_
@@ -61,17 +62,17 @@
 #define PG          0x01
 
 // PDU related constants
-#define PduSize0BA4   68    // LOGO 0BA4 telegram size
-#define PduSize0BA5   70    // LOGO 0BA5 telegram size
-#define PduSize0BA6   80    // LOGO 0BA6 telegram size
-#define MinPduSize    68    // Minimum valid telegram size (negotiate 0BA4)
-#define MaxPduSize    80    // Maximum valid telegram size (negotiate 0BA6)
+#define PduSize0BA4   71    // LOGO 0BA4 telegram size
+#define PduSize0BA5   71    // LOGO 0BA5 telegram size
+#define PduSize0BA6   81    // LOGO 0BA6 telegram size
+#define MinPduSize    71    // Minimum data PDU size (0BA4)
+#define MaxPduSize    81    // Maximum data PDU size (0BA6)
 
-#define ACK         0x06    // ACK request
+#define ACK         0x06    // Confirmation Response
 #define RUN         0x01    // Mode run
 #define STOP        0x42    // Mode stop
-#define NOK         0x15    // Request not confirmed
-#define AA          0xAA    // End delimiter of telegram
+#define NOK         0x15    // Exception Response
+#define AA          0xAA    // End delimiter
 
 // LOGO ID Area (Area that we want to read/write)
 #define LogoAreaDB  0x84
@@ -80,17 +81,15 @@ const byte LogoCpuStatusUnknown = 0x00;
 const byte LogoCpuStatusRun     = 0x08;
 const byte LogoCpuStatusStop    = 0x04;
 
-#define Size_0BA4     26
-#define Size_0BA5     28
-#define Size_0BA6     36
+#define Size_WR 6
 
 typedef Stream *pstream;
 typedef byte   *pbyte;
 typedef int    *pint;
 
 typedef struct {
-  byte H[Size_0BA6];                // PDU Header
-  byte DATA[MaxPduSize-Size_0BA6];  // PDU Data
+  byte H[Size_WR];                // PDU Header
+  byte DATA[MaxPduSize-Size_WR];  // PDU Data
 } TPDU;
 extern TPDU PDU;
 
@@ -134,7 +133,6 @@ public:
   void Disconnect();
   int ReadArea(int Area, word DBNumber, word Start, word Amount, void *ptrData);
   int GetPDULength() { return PDULength; }
-  int GetPDUHeaderLen() { return PDUHeaderLen; }
 
   // Extended functions
   int PlcStart();   // start PLC
@@ -161,86 +159,86 @@ private:
 
 
 /*
- ***********************************************************************
- * PDU data
- * position           description
- * 0BA4 0BA5 0BA6
- ***********************************************************************
-    27   29   37      input 1-8
-    28   30   38      input 9-16
-    29   31   39      input 17-24
-   
-              40      TD function key F1-F4
-    
-    30   32   41      output 1-8
-    31   33   42      output 9-16
-    
-    32   34   43      merker 1-8
-    33   35   44      merker 9-16
-    34   36   45      merker 17-24
-              46      merker 25-27
-   
-    35   37   47      shift register 1-8
-
-    36   38   48      cursor key C1-C4
-    
-    37   39   49      analog input 1 low
-    38   40   50      analog input 1 high
-    39   41   51      analog input 2 low
-    40   42   52      analog input 2 high
-    41   43   53      analog input 3 low
-    42   44   54      analog input 3 high
-    43   45   55      analog input 4 low
-    44   46   56      analog input 4 high
-    45   47   57      analog input 5 low
-    46   48   58      analog input 5 high
-    47   49   59      analog input 6 low
-    48   50   60      analog input 6 high
-    49   51   61      analog input 7 low
-    50   52   62      analog input 7 high
-    51   53   63      analog input 8 low
-    52   54   64      analog input 8 high
-   
-    53   55   65      analog output 1 low
-    54   56   66      analog output 1 high
-    55   57   67      analog output 2 low
-    56   58   68      analog output 2 high
-    
-    57   59   69      analog merker 1 low
-    58   60   70      analog merker 1 high
-    59   61   71      analog merker 2 low
-    61   62   72      analog merker 2 high
-    61   63   73      analog merker 3 low
-    62   64   74      analog merker 3 high
-    63   65   75      analog merker 4 low
-    64   66   76      analog merker 4 high
-    65   67   77      analog merker 5 low
-    66   68   78      analog merker 5 high
-    67   69   79      analog merker 6 low
-    68   70   80      analog merker 6 high
- ***********************************************************************
+***********************************************************************
+* PDU data
+* position      description
+* 0BA4 0BA5 0BA6
+***********************************************************************
+    23  23  33  input 1-8
+    24  24  34  input 9-16
+    25  25  35  input 17-24
+                
+            36  TD function key F1-F4
+                
+    26  26  37  output 1-8
+    27  27  38  output 9-16
+                
+    28  28  39  merker 1-8
+    29  29  40  merker 9-16
+    30  30  41  merker 17-24
+            42  merker 25-27
+                
+    31  31  43  shift register 1-8
+                
+    32  32  44  cursor key C1-C4
+                
+    33  33  45  analog input 1 low
+    34  34  46  analog input 1 high
+    35  35  47  analog input 2 low
+    36  36  48  analog input 2 high
+    37  37  49  analog input 3 low
+    38  38  50  analog input 3 high
+    39  39  51  analog input 4 low
+    40  40  52  analog input 4 high
+    41  41  53  analog input 5 low
+    42  42  54  analog input 5 high
+    43  43  55  analog input 6 low
+    44  44  56  analog input 6 high
+    45  45  57  analog input 7 low
+    46  46  58  analog input 7 high
+    47  47  59  analog input 8 low
+    48  48  60  analog input 8 high
+                
+    49  49  61  analog output 1 low
+    50  50  62  analog output 1 high
+    51  51  63  analog output 2 low
+    52  52  64  analog output 2 high
+                
+    53  53  65  analog merker 1 low
+    54  54  66  analog merker 1 high
+    55  55  67  analog merker 2 low
+    56  56  68  analog merker 2 high
+    57  57  69  analog merker 3 low
+    58  58  70  analog merker 3 high
+    59  59  71  analog merker 4 low
+    60  60  72  analog merker 4 high
+    61  61  73  analog merker 5 low
+    62  62  74  analog merker 5 high
+    63  63  75  analog merker 6 low
+    64  64  76  analog merker 6 high
+***********************************************************************
 */
 
 // LOGO 0BA4 and 0BA5 index in PDU.DATA
-#define I_0BA4     0x00
-#define Q_0BA4     0x03
-#define M_0BA4     0x05
-#define S_0BA4     0x08
-#define C_0BA4     0x09
-#define AI_0BA4    0x0A
-#define AQ_0BA4    0x1A
-#define AM_0BA4    0x1E
+#define I_0BA4     0x16
+#define Q_0BA4     0x19
+#define M_0BA4     0x1B
+#define S_0BA4     0x1E
+#define C_0BA4     0x1F
+#define AI_0BA4    0x20
+#define AQ_0BA4    0x30
+#define AM_0BA4    0x34
 
 // LOGO 0BA6 index in PDU.DATA
-#define I_0BA6     0x00
-#define F_0BA6     0x03
-#define Q_0BA6     0x04
-#define M_0BA6     0x06
-#define S_0BA6     0x0A
-#define C_0BA6     0x0B
-#define AI_0BA6    0x0C
-#define AQ_0BA6    0x1C
-#define AM_0BA6    0x20
+#define I_0BA6     0x20
+#define F_0BA6     0x23
+#define Q_0BA6     0x24
+#define M_0BA6     0x26
+#define S_0BA6     0x2A
+#define C_0BA6     0x2B
+#define AI_0BA6    0x2C
+#define AQ_0BA6    0x3C
+#define AM_0BA6    0x40
 
 /*
  * The LOGO > 0BA6 has reserved fixed memory addresses for inputs,

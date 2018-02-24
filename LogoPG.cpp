@@ -29,6 +29,7 @@
  *  2018-02-07: Initial version created
  *  2018-02-15: alpha Version
  *  2018-02-20: Version 0.3
+ *  2018-02-24: Version 0.3.1, change PDUSize and mapping
 */
 
 #include "Arduino.h"
@@ -110,14 +111,14 @@ const PROGMEM byte VM_MAP_851_922[] =
 // VM 0BA7 Mapping for 0BA4 and 0BA5
 const PROGMEM byte VM_MAP_923_983_0BA4[] =
 {
-  0x00, 0x01, 0x02,                               // 923-925  : input 1-24
-  0x0B, 0x0A, 0x0D, 0x0C, 0x0F, 0x0E, 0x11, 0x10, // 926-933  : analoge input 1-4
-  0x13, 0x12, 0x15, 0x14, 0x17, 0x16, 0x19, 0x18, // 934-941  : analoge input 5-8
-  0x03, 0x04,                                     // 942-943  : output 1-16
-  0x1B, 0x1A, 0x1D, 0x1C,                         // 944-947  : analoge output 1-2
-  0x05, 0x06, 0x07, 0xFF,                         // 948-951  : merker 1-27
-  0x1F, 0x1E, 0x21, 0x20, 0x23, 0x22, 0x25, 0x24, // 952-959  : analoge merker 1-4
-  0x27, 0x26, 0x29, 0x28, 0xFF, 0xFF, 0xFF, 0xFF, // 960-967  : analoge merker 5-8
+  0x16, 0x17, 0x18,                               // 923-925  : input 1-24
+  0x21, 0x20, 0x23, 0x22, 0x25, 0x24, 0x27, 0x26, // 926-933  : analoge input 1-4
+  0x29, 0x28, 0x2B, 0x2A, 0x2D, 0x2C, 0x2F, 0x2E, // 934-941  : analoge input 5-8
+  0x19, 0x1A,                                     // 942-943  : output 1-16
+  0x31, 0x30, 0x33, 0x32,                         // 944-947  : analoge output 1-2
+  0x1B, 0x1C, 0x1D, 0xFF,                         // 948-951  : merker 1-27
+  0x35, 0x34, 0x37, 0x36, 0x39, 0x38, 0x3B, 0x3A, // 952-959  : analoge merker 1-4
+  0x3D, 0x3C, 0x3F, 0x3E, 0xFF, 0xFF, 0xFF, 0xFF, // 960-967  : analoge merker 5-8
   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 968-975  : analoge merker 9-12
   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 976-983  : analoge merker 13-16
 };
@@ -125,14 +126,14 @@ const PROGMEM byte VM_MAP_923_983_0BA4[] =
 // VM 0BA7 Mapping for 0BA6
 const PROGMEM byte VM_MAP_923_983_0BA6[] =
 {
-  0x00, 0x01, 0x02,                               // 923-925  : input 1-24
-  0x0D, 0x0C, 0x0F, 0x0E, 0x11, 0x10, 0x13, 0x12, // 926-933  : analoge input 1-4
-  0x15, 0x14, 0x17, 0x16, 0x19, 0x18, 0x1B, 0x1A, // 934-941  : analoge input 5-8
-  0x04, 0x05,                                     // 942-943  : output 1-16
-  0x1D, 0x1C, 0x1F, 0x1E,                         // 944-947  : analoge output 1-2
-  0x06, 0x07, 0x08, 0x09,                         // 948-951  : merker 1-27
-  0x21, 0x20, 0x23, 0x22, 0x25, 0x24, 0x27, 0x26, // 952-959  : analoge merker 1-4
-  0x29, 0x28, 0x2B, 0x2A, 0xFF, 0xFF, 0xFF, 0xFF, // 960-967  : analoge merker 5-8
+  0x20, 0x21, 0x22,                               // 923-925  : input 1-24
+  0x2D, 0x2C, 0x2F, 0x2E, 0x31, 0x30, 0x33, 0x32, // 926-933  : analoge input 1-4
+  0x35, 0x34, 0x37, 0x36, 0x39, 0x38, 0x3B, 0x3A, // 934-941  : analoge input 5-8
+  0x24, 0x25,                                     // 942-943  : output 1-16
+  0x3D, 0x3C, 0x3F, 0x3E,                         // 944-947  : analoge output 1-2
+  0x26, 0x27, 0x28, 0x29,                         // 948-951  : merker 1-27
+  0x41, 0x40, 0x43, 0x42, 0x45, 0x44, 0x47, 0x46, // 952-959  : analoge merker 1-4
+  0x49, 0x48, 0x4B, 0x4A, 0xFF, 0xFF, 0xFF, 0xFF, // 960-967  : analoge merker 5-8
   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 968-975  : analoge merker 9-12
   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 976-983  : analoge merker 13-16
 };
@@ -218,7 +219,6 @@ LogoClient::LogoClient()
   Connected     = false;
   LastError     = 0;
   PDULength     = 0;
-  PDUHeaderLen  = Size_0BA6;
   Mapping       = VM_MAP_923_983_0BA6;
   RecvTimeout   = TIMEOUT;
   StreamClient  = NULL;
@@ -230,7 +230,6 @@ LogoClient::LogoClient(pstream Interface)
   Connected     = false;
   LastError     = 0;
   PDULength     = 0;
-  PDUHeaderLen  = Size_0BA6;
   Mapping       = VM_MAP_923_983_0BA6;
   RecvTimeout   = TIMEOUT;
   StreamClient  = Interface;
@@ -553,13 +552,13 @@ int LogoClient::RecvIOPacket(size_t *Size)
   if (LastPDUType == ACK)   // Connection confirmed
   {
     // Get PDU Header
-    RecvPacket(&PDU.H[1], GetPDUHeaderLen()-1);
+    RecvPacket(&PDU.H[1], Size_WR-1);
     if (LastError)
       return SetLastError(LastError | errLogoDataRead);
     *Size = GetPDUHeaderLen();    // Update Size
 
     // Get PDU Data
-    RecvPacket(PDU.DATA, GetPDULength() - GetPDUHeaderLen());
+    RecvPacket(PDU.DATA, GetPDULength() - Size_WR);
     if (LastError)
       return SetLastError(LastError | errLogoDataRead);
     *Size = GetPDULength();       // Update Size
@@ -732,20 +731,17 @@ int LogoClient::NegotiatePduLength()
     case 0x40:
       // 0BA4
       PDULength = PduSize0BA4;
-      PDUHeaderLen = Size_0BA4;
       Mapping = VM_MAP_923_983_0BA4;
       break;
     case 0x42:
       // 0BA5
       PDULength = PduSize0BA5;
-      PDUHeaderLen = Size_0BA5;
       Mapping = VM_MAP_923_983_0BA4;
       break;
     case 0x43:
     case 0x44:
       // 0BA6
       PDULength = PduSize0BA6;
-      PDUHeaderLen = Size_0BA6;
       Mapping = VM_MAP_923_983_0BA6;
       break;
     default:
