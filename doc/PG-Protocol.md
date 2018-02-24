@@ -469,7 +469,7 @@ Function | `11 11` | Data Response
 Byte Count | `40` | Number of bytes 64 (dec)
 Padding | `00` | Padding Byte
 Data | `35 08 11 2a 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
-Data | `00 00 00 00 00 0C `09 00 00` `01 00` `00 00 00` `00` `00` | Data Block 10-1f
+Data | `00 00 00 00 00 0C 09 00 00` `01 00` `00 00 00` `00` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
 Trailer | `aa` | End Delimiter
