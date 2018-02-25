@@ -1,5 +1,5 @@
 # LOGO! PG Protocol Reference Guide
-Rev. Bf
+Rev. Be
 
 February 2018
 
@@ -251,7 +251,7 @@ Command | Address | Content
 --- | --- | ---
 1 byte | 2 or 4 bytes | n bytes
 Data Code | 16/32bit Address | Optional
->Figure Data Command Frame
+>Figure _Data Command_ Frame
 
 The content field is usually required. It is not available (length of zero) only for the read byte command `02`. The format depends on the command codes. 
 
@@ -407,12 +407,12 @@ Data | `48 65 6C 6C 6F 20 77 6F 72 6C 64 21 20 20 20 20` | Data Block
 Ckhecksum | `21` | Data Block
 >Figure Example _Read Block_ Response
 
-In this example the program name is read out. The maximum text width is 16 characters. The reading direction is from left to right. In addition, the XOR checksum value is sent in this example (`21` hex).
+In this example the program name is read out. The maximum text width is 16 characters. The reading direction is from left to right. In addition, the XOR checksum value is used in this example (`21` hex).
 
 Format | Data
 --- | ---
 Hexadecimal | `48 65 6C 6C 6F 20 77 6F 72 6C 64 21 20 20 20 20`
-ASCII | `H  e  l  l  o  _  w  o  r  l  d  !  _  _  _  _`
+ASCII | `H e l l o _ w o r l d ! _ _ _ _`
 >Figure Example _Read Block_ Data decoded
 
 # Chapter 3 - Control Commands
@@ -423,10 +423,10 @@ All control commands are placed into a frame that has a known beginning and endi
 A typical message frame is shown below.
 
 Start | Function | Content | End
---- | --- | ---
+--- | --- | --- | ---
 1 byte | 2 bytes | n bytes | 1 byte
 Control Code | Function Field | Optional | End Delimiter
->Figure Control Command Frame
+>Figure _Control Command_ Frame
 
 The content of a control message sent from a DTE to a LOGO device may contains additional information that the LOGO must use to perform the action defined by the command code. 
 
@@ -463,7 +463,7 @@ Field Name | Code \(hex\) | Meaning
 Command | `55` | Control
 Function | `12 12` | Stop Operating
 Trailer | `aa` | End Delimiter
->Figure Example Stop Operating Query
+>Figure Example _Stop Operating_ Query
 
 ### Response
 A normal response contains a confirmation that the LOGO device has completed the command successfully.
@@ -473,7 +473,7 @@ Here is an example of a response to the query above:
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Command | `06` | Acknowledgment
->Figure Example Stop Operating Response
+>Figure Example _Stop Operating_ Response
 
 
 ## Fetch Data `13`
@@ -489,7 +489,7 @@ Command | Function | Data 1) | Trailer
 --- | --- | --- | ---
 1 byte | 2 bytes | 1 byte | 1 byte
 Control Code | Function Code | Data byte 1) | End Delimiter
->Figure Fetch Data Query Message
+>Figure _Fetch Data_ Query Message
 
 >__Notes:__
 >
@@ -503,7 +503,7 @@ Command | `55` | Control
 Function | `13 13` | Fetch Data
 Data | `00` | Start Fetching
 Trailer | `aa` | End Delimiter
->Figure Example Fetch Data Query
+>Figure Example _Fetch Data_ Query
 
 ### Response
 
@@ -511,7 +511,7 @@ Command | Command | Function | Byte Count | Padding | Data | Trailer
 --- | --- | --- | --- | --- | --- | --- 
 1 byte | 1 byte | 2 bytes | 1 byte | 1 byte | n bytes | 1 byte
 Confirmation Code | Control Code | Function Code | Number of bytes | Padding Byte | Data Block | End Delimiter
->Figure Fetch Data Response Message
+>Figure _Fetch Data_ Response Message
 
 The _Byte Count_ value indicates the number of bytes that are followed (excluding the _Padding Byte_ and the _End Delimiter_ `AA`).
 
@@ -538,7 +538,6 @@ C | 32 | 32 | 44 | cursor keys
 AI | 33 | 33 | 45 | analog input
 AO | 49 | 49 | 61 | analog output
 AM | 53 | 53 | 65 | analog merker
->Figure Position in the Data field
 
 
 The examples shows how the _Byte Count_ field is implemented in a LOGO fetching data response:
@@ -602,7 +601,7 @@ Field Name | Code \(hex\) | Meaning
 Command | `55` | Control
 Function | `17 17` | Ask operation mode
 Trailer | `aa` | End Delimiter
->Figure Example Operating Mode Query
+>Figure Example _Operating Mode_ Query
 
 ### Response
 
@@ -612,7 +611,7 @@ Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Confirmation | `06` | Acknowledgment
 Data | `01` | Current Operating Mode is RUN
->Figure Example Operating Mode Response
+>Figure Example _Operating Mode_ Response
 
 ### A Summary of Operation Modes
 
@@ -645,7 +644,7 @@ Field Name | Code \(hex\) | Meaning
 Command | `55` | Control
 Function | `18 18` | Start Operating
 Trailer | `aa` | End Delimiter
->Figure Example Start Operating Query
+>Figure Example _Start Operating_ Query
 
 ### Response
 A normal response contains a confirmation that the LOGO device has completed the command successfully.
@@ -655,7 +654,7 @@ Here is an example of a response to the query above:
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Command | `06` | Acknowledgment
->Figure Example Start Operating Response
+>Figure Example _Start Operating_ Response
 
 
 # Chapter 4 - Information Commands
@@ -673,15 +672,15 @@ Code | Name | 0BA4 | 0BA5 | 0BA6
 `21` | Connection Request | N | Y | Y
 
 ## Hello Request `21`
-Send to LOGO a _hello request_ `21`:
+Send to LOGO a _Connection Request_ `21`:
 
 LOGO | command | request | response | description
 --- | --- | --- | --- | ---
-0BA4 | hello request | `21` | _n/a_ | no response
-0BA5.Standard | hello request | `21` | `06 03 21 42` | hello response 42
-0BA6.Standard | hello request | `21` | `06 03 21 43` | hello response 43
-0BA6.ES3 | hello request | `21` | `06 03 21 44` | hello response 44
->Figure _Hello Request_
+0BA4 | Connection Request | `21` | _n/a_ | no Response
+0BA5.Standard | Connection Request | `21` | `06 03 21 42` | Confirmation Response `42`
+0BA6.Standard | Connection Request | `21` | `06 03 21 43` | Confirmation Response `43`
+0BA6.ES3 | Connection Request | `21` | `06 03 21 44` | Confirmation Response `44`
+>Figure Example _Connection Request_
 
 
 # Chapter 5 - Errors and Confirmations
@@ -744,7 +743,7 @@ command | query | response | description
 --- | --- | --- | ---
 read byte | `02` `1f 02` | `06` `03` `1f 02` `40` | connection established to 40 (LOGO! 0BA4)
 read byte | `02` `1f 02` | `06` `03` `00 ff 1f 02` `43` | connection established to 43 (LOGO! 0BA6)
->Figure _Read Revision_
+>Figure Example _Read Revision_
 
 ## Read Clock
 Read commands for RTC:
@@ -781,7 +780,7 @@ Example Read Clock LOGO 0BA6:
 :02      read command
 :00:ff:fb:05 address (day of week)
 ```
->Figure Query _Read Clock_
+>Figure Example _Read Clock_ Query
 
 
 ```
@@ -809,7 +808,7 @@ Example Read Clock LOGO 0BA6:
 :00:ff:fb:05 address (day of week)
 :03      value = 03
 ```
->Figure Response _Read Clock_
+>Figure Example _Read Clock_ Response
 
 
 ## Write clock
@@ -852,7 +851,7 @@ Write Clock Example:
 :00:ff:43:00 address (clock writing complete)
 :00      value 0x00
 ```
->Figure Query _Write Clock_
+>Figure Example _Write Clock_ Query
 
 
 ```
@@ -867,5 +866,5 @@ Write Clock Example:
 :06      write completed (day of week)
 :06      write completed (clock writing complete)
 ```
->Figure Response _Write Clock_
+>Figure Example _Write Clock_ Response
 
