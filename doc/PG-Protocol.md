@@ -10,57 +10,57 @@ Siemens and LOGO! are registered trademarks of Siemens AG.
 
 ## Used and Related Publications
 This reference guide cite and uses passages of text from the following documentation:
- * [Modicon Modbus Protocol Reference Guide](modbus.org/docs/PI_MBUS_300.pdf) published by Modbus Organization, Inc.
+  * [Modicon Modbus Protocol Reference Guide](modbus.org/docs/PI_MBUS_300.pdf) published by Modbus Organization, Inc.
 
 Refer to the following publication for details about well known commands:
- * SNATAX @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") Data Monitoring, PLC Control, System Info (0BA6)
- * cacalderon @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") PLC Control, System Info (0BA5) and LOGO DE-9 cable pin-out
- * ask @ [https://support.industry.siemens.com](https://support.industry.siemens.com/tf/ww/de/thread/posts/21314/?page=0&pageSize=10 "Logo! Datenlogger") data monitoring python script (0BA4)
- * Superbrudi @ [https://support.industry.siemens.com](https://support.industry.siemens.com/tf/ww/de/thread/posts/52023/?page=0&pageSize=10 "Excel Logo Logger Overview") data monitoring excel VBA script (0BA5 and 0BA6)
+  * SNATAX @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") Data Monitoring, PLC Control, System Info (0BA6)
+  * cacalderon @ [https://forums.ni.com](https://forums.ni.com/t5/LabVIEW/LOGO-PLC-driver-based-on-LabVIEW/td-p/877701 "LOGO! PLC driver based on LabVIEW") PLC Control, System Info (0BA5) and LOGO DE-9 cable pin-out
+  * ask @ [https://support.industry.siemens.com](https://support.industry.siemens.com/tf/ww/de/thread/posts/21314/?page=0&pageSize=10 "Logo! Datenlogger") data monitoring python script (0BA4)
+  * Superbrudi @ [https://support.industry.siemens.com](https://support.industry.siemens.com/tf/ww/de/thread/posts/52023/?page=0&pageSize=10 "Excel Logo Logger Overview") data monitoring excel VBA script (0BA5 and 0BA6)
 
 Refer to the following publications for details about the related commands categories of Date and Time, Password Security and Cyclic Data Read
- * chengrui @ [http://www.ad.siemens.com.cn](http://www.ad.siemens.com.cn/club/bbs/post.aspx?a_id=637887&b_id=3 "Siemens s7-200 and LOGO communication") Date and Time
- * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Password Security (@post 23)
- * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Cyclic Data Read (@post 29)
+  * chengrui @ [http://www.ad.siemens.com.cn](http://www.ad.siemens.com.cn/club/bbs/post.aspx?a_id=637887&b_id=3 "Siemens s7-200 and LOGO communication") Date and Time
+  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Password Security (@post 23)
+  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Cyclic Data Read (@post 29)
 
 Refer to the following publication for details about the LOGO address layout:
- * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") decodes most of the functions and the 0BA5 data address space (@post 42)
+  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") decodes most of the functions and the 0BA5 data address space (@post 42)
 
 Refer to the following publication for details about the RS232 specifications and use cases:
- * [RS232 Specifications and standard](https://www.lammertbies.nl/comm/info/RS-232_specs.html) by Lammert Bies
- * [LOGO! Interface](https://www.elektormagazine.com/magazine/elektor-199907/34458) by W. Kriegmaier Elektor 7/1999 page 55
- * [Get power out of PC RS-232 port](http://www.epanorama.net/circuits/rspower.html) by Tomi Engdahl
- * [RS-232 vs. TTL Serial Communication](https://www.sparkfun.com/tutorials/215) by SparkFun
+  * [RS232 Specifications and standard](https://www.lammertbies.nl/comm/info/RS-232_specs.html) by Lammert Bies
+  * [LOGO! Interface](https://www.elektormagazine.com/magazine/elektor-199907/34458) by W. Kriegmaier Elektor 7/1999 page 55
+  * [Get power out of PC RS-232 port](http://www.epanorama.net/circuits/rspower.html) by Tomi Engdahl
+  * [RS-232 vs. TTL Serial Communication](https://www.sparkfun.com/tutorials/215) by SparkFun
 
 ## Contents
- * [Chapter 1 - PG Protocol](#chapter-1---pg-protocol)
-  * [Introducing PG Protocol](#introducing-pg-protocol)
-  * [The Serial Transmission Mode](#the-serial-transmission-mode)
-  * [The Message Frame](#the-message-frame)
-  * [Error Checking Methods](#error-checking-methods)
- * [Chapter 2 - Data Commands](#chapter-2---data-commands)
-  * [Message Frame](#message-frame)
-  * [Data Commands Supported by LOGO](#data-commands-supported-by-logo)
-  * [Write Byte Command `01`](#write-byte-command-01)
-  * [Read Byte Command `02`](#read-byte-command-02)
-  * [Write Block Command `04`](#write-block-command-04)
-  * [Read Block Command `05`](#read-block-command-05)
- * [Chapter 3 - Control Commands](#chapter-3---control-commands)
-  * [Message Frame](#message-frame-1)
-  * [Control Commands Supported by LOGO](#control-commands-supported-by-logo)
-  * [Stop Operating `12`](#stop-operating-12)
-  * [Fetch Data `13`](#fetch-data-13)
-  * [Operating Mode `17`](#operating-mode-17)
-  * [Start Operating `18`](#start-operating-18)
- * [Chapter 4 - Information Commands](#chapter-4---information-commands)
-  * [Message Frame](#message-frame-2)
-  * [Information Commands Supported by LOGO](#information-commands-supported-by-logo)
-  * [Hello Request 21](#hello-request-21)
- * [Chapter 5 - Errors and Confirmations](#chapter-5---errors-and-confirmations)
-  * [Confirmed Codes Used by LOGO](#confirmed-codes-used-by-logo)
-  * [Acknowledge Response 06](#acknowledge-response-06)
-  * [Exception Responses 15](#exception-responses-15)
- * [Appendix A - Application Examples](#appendix-a---application-examples)
+  * [Chapter 1 - PG Protocol](#chapter-1---pg-protocol)
+    * [Introducing PG Protocol](#introducing-pg-protocol)
+    * [The Serial Transmission Mode](#the-serial-transmission-mode)
+    * [The Message Frame](#the-message-frame)
+    * [Error Checking Methods](#error-checking-methods)
+  * [Chapter 2 - Data Commands](#chapter-2---data-commands)
+    * [Message Frame](#message-frame)
+    * [Data Commands Supported by LOGO](#data-commands-supported-by-logo)
+    * [Write Byte Command `01`](#write-byte-command-01)
+    * [Read Byte Command `02`](#read-byte-command-02)
+    * [Write Block Command `04`](#write-block-command-04)
+    * [Read Block Command `05`](#read-block-command-05)
+  * [Chapter 3 - Control Commands](#chapter-3---control-commands)
+    * [Message Frame](#message-frame-1)
+    * [Control Commands Supported by LOGO](#control-commands-supported-by-logo)
+    * [Stop Operating `12`](#stop-operating-12)
+    * [Fetch Data `13`](#fetch-data-13)
+    * [Operating Mode `17`](#operating-mode-17)
+    * [Start Operating `18`](#start-operating-18)
+  * [Chapter 4 - Information Commands](#chapter-4---information-commands)
+    * [Message Frame](#message-frame-2)
+    * [Information Commands Supported by LOGO](#information-commands-supported-by-logo)
+    * [Hello Request 21](#hello-request-21)
+  * [Chapter 5 - Errors and Confirmations](#chapter-5---errors-and-confirmations)
+    * [Confirmed Codes Used by LOGO](#confirmed-codes-used-by-logo)
+    * [Acknowledge Response 06](#acknowledge-response-06)
+    * [Exception Responses 15](#exception-responses-15)
+  * [Appendix A - Application Examples](#appendix-a---application-examples)
 
 # Chapter 1 - PG Protocol
 
@@ -518,7 +518,7 @@ The format of a normal response is shown below. The data content depends on the 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Confirmation | `06` | Acknowledgment
-Function | `01` | Current Operating Mode is RUN
+Data | `01` | Current Operating Mode is RUN
 >Figure Example Operating Mode Response
 
 ### A Summary of Operation Modes
