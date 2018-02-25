@@ -1,5 +1,5 @@
 # LOGO! PG Protocol Reference Guide
-Rev. Be
+Rev. Bf
 
 February 2018
 
@@ -235,12 +235,12 @@ sets an error if they are not the same as configured for that device (DTE and DC
 
 Note that parity checking can only detect an error if an odd number of bits are picked up or dropped in a character frame during transmission. 
 
-### LRC/CRC/XOR Checking
-For read block commands `02`, the LOGO response messages include an error–checking field that is based on a Cyclical Redundancy Check (or CRC variant) method. The _CRC_ field checks the contents of the entire data. It is applied regardless of any parity check method used for the individual characters of the message. 
+### CRC/XOR Checking
+For read block commands `05`, the LOGO response messages include an error–checking field that is based on a Cyclical Redundancy Check XOR method. The _CRC_ field checks the contents of the entire data. It is applied regardless of any parity check method used for the individual characters of the message. 
 
-The _CRC_ field is one byte, containing an 8–bit binary value. The _CRC_ value is calculated by the transmitting device, which appends the CRC to the message. The receiving DTE program must calculate the CRC during receipt of the message, and compares the calculated value to the actual value it received in the _CRC_ field. If the two values are not equal, an error results.
+The _CRC_ field is one byte, containing an 8–bit binary value. The _CRC_ value is calculated by the transmitting device, which appends the XOR value to the message. The receiving DTE program must calculate the CRC during receipt of the message, and compares the calculated value to the actual value it received in the _CRC_ field. If the two values are not equal, an error results.
 
->__Note:__ The application of CRC in response message frames are not confirmed yet.
+>__Note:__ The application of CRC in response message are not mandatory.
 
 
 # Chapter 2 - Data Commands
@@ -270,28 +270,84 @@ Code | Name | 0BA4 | 0BA5 | 0BA6
 ## Write Byte Command `01`
 
 ### Description
-The command writes a byte value to the specified Memory address of the LOGO device. 
+The command writes a byte value to the specified memory address of the LOGO device. For example, the contents of a byte in the memory of the LOGO device can be manipulated with this command. 
 
 ### Query
+The query message specifies the Byte reference to be writing. The data are addressed starting at zero.
 
 Command | Address | Data
 --- | --- | ---
-1 byte | 2 or 4 bytes | 1 byte
-Data Code | 16/32bit Address | Data byte
->Figure Write Byte Query Message
+1 byte | 2 bytes | 1 byte
+Data Code | 16bit Address Offset | Data Byte
+>Figure _Write Byte_ Query Message
 
+The _Address_ field is an offset of the memory specified by the LOGO device. The _Data_ field is a numeric expression that write a byte value into the memory. 
+
+Here is an example of a request to write `00` to the memory address `1f 02`:
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Command | `01` | Write Byte
+Address | `1f 02` | 16bit Address
+Data | `00` | Data Byte
+>Figure Example _Write Byte_ Query
+
+### Response
+The normal response is a simple Acknowledgment of the query, returned after the data byte has been written.
+
+Here is an example of a response to the query above:
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Command | `06` | Acknowledgment
+>Figure Example _Write Byte_ Response
+ 
 ## Read Byte Command `02`
 
 ### Description
-There is a simple message to writing a single byte.
+Read Byte is a memory function that returns the byte stored at a specified memory location. 
+
+The maximum value of the address depends on the LOGO controller. In the LOGO device is an addressing error exception handling implemented. For example, an instruction for an empty address causes an exception response.
 
 ### Query
+The query message reads a Byte value from the specified address and send it as a return value to the DTE.
 
 Command | Address
 --- | ---
-1 byte | 2 or 4 bytes
-Data Code | 16/32bit Address
->Figure Read Byte Query Message
+1 byte | 2 bytes
+Data Code | 16bit Address Offset
+>Figure _Read Byte_ Query Message
+
+Here is an example of a request to read a byte from the address `1f 02`:
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Command | `02` | Read Byte
+Address | `1f 02` | 16bit Address
+>Figure Example _Read Byte_ Query
+
+### Response
+The byte value in the response message is packed into the _Data_ field. 
+
+Here are two example of a response to the query above:
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Confirmation | `06` | Acknowledgment
+Command | `03` | Data Response
+Address | `1f 02` | 16bit Address
+Data | `40` | Data Byte
+>Figure Example _Read Byte_ Response __0BA4__
+
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Confirmation | `06` | Acknowledgment
+Command | `03` | Data Response
+Address | `00 ff 1f 02` | 32bit Address
+Data | `43` | Data Byte
+>Figure Example _Read Byte_ Response __0BA4__
+
 
 ## Write Block Command `04`
 
@@ -299,28 +355,65 @@ Data Code | 16/32bit Address
 Writes data contents of bytes into the Memory of the LOGO device. 
 
 ### Query
-The command contains the standard fields of command code, address scheme and Byte Count. The rest of the command specifies the group of bytes to be written into the LOGO device. 
+The command contains the standard fields of command code, address offset and Byte Count. The rest of the command specifies the group of bytes to be written into the LOGO device. 
 
 Command | Address | Byte Count | Data
 --- | --- | --- | ---
-1 byte | 2 or 4 bytes | 1 byte | n bytes
+1 byte | 2 or 4 bytes | 2 bytes | n bytes
 Data Code | 16/32bit Address | Number of bytes | Data Content
->Figure Write Block Query Message
+>Figure _Write Block_ Query Message
+
+### Response
+The normal response is an confirmation of the query, returned after the data contents have been written.
 
 ## Read Block Command `05`
 
 ### Description
-Reads the binary contents in bytes from the LOGO device.
+Reads the binary contents at the specified Memory address of the LOGO device.
 
 ### Query
-The query message indicates the start address and the number of data bytes to be read. 
+The query message specifies the starting Byte and quantity of Data to be read. The data are addressed starting at zero.
 
 Command | Address | Byte Count
 --- | --- | ---
-1 byte | 2 or 4 bytes | 1 byte
+1 byte | 2 or 4 bytes | 2 bytes
 Data Code | 16/32bit Address | Number of bytes
->Figure Read Block Query Message
+>Figure _Read Block_ Query Message
 
+The following example reads the program name from LOGO memory:
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Command | `05` | Read Byte
+Address | `05 70` | 16bit Address
+Byte Count | `00 10` | Number of bytes 16 (dec)
+>Figure Example _Read Block_ Query
+
+### Response
+The data in the response message is sent as hexadecimal binary content. The number of data bytes sent corresponds to the requested number of bytes.
+
+Command | Data | Checksum
+--- | --- | ---
+1 byte | n bytes | 1 Byte
+Confirmation Code | Data Block | CRC8 XOR
+>Figure _Read Byte_ Response Message
+
+Here is an example of a response to the query above:
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Confirmation | `06` | Acknowledgment
+Data | `48 65 6C 6C 6F 20 77 6F 72 6C 64 21 20 20 20 20` | Data Block
+Ckhecksum | `21` | Data Block
+>Figure Example _Read Block_ Response
+
+In this example the program name is read out. The maximum text width is 16 characters. The reading direction is from left to right. In addition, the XOR checksum value is sent in this example (`21` hex).
+
+Format | Data
+--- | ---
+Hexadecimal | `48 65 6C 6C 6F 20 77 6F 72 6C 64 21 20 20 20 20`
+ASCII | `H  e  l  l  o  _  w  o  r  l  d  !  _  _  _  _`
+>Figure Example _Read Block_ Data decoded
 
 # Chapter 3 - Control Commands
 
@@ -462,7 +555,7 @@ Data | `00 00 00 00 00 a8` `00 00 00` `00 00` `00 00 00` `00` `00` | Data Block 
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
 Trailer | `aa` | End Delimiter
->Figure Example 0BA4 Fetch Response
+>Figure Example _Fetch Data_ Response __0BA4__
 
 
 Field Name | Code \(hex\) | Meaning
@@ -477,7 +570,7 @@ Data | `00 00 00 00 00 0C` `09 00 00` `01 00` `00 00 00` `00` `00` | Data Block 
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
 Trailer | `aa` | End Delimiter
->Figure Example 0BA5 Fetch Response
+>Figure Example _Fetch Data_ Response __0BA5__
 
 
 Field Name | Code \(hex\) | Meaning
@@ -492,7 +585,7 @@ Data | `00 00 00` `00` `00 00` `00 00 00 00` `00` `00` `00 00 00 00` | Data Bloc
 Data | `00 00 00 00 00 00 00 00 00 00 00 00` `00 00 00 00` | Data Block 30-3f
 Data | `00 00 00 00 00 00 00 00 00 00` | Data Block 40-49
 Trailer | `aa` | End Delimiter
->Figure Example 0BA6 Fetch Response
+>Figure Example _Fetch Data_ Response __0BA6__ 
 
 ## Operating Mode `17`
 
@@ -585,9 +678,9 @@ Send to LOGO a _hello request_ `21`:
 LOGO | command | request | response | description
 --- | --- | --- | --- | ---
 0BA4 | hello request | `21` | _n/a_ | no response
-0BA5 | hello request | `21` | `06 03 21 42` | hello response 42 (LOGO! 0BA5)
-0BA6 | hello request | `21` | `06 03 21 43` | hello response 43 (LOGO! 0BA6.Standard)
-0BA6 | hello request | `21` | `06 03 21 44` | hello response 44 (LOGO! 0BA6)
+0BA5.Standard | hello request | `21` | `06 03 21 42` | hello response 42
+0BA6.Standard | hello request | `21` | `06 03 21 43` | hello response 43
+0BA6.ES3 | hello request | `21` | `06 03 21 44` | hello response 44
 >Figure _Hello Request_
 
 
