@@ -1,5 +1,5 @@
 # LOGO! PG Protocol Reference Guide
-Rev. Bd
+Rev. Be
 
 February 2018
 
@@ -48,10 +48,10 @@ Refer to the following publication for details about the RS232 specifications an
  * [Chapter 3 - Control Commands](#chapter-3---control-commands)
   * [Message Frame](#message-frame-1)
   * [Control Commands Supported by LOGO](#control-commands-supported-by-logo)
-  * [Stop Operating `55` `12`](#stop-operating-55-12)
-  * [Fetch Data `55` `13`](#fetch-data-55-13)
-  * [Operating Mode `55` `17`](#operating-mode-55-17)
-  * [Start Operating `55` `18`](#start-operating-55-18)
+  * [Stop Operating `12`](#stop-operating-12)
+  * [Fetch Data `13`](#fetch-data-13)
+  * [Operating Mode `17`](#operating-mode-17)
+  * [Start Operating `18`](#start-operating-18)
  * [Chapter 4 - Information Commands](#chapter-4---information-commands)
   * [Message Frame](#message-frame-2)
   * [Information Commands Supported by LOGO](#information-commands-supported-by-logo)
@@ -146,8 +146,9 @@ Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Confirmation | `06` | Acknowledgment
 Command | `55` | Control
-Function | `11 11` | Fetch Data
-Byte Count | `40` | Data length 64 (dec) bytes
+Function | `11 11` | Data Response
+Byte Count | `40` | Number of bytes 64 (dec)
+Padding | `00` | Padding Byte
 Data | `00 7f .. 00` | data block
 Trailer | `aa` | End Delimiter
 >Figure LOGO response message
@@ -324,11 +325,14 @@ Data Code | 16/32bit Address | Number of bytes
 # Chapter 3 - Control Commands
 
 ## Message Frame
+All control commands are placed into a frame that has a known beginning and ending point. They start with `55` and end with `AA`. The function code specifies the control command to be executed. The function code consists of two bytes and both bytes have the same value. 
 
-Command | Function | Content
+A typical message frame is shown below.
+
+Start | Function | Content | End
 --- | --- | ---
-1 byte | n bytes
-Control Code | Function Field | Optional
+1 byte | 2 bytes | n bytes | 1 byte
+Control Code | Function Field | Optional | End Delimiter
 >Figure Control Command Frame
 
 The content of a control message sent from a DTE to a LOGO device may contains additional information that the LOGO must use to perform the action defined by the command code. 
@@ -339,14 +343,14 @@ The listing below shows the function codes for the control command `55` supporte
 
 _Y_ indicates that the command is supported. _N_ indicates that it is not supported.
 
-Command | Function | Name | 0BA4 | 0BA5 | 0BA6
---- | --- | --- | --- | --- | ---
-`55` | `12` | Stop Operating | Y | Y | Y
-`55` | `13` | Fetch Data | Y | Y | Y
-`55` | `17` | Operation Mode | Y | Y | Y
-`55` | `18` | Start Operating | Y | Y | Y
+Function | Name | 0BA4 | 0BA5 | 0BA6
+--- | --- | --- | --- | ---
+`12` | Stop Operating | Y | Y | Y
+`13` | Fetch Data | Y | Y | Y
+`17` | Operation Mode | Y | Y | Y
+`18` | Start Operating | Y | Y | Y
 
-## Stop Operating `55` `12`
+## Stop Operating `12`
 
 ### Description
 Send to LOGO! to change the operation mode to _STOP_
@@ -379,7 +383,7 @@ Command | `06` | Acknowledgment
 >Figure Example Stop Operating Response
 
 
-## Fetch Data `55` `13`
+## Fetch Data `13`
 
 ### Description
 This function fetching the current data from the LOGO device. The LOGO device responds with ACK (`06`), followed by control code `55`, the response function code `11` and the data (length depends on the device type) or NAK (`15`), followed by an exception code. The fetching of the data can be done once or continuously (called _cyclic data query_).
@@ -398,7 +402,7 @@ Control Code | Function Code | Data byte 1) | End Delimiter
 >
 >\1) Is only omitted if a started request should be aborted
 
-Here is an example of a single request of fechting the monitoring data from LOGO device:
+Here is an example of a single request of fetching the monitoring data from LOGO device:
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
@@ -424,13 +428,13 @@ _Byte Count_ value
 - 0BA5 = 40 (hex) = 64 bytes
 - 0BA6 = 4a (hex) = 74 bytes
 
-The _Data_ field includes input image registers, runtime variables, etc. and the data for input, output, cursor key states, and more.
+The _Data_ field includes input image registers, run-time variables, etc. and the data for input, output, cursor key states, and more.
 
-The listing below shows the position in the _Data filed_ for the well known values. The positions start at one and are listed in decimal.
+The listing below shows the position in the _Data_ field for the well known values. The positions start at one and are listed in decimal.
 
 _N_ indicates that it is not supported.
 
-Register | 0BA4 | 0BA5 | 0BA6 | Meaning
+Register | 0BA4 | 0BA5 | 0BA6 | Description
 --- | --- | --- | --- | ---
 I | 23 | 23 | 33 | input
 F | N | N | 36 | function keys
@@ -469,7 +473,7 @@ Function | `11 11` | Data Response
 Byte Count | `40` | Number of bytes 64 (dec)
 Padding | `00` | Padding Byte
 Data | `35 08 11 2a 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
-Data | `00 00 00 00 00 0C 09 00 00` `01 00` `00 00 00` `00` `00` | Data Block 10-1f
+Data | `00 00 00 00 00 0C` `09 00 00` `01 00` `00 00 00` `00` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
 Trailer | `aa` | End Delimiter
@@ -490,12 +494,15 @@ Data | `00 00 00 00 00 00 00 00 00 00` | Data Block 40-49
 Trailer | `aa` | End Delimiter
 >Figure Example 0BA6 Fetch Response
 
-## Operating Mode `55` `17`
+## Operating Mode `17`
 
 ### Description
-Send to LOGO! to ask the Operation Mode.
+
+The Control Command "17" queries the current operating mode.
 
 ### Query
+
+Status query from DTE to the LOGO device to query the operating mode.
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
@@ -504,14 +511,28 @@ Function | `17 17` | Ask operation mode
 Trailer | `aa` | End Delimiter
 >Figure Example Operating Mode Query
 
-Here are two examples how to get the operation mode:
+### Response
 
-Command | Query | Response | Meaning
---- | --- | --- | ---
-Ask Operation Mode | `55` `17 17` `aa` | `06` `01` | LOGO! in RUN mode
-Ask Operation Mode | `55` `17 17` `aa` | `06` `42` | LOGO! in STOP mode
+The format of a normal response is shown below. The data content depends on the current operating mode. They are listed on the following heading.
 
-## Start Operating `55` `18`
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Confirmation | `06` | Acknowledgment
+Function | `01` | Current Operating Mode is RUN
+>Figure Example Operating Mode Response
+
+### A Summary of Operation Modes
+
+These are the Operation Modes returned by LOGO controllers in the second byte of the confirmation response:
+
+Data | Meaning
+--- | ---
+`01` | LOGO! in RUN mode
+`20` | LOGO! in Parameter mode
+`42` | LOGO! in STOP mode
+
+
+## Start Operating `18`
 
 ### Description
 Send to LOGO! to change the operation mode to _RUN_
