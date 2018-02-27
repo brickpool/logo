@@ -1,5 +1,5 @@
 # LOGO! PG Protocol Reference Guide
-Rev. Bf
+Rev. Bg
 
 February 2018
 
@@ -70,7 +70,7 @@ Refer to the following publication for details about the RS232 specifications an
 ## Introducing PG Protocol
 The common language used by all LOGO! devices is the PG protocol. This protocol defines a message structure that controllers will recognize and use, regardless of the type of networks over which they communicate.
 
-Standard Interface cable for LOGO! 0BA0 to 0BA6 controllers use an [5-wire RS–232C](https://en.wikipedia.org/wiki/RS-232#3-wire_and_5-wire_RS-232) compatible serial interface that defines connector pin-outs, cabling, signal levels, transmission baud rates, and parity checking.
+Standard Interface cable for LOGO! 0BA0 to 0BA6 controllers use an 4-wire RS–232C compatible serial interface that defines connector pin-outs, cabling, signal levels, transmission baud rates, and parity checking.
 
 The Siemens Software LOGO! Comfort communicate using a _master–slave technique_, in which only a personal computer called _DTE_ (data terminal equipment) can initiate transactions (called _queries_). The LOGO! device called _DCE_ (data communication equipment) respond by supplying the requested data to the DTE, or by taking the action requested in the query.
 
@@ -131,7 +131,7 @@ Start | Content
 Query/Response | Optional
 >Figure Message Frame
 
-The next two _Figure_ shows an example of a DTE query message and a LOGO normal response. Both examples show the field contents in hexadecimal, and also show how a message framed.
+The next _Figures_ shows an example of a DTE query message and a LOGO normal response. Both examples show the field contents in hexadecimal, and also show how a message framed.
 
 The DTE query is a data monitoring request to the LOGO device. The message requests a data block for monitoring. 
 
@@ -407,7 +407,7 @@ Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Confirmation | `06` | Acknowledgment
 Data | `48 65 6C 6C 6F 20 77 6F 72 6C 64 21 20 20 20 20` | Data Block
-Ckhecksum | `21` | Data Block
+Checksum | `21` | XOR Byte
 >Figure Example _Read Block_ Response
 
 In this example the program name is read out. The maximum text width is 16 characters. The reading direction is from left to right. In addition, the XOR checksum value is used in this example (`21` hex).
@@ -496,7 +496,7 @@ Control Code | Function Code | Data byte 1) | End Delimiter
 
 >__Notes:__
 >
->\1) Is only omitted if a started request should be aborted
+>1) Is only omitted if a started request should be aborted
 
 Here is an example of a single request of fetching the monitoring data from LOGO device:
 
@@ -592,7 +592,6 @@ Trailer | `aa` | End Delimiter
 ## Operating Mode `17`
 
 ### Description
-
 The Control Command "17" queries the current operating mode.
 
 ### Query
@@ -630,9 +629,10 @@ Data | Meaning
 ## Start Operating `18`
 
 ### Description
-Send to LOGO! to change the operation mode to _RUN_
+Executing the command switches the connected LOGO device from the STOP mode to the RUN mode.
 
 ### Query
+Send to LOGO! to change the operation mode to _RUN_
 
 Command | Function | Trailer
 --- | --- | --- 
@@ -706,31 +706,63 @@ Code | Name | 0BA4 | 0BA5 | 0BA6
 `15` | Exception Responses | Y | Y | Y
 
 ## Acknowledge Response `06`
-LOGO! confirmation code `06` (ACK), followed by zero or n bytes of data.
 
-Example:
-```
-Query
-55 17 17 aa
+### Description
+LOGO! confirmation code `06` (ACK), followed by zero or n bytes of data. The response message depends on the request. It can consist of a simple ACK or additionally contain the requested data. 
 
-Response
-06 42
-```
->Figure DTE Query and LOGO _Confirmation Response_
+### Response
+
+Confirmation | Content
+--- | --- 
+1 byte | n bytes
+Confirmation Code | Optional
+>Figure _Acknowledge_ Response Message
+
+Here is an example of a request to read the current _Operation Mode_:
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Command | `55` | Control
+Function | `17 17` | Ask operation mode
+Trailer | `aa` | End Delimiter
+>Figure Example _Operating Mode_ Query
+
+Here is an example of a response to the query above:
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Confirmation | `06` | Acknowledgment
+Data | `42` | Current Operating Mode is STOP
+>Figure Example _Acknowledge_ Response
 
 ## Exception Responses `15`
-LOGO confirmation code `15` (NOK), followed by an exception code (1 byte). The exception code can be a transport or protocol error.
 
-The next Figure shows an example of a DTE query and LOGO exception response. The field examples are shown in hexadecimal. 
+### Description
+LOGO confirmation code `15` (NOK), followed by an exception code (1 byte). 
 
-```
-Query
-XX XX XX
+### Response
+The exception code can be a transport or protocol error. The field examples are in hexadecimal.
 
-Response
-15 05
-```
->Figure DTE Query and LOGO _Exception Response_
+Confirmation | Content
+--- | --- 
+1 byte | 1 byte
+Confirmation Code | Exception Code
+>Figure _Exception_ Response Message
+
+The next two Figures shows an example of a DTE query and LOGO exception response:
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Command | `07` | Wrong command
+>Figure Example _Faulty Command_ Query
+
+Here is an example of a response to the query above:
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Confirmation | `15` | Eception
+Exception Code | `05` | Unknown command
+>Figure Example _Exception_ Response
 
 ## Exception Codes
 Type | Name | Meaning
@@ -747,6 +779,8 @@ Type | Name | Meaning
 # Appendix A - Application Examples
 
 ## Read Revision
+
+### Description
 Read the revision byte from the LOGO address `1f 02`:
 
 command | query | response | description
@@ -756,125 +790,131 @@ read byte | `02` `1f 02` | `06` `03` `00 ff 1f 02` `43` | connection established
 >Figure Example _Read Revision_
 
 ## Read Clock
-Read commands for RTC:
+
+### Description
+Read commands for RTC
+
 1. Device status inquiry
-2. Write byte `00` to Address \[00 FF\] 44 00 to initialize reading
-3. Read byte(s)
- + _day_ at Address \[00 FF\] FB 00
- + _month_ at address \[00 FF\] FB 01
- + _year_ at address \[00 FF\] FB 02
- + _minute_ at address \[00 FF\] FB 03
- + _hour_ at address \[00 FF\] FB 04
- + _day-of-week_ at address \[00 FF\] FB 05
+2. Write byte `00` to Address `[00 FF] 44 00` for initialize reading
+3. Read byte
+ + _day_ at Address `[00 FF] FB 00`
+ + _month_ at address `[00 FF] FB 01`
+ + _year_ at address `[00 FF] FB 02`
+ + _minute_ at address `[00 FF] FB 03`
+ + _hour_ at address `[00 FF] FB 04`
+ + _day-of-week_ at address `[00 FF] FB 05`
 
 Example Read Clock LOGO 0BA6:
 
 ```
-:21      hello request
-:55:17:17:aa ask operation mode
+21            connection request
+55 17 17 aa   ask operation mode
 
-:01      write command
-:00:ff:44:00 address (clock reading initialized)
-:00      value = 0x00
+01            write command
+00 ff 44 00   address (clock reading initialized)
+00            value = 0
 
-:02      read command
-:00:ff:fb:00 address (day)
-:02      read command
-:00:ff:fb:01 address (month)
-:02      read command
-:00:ff:fb:02 address (year)
-:02      read command
-:00:ff:fb:03 address (time)
-:02      read command
-:00:ff:fb:04 address (hour)
-:02      read command
-:00:ff:fb:05 address (day of week)
+02            read command
+00 ff fb 00   address (day)
+02            read command
+00 ff fb 01   address (month)
+02            read command
+00 ff fb 02   address (year)
+02            read command
+00 ff fb 03   address (time)
+02            read command
+00 ff fb 04   address (hour)
+02            read command
+00 ff fb 05   address (day of week)
 ```
 >Figure Example _Read Clock_ Query
 
 
 ```
-:06:03:21:44 inquiry response
-:06:42    operation mode STOP
+06 03 21 44   connection response
+06 42         operation mode STOP
 
-:06      write completed (clock reading initialized)
+06            write completed (clock reading initialized)
 
-:02      read response
-:00:ff:fb:00 address (day)
-:1e      value = 30
-:02      read response
-:00:ff:fb:01 address (month)
-:0c      value = 12
-:02      read response
-:00:ff:fb:02 address (year)
-:09      value = 09
-:02      read response
-:00:ff:fb:03 address (time)
-:1c      value = 28
-:02      read response
-:00:ff:fb:04 address (hour)
-:14      value = 20
-:02      read response
-:00:ff:fb:05 address (day of week)
-:03      value = 03
+06 03         read response
+00 ff fb 00   address (day)
+1e            value = 30 (dec)
+06 03         read response
+00 ff fb 01   address (month)
+0c            value = 12 (dec)
+06 03         read response
+00 ff fb 02   address (year)
+09            value = 09 (dec)
+06 03         read response
+00 ff fb 03   address (time)
+1c            value = 28 (dec)
+06 03         read response
+00 ff fb 04   address (hour)
+14            value = 20 (dec)
+06 03         read response
+00 ff fb 05   address (day of week)
+03            value = 03 (dec)
 ```
 >Figure Example _Read Clock_ Response
 
 
 ## Write clock
-Write commands for RTC:
+
+### Description
+Write commands for RTC
+
 1. Device status inquiry
-2. Write byte(s)
- + _day_ to Address \[00 FF\] FB 00
- + _month_ to address \[00 FF\] FB 01
- + _year_ to address \[00 FF\] FB 02
- + _minute_ to address \[00 FF\] FB 03
- + _hour_ to address \[00 FF\] FB 04
- + _day-of-week_ to address \[00 FF\] FB 05
-3. Write byte `00` to Address \[00 FF\] 43 00 writing complete
+2. Write byte
+ + _day_ to Address `[00 FF] FB 00`
+ + _month_ to address `[00 FF] FB 01`
+ + _year_ to address `[00 FF] FB 02`
+ + _minute_ to address `[00 FF] FB 03`
+ + _hour_ to address `[00 FF] FB 04`
+ + _day-of-week_ to address `[00 FF] FB 05`
+3. Write byte `00` to Address `[00 FF] 43 00` for writing complete
 
 Write Clock Example:
 
 ```
-:21      inquiry request
-:55:17:17:aa ask operation mode
+21            connection request
+55 17 17 aa   ask operation mode
 
-:01      write command
-:00:ff:fb:00 address (day)
-:1e      value = 30
-:01      write command
-:00:ff:fb:01 address (month)
-:0c      value = 12
-:01      write command
-:00:ff:fb:02 address (year)
-:09      value = 09
-:01      write command
-:00:ff:fb:03 address (minute)
-:24      value = 36
-:01      write command
-:00:ff:fb:04 address (hour)
-:14      value = 20
-:01      write command
-:00:ff:fb:05 address (day of week)
-:03      value = 03
-:01      write command
-:00:ff:43:00 address (clock writing complete)
-:00      value 0x00
+01            write command
+00 ff fb 00   address (day)
+1e            value = 30 (dec)
+01            write command
+00 ff fb 01   address (month)
+0c            value = 12 (dec)
+01            write command
+00 ff fb 02   address (year)
+09            value = 09 (dec)
+01            write command
+00 ff fb 03   address (minute)
+24            value = 36 (dec)
+01            write command
+00 ff fb 04   address (hour)
+14            value = 20 (dec)
+01            write command
+00 ff fb 05   address (day of week)
+03            value = 03 (dec)
+01            write command
+00 ff 43 00   address (clock writing complete)
+00            value = 0
 ```
 >Figure Example _Write Clock_ Query
 
 
 ```
-:06:03:21:44 inquiry response
-:06:42    operation mode STOP
+06 03 21 44   connection response
+06 42         operation mode STOP
 
-:06      write completed (day)
-:06      write completed (month)
-:06      write completed (year)
-:06      write completed (minute)
-:06      write completed (hour)
-:06      write completed (day of week)
-:06      write completed (clock writing complete)
+06            write completed (day)
+06            write completed (month)
+06            write completed (year)
+06            write completed (minute)
+06            write completed (hour)
+06            write completed (day of week)
+06            write completed (clock writing complete)
 ```
 >Figure Example _Write Clock_ Response
 
@@ -894,17 +934,17 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 055E        | 1   |     |     |
 055F        | 1   |     |     |
 --          | --  | --  | --  | --
-0566 - 056F | 10  |     | Password memory area | `05 05 66 00 0A`
-0570 - 057F | 16  |     | Program Name | `05 05 70 00 10`
-05C0 - 05FF | 64  |     | Block Name index | `05 05 C0 00 40`
-0600 - 07FF | 512 |     | Block Name | `05 06 00 02 00`
-0800 - 0A7F | 640 |     | Text Block 1..10 (64 bytes per Text Box) | `05 08 00 02 80`
-0C00 - 0D17 | 280 |     | Function block memory area ( = 130) | `05 0C 00 01 18`
-0E20 - 0E47 | 40  |     | Digital output Q1..16 | `05 0E 20 00 28`
-0E48 - 0E83 | 60  |     | Flag M1..24 | `05 0E 48 00 3C`
-0E84 - 0E97 | 20  |     | Analog output AQ1..2 | `05 0E 84 00 14`
-0E98 - 0EBF | 40  |     | Open Connector X1..16 | `05 0E 98 00 28`
-0EE8 - 16B7 | 2000 |    | Program memory area | `05 0E E8 07 D0`
+0566 - 056F | 10  |     | Password memory area | `05 05 66 00 0A`
+0570 - 057F | 16  |     | Program Name | `05 05 70 00 10`
+05C0 - 05FF | 64  |     | Block Name index | `05 05 C0 00 40`
+0600 - 07FF | 512 |     | Block Name | `05 06 00 02 00`
+0800 - 0A7F | 640 |     | Text Block 1..10 (64 bytes per Text Box) | `05 08 00 02 80`
+0C00 - 0D17 | 280 |     | Function block memory area ( = 130) | `05 0C 00 01 18`
+0E20 - 0E47 | 40  |     | Digital output Q1..16 | `05 0E 20 00 28`
+0E48 - 0E83 | 60  |     | Flag M1..24 | `05 0E 48 00 3C`
+0E84 - 0E97 | 20  |     | Analog output AQ1..2 | `05 0E 84 00 14`
+0E98 - 0EBF | 40  |     | Open Connector X1..16 | `05 0E 98 00 28`
+0EE8 - 16B7 | 2000 |    | Program memory area | `05 0E E8 07 D0`
 --          | --  | --  | --  | --
 4100        | 1   | W   |     | 
 4400        | 1   | W   | Clock write initialization; Data Byte = `00` |
@@ -915,5 +955,5 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 1F01        | 1   |     |     |
 1F02        | 1   |     | Revision Byte |
 --          | --  | --  | --  | --
-FB00 - FB05 | 6   |     | Clock Data |
+FB00 - FB05 | 6   |     | Clock memory area |
 
