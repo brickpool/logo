@@ -107,8 +107,9 @@ void printHex(byte *data, size_t length) // prints 8-bit data in hex with leadin
   char tmp[16];
   for (int i = 0; i < length; i++) 
   {
-    sprintf(tmp, "0x%.2X", data[i]);
+    sprintf(tmp, "%.2X", data[i]);
     Serial.print(tmp); Serial.print(" ");
   }
 }
+
 
