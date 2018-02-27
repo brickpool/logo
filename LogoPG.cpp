@@ -127,14 +127,14 @@ const PROGMEM byte VM_MAP_923_983_0BA4[] =
 // VM 0BA7 Mapping for 0BA6
 const PROGMEM byte VM_MAP_923_983_0BA6[] =
 {
-  0x20, 0x21, 0x22,                               // 923-925  : input 1-24
-  0x2D, 0x2C, 0x2F, 0x2E, 0x31, 0x30, 0x33, 0x32, // 926-933  : analoge input 1-4
-  0x35, 0x34, 0x37, 0x36, 0x39, 0x38, 0x3B, 0x3A, // 934-941  : analoge input 5-8
-  0x24, 0x25,                                     // 942-943  : output 1-16
-  0x3D, 0x3C, 0x3F, 0x3E,                         // 944-947  : analoge output 1-2
-  0x26, 0x27, 0x28, 0x29,                         // 948-951  : flag 1-27
-  0x41, 0x40, 0x43, 0x42, 0x45, 0x44, 0x47, 0x46, // 952-959  : analoge flag 1-4
-  0x49, 0x48, 0x4B, 0x4A, 0xFF, 0xFF, 0xFF, 0xFF, // 960-967  : analoge flag 5-8
+  0x1E, 0x1F, 0x20,                               // 923-925  : input 1-24
+  0x2B, 0x2A, 0x2D, 0x2C, 0x2F, 0x2E, 0x31, 0x30, // 926-933  : analoge input 1-4
+  0x33, 0x32, 0x35, 0x34, 0x37, 0x36, 0x39, 0x38, // 934-941  : analoge input 5-8
+  0x22, 0x23,                                     // 942-943  : output 1-16
+  0x3B, 0x3A, 0x3D, 0x3C,                         // 944-947  : analoge output 1-2
+  0x24, 0x25, 0x26, 0x27,                         // 948-951  : flag 1-27
+  0x3F, 0x3E, 0x41, 0x40, 0x43, 0x42, 0x45, 0x44, // 952-959  : analoge flag 1-4
+  0x47, 0x46, 0x49, 0x48, 0xFF, 0xFF, 0xFF, 0xFF, // 960-967  : analoge flag 5-8
   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 968-975  : analoge flag 9-12
   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 976-983  : analoge flag 13-16
 };
@@ -182,21 +182,14 @@ bool LogoHelper::BitAt(int ByteIndex, int BitIndex)
 {
   if (ByteIndex < VM_0BA7_AREA || ByteIndex >= VM_DDT_AREA)
     return false;
-  
-  switch (LogoClient::PDULength) {
-    case PduSize0BA4:
-      ByteIndex = VM_MAP_923_983_0BA4[ByteIndex-VM_0BA7_AREA];
-      break;
-    case PduSize0BA6:
-      ByteIndex = VM_MAP_923_983_0BA6[ByteIndex-VM_0BA7_AREA];
-      break;
-    default:
-      ByteIndex = 0xFF;
-  }
+
+  // https://www.arduino.cc/reference/en/language/variables/utilities/progmem/
+  ByteIndex = pgm_read_byte_near(LogoClient::Mapping + ByteIndex- VM_0BA7_AREA);
+
   if (ByteIndex > MaxPduSize-Size_WR-1)
     return false;
-
-  return BitAt(PDU.DATA, ByteIndex, BitIndex);
+  else
+    return BitAt(PDU.DATA, ByteIndex, BitIndex);
 }
 
 byte LogoHelper::ByteAt(void *Buffer, int index)
@@ -210,20 +203,12 @@ byte LogoHelper::ByteAt(int index)
   if (index < VM_0BA7_AREA || index >= VM_DDT_AREA)
     return 0;
   
-  switch (LogoClient::PDULength) {
-    case PduSize0BA4:
-      index = VM_MAP_923_983_0BA4[index-VM_0BA7_AREA];
-      break;
-    case PduSize0BA6:
-      index = VM_MAP_923_983_0BA6[index-VM_0BA7_AREA];
-      break;
-    default:
-      return 0;
-  }
+  index = pgm_read_byte_near(LogoClient::Mapping + index - VM_0BA7_AREA);
+  
   if (index > MaxPduSize-Size_WR-1)
     return 0;
-
-  return ByteAt(PDU.DATA, index);
+  else
+    return ByteAt(PDU.DATA, index);
 }
 
 word LogoHelper::WordAt(void *Buffer, int index)
@@ -237,20 +222,12 @@ word LogoHelper::WordAt(int index)
   if (index < VM_0BA7_AREA || index >= VM_DDT_AREA)
     return 0;
   
-  switch (LogoClient::PDULength) {
-    case PduSize0BA4:
-      index = VM_MAP_923_983_0BA4[index-VM_0BA7_AREA];
-      break;
-    case PduSize0BA6:
-      index = VM_MAP_923_983_0BA6[index-VM_0BA7_AREA];
-      break;
-    default:
-      return 0;
-  }
+  index = pgm_read_byte_near(LogoClient::Mapping + index - VM_0BA7_AREA);
+  
   if (index > MaxPduSize-Size_WR-1)
     return 0;
-
-  return WordAt(PDU.DATA, index);
+  else
+    return WordAt(PDU.DATA, index);
 }
 
 int LogoHelper::IntegerAt(void *Buffer, int index)
@@ -264,27 +241,19 @@ int LogoHelper::IntegerAt(int index)
   if (index < VM_0BA7_AREA || index >= VM_DDT_AREA)
     return 0;
   
-  switch (LogoClient::PDULength) {
-    case PduSize0BA4:
-      index = VM_MAP_923_983_0BA4[index-VM_0BA7_AREA];
-      break;
-    case PduSize0BA6:
-      index = VM_MAP_923_983_0BA6[index-VM_0BA7_AREA];
-      break;
-    default:
-      return 0;
-  }
+  index = pgm_read_byte_near(LogoClient::Mapping + index - VM_0BA7_AREA);
+  
   if (index > MaxPduSize-Size_WR-1)
     return 0;
-
-  return IntegerAt(PDU.DATA, index);
+  else
+    return IntegerAt(PDU.DATA, index);
 }
 
 #endif // _LOGOHELPER
 
 //***********************************************************************
 
-int LogoClient::PDULength = 0;
+byte* LogoClient::Mapping = NULL;
 
 LogoClient::LogoClient()
 {
@@ -386,7 +355,7 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
   if (Start < VM_START && Start > VM_END)
     SetLastError(errPGInvalidPDU | errCliInvalidPDU);
     
-#if defined(_NORMAL) || defined(_EXTENDED)
+#if defined _EXTENDED
   int Status;
   GetPlcStatus(&Status);
   if (LastError)
@@ -395,7 +364,7 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
   // Operation mode must be RUN if we use LOGO_FETCH_DATA
   if (Status != LogoCpuStatusRun) // Exit with Error if the LOGO is not in operation mode RUN
     return SetLastError(errPGInvalidPDU | errCliFunction);
-#endif // _NORMAL or _EXTENDED
+#endif // _EXTENDED
 
   if (StreamClient->write(LOGO_FETCH_DATA, sizeof(LOGO_FETCH_DATA)) != sizeof(LOGO_FETCH_DATA))
     return SetLastError(errStreamDataSend);
@@ -555,7 +524,7 @@ int LogoClient::PlcStop()
   if (LastError)
     return LastError;
 
-  if (Status == LogoCpuStatusRun)
+  if (Status != LogoCpuStatusStop)
   {
     if (StreamClient->write(LOGO_STOP, sizeof(LOGO_STOP)) != sizeof(LOGO_STOP))
       return SetLastError(errStreamDataSend);
@@ -598,7 +567,7 @@ int LogoClient::GetPlcStatus(int *Status)
   if (Length != sizeof(PDU.H)+1)  // Size of Header + 1 Data Byte is the expected value
     return SetLastError(errPGInvalidPDU | errCliInvalidPDU);
 
-  switch (PDU.DATA[1]) {
+  switch (PDU.DATA[0]) {
     case RUN:
       *Status = LogoCpuStatusRun;
       break;
@@ -635,6 +604,7 @@ int LogoClient::RecvControlResponse(size_t *Size)
   *Size = 1;                // Update Size
 
   LastPDUType = PDU.H[0];   // Store PDU Type
+
   if (LastPDUType == ACK)   // Connection confirmed
   {
     // Get next Byte
@@ -674,9 +644,10 @@ int LogoClient::RecvControlResponse(size_t *Size)
 
     // Store Number of Bytes
     size_t ByteCount = PDU.H[4];
-    if (ByteCount < MinPduSize)
+
+    if (*Size+ByteCount < MinPduSize)
       return SetLastError(errPGInvalidPDU);
-    else if (ByteCount > MaxPduSize)
+    else if (*Size+ByteCount > MaxPduSize)
       return SetLastError(errPGInvalidPDU | errCliBufferTooSmall);
 
     // Get the Data Block (n bytes)
@@ -801,7 +772,7 @@ int LogoClient::LogoConnect()
   
   // Get 4 bytes
   RecvPacket(PDU.H, 4);
-  if (LastError == errStreamDataRecvTout)   // 0BA4 doesn't support a connection request
+  if (LastError == errStreamDataRecvTout)       // 0BA4 doesn't support a connection request
   {
     if (StreamClient->write(LOGO_REVISION, sizeof(LOGO_REVISION)) != sizeof(LOGO_REVISION))
       return SetLastError(errStreamDataSend);
@@ -824,39 +795,42 @@ int LogoClient::LogoConnect()
 
 int LogoClient::NegotiatePduLength()
 {
+  size_t Length = 0;
   if (PDULength)  // Exit if length has already been determined
     return SetLastError(0);
   
   PDULength = 0;
 
-  if (StreamClient->write(LOGO_REVISION, sizeof(LOGO_REVISION)) != sizeof(LOGO_REVISION))
+  if (StreamClient->write(LOGO_CR, sizeof(LOGO_CR)) != sizeof(LOGO_CR))
     return SetLastError(errStreamDataSend);
-  
+
   // Setup the telegram
   memset(&PDU, 0, sizeof(PDU));
   
-  // Get 5 bytes
-  RecvPacket(PDU.H, 5);
-  if (LastError)
-    return SetLastError(LastError | errCliDataRead);
+  // Get 4 bytes
+  Length = 4;
+  RecvPacket(PDU.H, Length);
+  if (LastError == errStreamDataRecvTout)       // 0BA4 doesn't support a connection request
+  {
+    if (StreamClient->write(LOGO_REVISION, sizeof(LOGO_REVISION)) != sizeof(LOGO_REVISION))
+      return SetLastError(errStreamDataSend);
+
+    // Get 5 bytes
+    Length = 5;
+    RecvPacket(PDU.H, Length);
+    if (LastError)
+      return SetLastError(errCliNegotiatingPDU);
+  }
+  else if (LastError)
+    return SetLastError(errCliNegotiatingPDU);
 
   LastPDUType = PDU.H[0];   // Store PDU Type
   if (LastPDUType != ACK)   // Check Confirmation
-    return SetLastError(errCliNegotiatingPDU);
+    return SetLastError(errPGConnect);
 
-  if (PDU.H[2] == 0x00 && PDU.H[3] == 0xFF)     // 0BA6 responds with a 32-bit address
-  {
-    // Get 2 more bytes
-    RecvPacket(&PDU.H[5], 2);
-    if (LastError)
-      return SetLastError(LastError | errCliDataRead);
-  } 
-  else
-  {
-	// We should align PDU
-    PDU.DATA[0] = PDU.H[4];
-    PDU.H[4] = 0;
-  }
+  // We should align PDU
+  PDU.DATA[0] = PDU.H[Length-1];
+  PDU.H[Length-1] = 0;
 
   switch (PDU.DATA[0]) {
     case 0x40:

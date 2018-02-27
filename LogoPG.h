@@ -41,6 +41,8 @@
  *    impl. RecvControlResponse
  *    change LogoHelper indexing from PDU to VM
  *    support different memory models 
+ *  2018-02-26: Version 0.4.1
+ *    bug fixing
 */
 
 #ifndef LogoPG_h_
@@ -138,6 +140,8 @@ extern LogoHelper LH;
 class LogoClient
 {
 public:
+  static byte* Mapping;   // PDU Data mapping to VM
+
   // Output properties
   bool Connected;   // true if the Client is connected
   int LastError;    // Last Operation error
@@ -167,14 +171,16 @@ public:
   // void ErrorText(int Error, char *Text, int TextLen);
 #endif
 
+
 private:
   byte LastPDUType;     // First byte of a received message
   word ConnType;        // Usually a PG connection
   
+  // We use the Stream class as a common class, 
+  // so LogoClient can use HardwareSerial or CustomSoftwareSerial
   pstream StreamClient;
-  
-  static int PDULength; // PDU length negotiated (0 if not negotiated)
-  byte* Mapping;        // PDU Data mapping to VM
+
+  int PDULength;          // PDU length negotiated (0 if not negotiated)
 
   int RecvControlResponse(size_t *Size);
   int RecvPacket(byte buf[], size_t Size);
@@ -191,58 +197,58 @@ private:
 * position      description
 * 0BA4 0BA5 0BA6
 ***********************************************************************
-    23  23  33  input 1-8
-    24  24  34  input 9-16
-    25  25  35  input 17-24
+    23  23  31  input 1-8
+    24  24  32  input 9-16
+    25  25  33  input 17-24
                 
-            36  TD function key F1-F4
+            34  TD function key F1-F4
                 
-    26  26  37  output 1-8
-    27  27  38  output 9-16
+    26  26  35  output 1-8
+    27  27  36  output 9-16
                 
-    28  28  39  flag 1-8
-    29  29  40  flag 9-16
-    30  30  41  flag 17-24
-            42  flag 25-27
+    28  28  37  flag 1-8
+    29  29  38  flag 9-16
+    30  30  39  flag 17-24
+            40  flag 25-27
                 
-    31  31  43  shift register 1-8
+    31  31  41  shift register 1-8
                 
-    32  32  44  cursor key C1-C4
+    32  32  42  cursor key C1-C4
                 
-    33  33  45  analog input 1 low
-    34  34  46  analog input 1 high
-    35  35  47  analog input 2 low
-    36  36  48  analog input 2 high
-    37  37  49  analog input 3 low
-    38  38  50  analog input 3 high
-    39  39  51  analog input 4 low
-    40  40  52  analog input 4 high
-    41  41  53  analog input 5 low
-    42  42  54  analog input 5 high
-    43  43  55  analog input 6 low
-    44  44  56  analog input 6 high
-    45  45  57  analog input 7 low
-    46  46  58  analog input 7 high
-    47  47  59  analog input 8 low
-    48  48  60  analog input 8 high
+    33  33  43  analog input 1 low
+    34  34  44  analog input 1 high
+    35  35  45  analog input 2 low
+    36  36  46  analog input 2 high
+    37  37  47  analog input 3 low
+    38  38  48  analog input 3 high
+    39  39  49  analog input 4 low
+    40  40  50  analog input 4 high
+    41  41  51  analog input 5 low
+    42  42  52  analog input 5 high
+    43  43  53  analog input 6 low
+    44  44  54  analog input 6 high
+    45  45  55  analog input 7 low
+    46  46  56  analog input 7 high
+    47  47  57  analog input 8 low
+    48  48  58  analog input 8 high
                 
-    49  49  61  analog output 1 low
-    50  50  62  analog output 1 high
-    51  51  63  analog output 2 low
-    52  52  64  analog output 2 high
+    49  49  59  analog output 1 low
+    50  50  60  analog output 1 high
+    51  51  61  analog output 2 low
+    52  52  62  analog output 2 high
                 
-    53  53  65  analog flag 1 low
-    54  54  66  analog flag 1 high
-    55  55  67  analog flag 2 low
-    56  56  68  analog flag 2 high
-    57  57  69  analog flag 3 low
-    58  58  70  analog flag 3 high
-    59  59  71  analog flag 4 low
-    60  60  72  analog flag 4 high
-    61  61  73  analog flag 5 low
-    62  62  74  analog flag 5 high
-    63  63  75  analog flag 6 low
-    64  64  76  analog flag 6 high
+    53  53  63  analog flag 1 low
+    54  54  64  analog flag 1 high
+    55  55  65  analog flag 2 low
+    56  56  66  analog flag 2 high
+    57  57  67  analog flag 3 low
+    58  58  68  analog flag 3 high
+    59  59  69  analog flag 4 low
+    60  60  70  analog flag 4 high
+    61  61  71  analog flag 5 low
+    62  62  72  analog flag 5 high
+    63  63  73  analog flag 6 low
+    64  64  74  analog flag 6 high
 ***********************************************************************
 */
 
@@ -257,15 +263,15 @@ private:
 #define AM_0BA4    0x34
 
 // LOGO 0BA6 index in PDU.DATA
-#define I_0BA6     0x20
-#define F_0BA6     0x23
-#define Q_0BA6     0x24
-#define M_0BA6     0x26
-#define S_0BA6     0x2A
-#define C_0BA6     0x2B
-#define AI_0BA6    0x2C
-#define AQ_0BA6    0x3C
-#define AM_0BA6    0x40
+#define I_0BA6     0x1E
+#define F_0BA6     0x21
+#define Q_0BA6     0x22
+#define M_0BA6     0x24
+#define S_0BA6     0x28
+#define C_0BA6     0x29
+#define AI_0BA6    0x2A
+#define AQ_0BA6    0x3A
+#define AM_0BA6    0x3E
 
 /*
  * The LOGO > 0BA6 has reserved fixed memory addresses for inputs,
