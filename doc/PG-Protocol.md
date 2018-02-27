@@ -1,5 +1,5 @@
 # LOGO! PG Protocol Reference Guide
-Rev. Bg
+Rev. Bh
 
 February 2018
 
@@ -749,12 +749,12 @@ Confirmation | Content
 Confirmation Code | Exception Code
 >Figure _Exception_ Response Message
 
-The next two Figures shows an example of a DTE query and LOGO exception response:
+The next two Figures shows an example of a DTE query and a exception response from a LOGO 0BA4 device (operation mode STOP):
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
-Command | `07` | Wrong command
->Figure Example _Faulty Command_ Query
+Command | `21` | Read Byte
+>Figure Example _Faulty Command_ Query __0BA4__
 
 Here is an example of a response to the query above:
 
@@ -762,7 +762,7 @@ Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Confirmation | `15` | Eception
 Exception Code | `05` | Unknown command
->Figure Example _Exception_ Response
+>Figure Example _Exception_ Response __0BA4__
 
 ## Exception Codes
 Type | Name | Meaning
@@ -923,37 +923,38 @@ Write Clock Example:
 
 ## LOGO 0BA5
 
+_R_ indicates that is only supported in operation mode _RUN_. _S_ indicates that it is supported in mode _STOP_. _W_ indicates that write is supported.
+
 Base Address | Byte Count (dec) | Access | Meaning | Example
 ----------- | --- | --- | --- | ---
-0522        | 1   | W   |     | 
+0522        | 1   | S/W |     | 
 --          | --  | --  | --  | --
-0552        | 1   |     | Default after power-on | 
+0552        | 1   | S   | Default after power-on | `02 05 52`
 --          | --  | --  | --  | --
 0553 - 0557 | 5   |     | Setting the analog output in STOP mode | `05 05 53 00 05`
 --          | --  | --  | --  | --
 055E        | 1   |     |     |
 055F        | 1   |     |     |
 --          | --  | --  | --  | --
-0566 - 056F | 10  |     | Password memory area | `05 05 66 00 0A`
-0570 - 057F | 16  |     | Program Name | `05 05 70 00 10`
-05C0 - 05FF | 64  |     | Block Name index | `05 05 C0 00 40`
-0600 - 07FF | 512 |     | Block Name | `05 06 00 02 00`
-0800 - 0A7F | 640 |     | Text Block 1..10 (64 bytes per Text Box) | `05 08 00 02 80`
-0C00 - 0D17 | 280 |     | Function block memory area ( = 130) | `05 0C 00 01 18`
-0E20 - 0E47 | 40  |     | Digital output Q1..16 | `05 0E 20 00 28`
-0E48 - 0E83 | 60  |     | Flag M1..24 | `05 0E 48 00 3C`
-0E84 - 0E97 | 20  |     | Analog output AQ1..2 | `05 0E 84 00 14`
-0E98 - 0EBF | 40  |     | Open Connector X1..16 | `05 0E 98 00 28`
+0566 - 056F | 10  | S   | Password memory area | `05 05 66 00 0A`
+0570 - 057F | 16  | S   | Program Name | `05 05 70 00 10`
+05C0 - 05FF | 64  | S   | Block Name index | `05 05 C0 00 40`
+0600 - 07FF | 512 | S   | Block Name | `05 06 00 02 00`
+0800 - 0A7F | 640 | S   | Text Block 1..10 (64 bytes per Text Box) | `05 08 00 02 80`
+0C00 - 0D17 | 280 | S   | Function block memory area ( = 130) | `05 0C 00 01 18`
+0E20 - 0E47 | 40  | S   | Digital output Q1..16 | `05 0E 20 00 28`
+0E48 - 0E83 | 60  | S   | Flag M1..24 | `05 0E 48 00 3C`
+0E84 - 0E97 | 20  | S   | Analog output AQ1..2 | `05 0E 84 00 14`
+0E98 - 0EBF | 40  | S   | Open Connector X1..16 | `05 0E 98 00 28`
 0EE8 - 16B7 | 2000 |    | Program memory area | `05 0E E8 07 D0`
 --          | --  | --  | --  | --
 4100        | 1   | W   |     | 
 4400        | 1   | W   | Clock write initialization; Data Byte = `00` |
 4740        | 1   | W   | Disable/Enable Password; Data Byte = `00` |
-48FF        | 1   | R   | Password set? yes = `40`; no = `00`
+48FF        | 1   | S   | Password set? yes = `40`; no = `00` | `02 48 FF`
 --          | --  | --  | --  | --
 1F00        | 1   |     |     |
 1F01        | 1   |     |     |
-1F02        | 1   |     | Revision Byte |
+1F02        | 1   |     | Revision Byte | `02 1F 02`
 --          | --  | --  | --  | --
-FB00 - FB05 | 6   |     | Clock memory area |
-
+FB00 - FB05 | 6   |     | Clock memory area | `02 00 ff fb 00 02`
