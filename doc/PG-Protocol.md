@@ -1,5 +1,5 @@
 # LOGO! PG Protocol Reference Guide
-Rev. Be
+Rev. Bf
 
 February 2018
 
@@ -20,11 +20,11 @@ Refer to the following publication for details about well known commands:
 
 Refer to the following publications for details about the related commands categories of Date and Time, Password Security and Cyclic Data Read
   * chengrui @ [http://www.ad.siemens.com.cn](http://www.ad.siemens.com.cn/club/bbs/post.aspx?a_id=637887&b_id=3 "Siemens s7-200 and LOGO communication") Date and Time
-  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Password Security (@post 23)
-  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Cyclic Data Read (@post 29)
+  * neiseng @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Password Security (@post 23)
+  * neiseng @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") Cyclic Data Read (@post 29)
 
 Refer to the following publication for details about the LOGO address layout:
-  * kjkld @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") decodes most of the functions and the 0BA5 data address space (@post 42)
+  * neiseng @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") decodes most of the functions and the 0BA5 data address space (@post 42)
 
 Refer to the following publication for details about the RS232 specifications and use cases:
   * [RS232 Specifications and standard](https://www.lammertbies.nl/comm/info/RS-232_specs.html) by Lammert Bies
@@ -52,15 +52,18 @@ Refer to the following publication for details about the RS232 specifications an
     * [Fetch Data `13`](#fetch-data-13)
     * [Operating Mode `17`](#operating-mode-17)
     * [Start Operating `18`](#start-operating-18)
-  * [Chapter 4 - Information Commands](#chapter-4---information-commands)
+  * [Chapter 4 - Tool Commands](#chapter-4---tool-commands)
     * [Message Frame](#message-frame-2)
-    * [Information Commands Supported by LOGO](#information-commands-supported-by-logo)
-    * [Hello Request 21](#hello-request-21)
+    * [Tool Commands Supported by LOGO](#tool-commands-supported-by-logo)
+    * [Clear Program `20`](#clear-program-20)
+    * [Connection Request `21`](#connection-request-21)
+    * [Restart `22`](#restart-22)
   * [Chapter 5 - Errors and Confirmations](#chapter-5---errors-and-confirmations)
     * [Confirmed Codes Used by LOGO](#confirmed-codes-used-by-logo)
-    * [Acknowledge Response 06](#acknowledge-response-06)
-    * [Exception Responses 15](#exception-responses-15)
+    * [Acknowledge Response `06`](#acknowledge-response-06)
+    * [Exception Responses `15`](#exception-responses-15)
   * [Appendix A - Application Examples](#appendix-a---application-examples)
+  * [Appendix B - Address Scheme](#appendix-b---address-scheme)
 
 # Chapter 1 - PG Protocol
 
@@ -357,10 +360,10 @@ Writes data contents of bytes into the Memory of the LOGO device.
 ### Query
 The command contains the standard fields of command code, address offset and Byte Count. The rest of the command specifies the group of bytes to be written into the LOGO device. 
 
-Command | Address | Byte Count | Data
+Command | Address | Byte Count | Data | Checksum
 --- | --- | --- | ---
-1 byte | 2 or 4 bytes | 2 bytes | n bytes
-Data Code | 16/32bit Address | Number of bytes | Data Content
+1 byte | 2 or 4 bytes | 2 bytes | n bytes | 1 byte
+Data Code | 16/32bit Address | Number of bytes | Data Content | CRC8 XOR
 >Figure _Write Block_ Query Message
 
 ### Response
@@ -375,7 +378,7 @@ Reads the binary contents at the specified Memory address of the LOGO device.
 The query message specifies the starting Byte and quantity of Data to be read. The data are addressed starting at zero.
 
 Command | Address | Byte Count
---- | --- | ---
+--- | --- | --- | ---
 1 byte | 2 or 4 bytes | 2 bytes
 Data Code | 16/32bit Address | Number of bytes
 >Figure _Read Block_ Query Message
@@ -412,7 +415,7 @@ In this example the program name is read out. The maximum text width is 16 chara
 Format | Data
 --- | ---
 Hexadecimal | `48 65 6C 6C 6F 20 77 6F 72 6C 64 21 20 20 20 20`
-ASCII | `H e l l o _ w o r l d ! _ _ _ _`
+ASCII | `_H _e _l _l _o __ _w _o _r _l _d _! __ __ __ __`
 >Figure Example _Read Block_ Data decoded
 
 # Chapter 3 - Control Commands
@@ -657,21 +660,26 @@ Command | `06` | Acknowledgment
 >Figure Example _Start Operating_ Response
 
 
-# Chapter 4 - Information Commands
+# Chapter 4 - Tool Commands
 
 ## Message Frame
 For example, in a request from the DTE to the LOGO to respond with his serial no (function code `21` hexadecimal), the LOGO does not require any additional information. The command code alone specifies the action.
 
-## Information Commands Supported by LOGO
+## Tool Commands Supported by LOGO
 The listing below shows the information command codes supported by LOGO. Codes are listed in hexadecimal.
 
 _Y_ indicates that the command is supported. _N_ indicates that it is not supported.
 
 Code | Name | 0BA4 | 0BA5 | 0BA6
 --- | --- | --- | --- | ---
+`20` | Clear Program | N | N | Y
 `21` | Connection Request | N | Y | Y
+`22` | Restart | ? | ? | Y
 
-## Hello Request `21`
+## Clear Program `20`
+This command allows you to clear the circuit program in the connected LOGO device and the program password if a password exists. The circuit program and password (if configured) remain in the LOGO device. LOGO devices prior to version 0BA6 do not support this function. 
+
+## Connection Request `21`
 Send to LOGO a _Connection Request_ `21`:
 
 LOGO | command | request | response | description
@@ -682,6 +690,8 @@ LOGO | command | request | response | description
 0BA6.ES3 | Connection Request | `21` | `06 03 21 44` | Confirmation Response `44`
 >Figure Example _Connection Request_
 
+## Restart `22`
+Performs a restart
 
 # Chapter 5 - Errors and Confirmations
 
@@ -867,4 +877,43 @@ Write Clock Example:
 :06      write completed (clock writing complete)
 ```
 >Figure Example _Write Clock_ Response
+
+
+# Appendix B - Address Scheme
+
+## LOGO 0BA5
+
+Base Address | Byte Count (dec) | Access | Meaning | Example _Read Block_
+----------- | --- | --- | --- | ---
+0522        | 1   | W   |     | 
+--          | --  | --  | --  | --
+0552        | 1   |     | Default after power-on | 
+--          | --  | --  | --  | --
+0553 - 0557 | 5   |     | Setting the analog output in STOP mode | `05 53 00 05`
+--          | --  | --  | --  | --
+055E        | 1   |     |     |
+055F        | 1   |     |     |
+--          | --  | --  | --  | --
+0566 - 056F | 10  |     | Password memory area | `05 66 00 0A`
+0570 - 057F | 16  |     | Program Name | `05 70 00 10`
+05C0 - 05FF | 64  |     | Block Name index | `05 C0 00 40`
+0600 - 07FF | 512 |     | Block Name | 06 00 02 00
+0800 - 0A7F | 640 |     | Text Block 1..10 (64 bytes / each text box) | `08 00 02 80`
+0C00 - 0D17 | 280 |     | Function block memory area (Num of Blocks = 130) | 0C 00 01 18
+0E20 - 0E47 | 40  |     | Digital output Q1..16 | `0E 20 00 28`
+0E48 - 0E83 | 60  |     | Flag M1..24 | `0E 48 00 3C`
+0E84 - 0E97 | 20  |     | Analog output AQ1..2 | `0E 84 00 14`
+0E98 - 0EBF | 40  |     | Open Connector X1..16 | `0E 98 00 28`
+0EE8 - 16B7 | 2000 |    | Program memory area | `0E E8 07 D0`
+--          | --  | --  | --  | --
+4100        | 1   | W   |     | 
+4400        | 1   | W   | Clock write initialization; Data Byte = `00` |
+4740        | 1   | W   | Disable/Enable Password; Data Byte = `00` |
+48FF        | 1   | R   | Is a password set? yes = `40`; no = `00`
+--          | --  | --  | --  | --
+1F00        | 1   |     |     |
+1F01        | 1   |     |     |
+1F02        | 1   |     | Revision Byte |
+--          | --  | --  | --  | --
+FB00 - FB05 | 6   |     | Clock Data |
 
