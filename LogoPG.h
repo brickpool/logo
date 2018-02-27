@@ -1,5 +1,5 @@
 /*
- * LogoPG library, pre alpha version
+ * LogoPG library, Version 0.4
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -26,16 +26,38 @@
  ***********************************************************************
  *
  * Changelog: 
- *  2018-02-07: Initial version created
- *  2018-02-15: alpha Version
+ *  2018-02-07: Version 0.1
+ *    initial version created
+ *  2018-02-15: Version 0.2
+ *    alpha version created
+ *    not tested
  *  2018-02-20: Version 0.3
- *  2018-02-24: Version 0.3.1, change PDUSize and mapping
+ *    first executable version
+ *  2018-02-24: Version 0.3.x
+ *    change PduSize
+ *    change struct of TPDU
+ *    change mapping
+ *  2018-02-26: Version 0.4
+ *    impl. RecvControlResponse
+ *    change LogoHelper indexing from PDU to VM
+ *    support different memory models 
 */
 
 #ifndef LogoPG_h_
 #define LogoPG_h_
 
-#define LOGO_PG_0_3
+#define LOGO_PG_0_4
+
+// Memory models
+// _SMALL
+// _NORMAL
+// _EXTENDED
+
+#define _EXTENDED
+
+#if defined(_NORMAL) || defined(_EXTENDED)
+# define _LOGOHELPER
+#endif
 
 #include "Arduino.h"
 
@@ -47,26 +69,25 @@
 #define errStreamDataRecvTout       0x0003
 #define errStreamDataSend           0x0004
 #define errStreamDataRecv           0x0005
-#define errPGConnectionFailed       0x0006
-#define errPGNegotiatingPDU         0x0007
+#define errPGConnect                0x0006
 #define errPGInvalidPDU             0x0008
 
-#define errLogoInvalidPDU           0x0100
-#define errLogoSendingPDU           0x0200
-#define errLogoDataRead             0x0300
-#define errLogoDataWrite            0x0400
-#define errLogoFunction             0x0500
-#define errBufferTooSmall           0x0600
+#define errCliInvalidPDU            0x0100
+#define errCliSendingPDU            0x0200
+#define errCliDataRead              0x0300
+#define errCliDataWrite             0x0400
+#define errCliFunction              0x0500
+#define errCliBufferTooSmall        0x0600
+#define errCliNegotiatingPDU        0x0700
 
 // Connection Type
 #define PG          0x01
 
 // PDU related constants
-#define PduSize0BA4   71    // LOGO 0BA4 telegram size
-#define PduSize0BA5   71    // LOGO 0BA5 telegram size
-#define PduSize0BA6   81    // LOGO 0BA6 telegram size
-#define MinPduSize    71    // Minimum data PDU size (0BA4)
-#define MaxPduSize    81    // Maximum data PDU size (0BA6)
+#define PduSize0BA4   70    // Fetch Data PDU size for 0BA4 and 0BA5
+#define PduSize0BA6   80    // Fetch Data PDU size for 0BA6
+#define MinPduSize    70    // Minimum Fetch Data PDU size (0BA4, 0BA5)
+#define MaxPduSize    80    // Maximum Fetch Data PDU size (0BA6)
 
 #define ACK         0x06    // Confirmation Response
 #define RUN         0x01    // Mode run
@@ -93,6 +114,8 @@ typedef struct {
 } TPDU;
 extern TPDU PDU;
 
+#ifdef _LOGOHELPER
+
 class LogoHelper
 {
 public:
@@ -109,6 +132,8 @@ public:
   int IntegerAt(int index);
 };
 extern LogoHelper LH;
+
+#endif // _LOGOHELPER
 
 class LogoClient
 {
@@ -135,21 +160,23 @@ public:
   int GetPDULength() { return PDULength; }
 
   // Extended functions
-  int PlcStart();   // start PLC
-  int PlcStop();    // stop PLC
+#ifdef _EXTENDED
+  int PlcStart();       // start PLC
+  int PlcStop();        // stop PLC
   int GetPlcStatus(int *Status);
+  // void ErrorText(int Error, char *Text, int TextLen);
+#endif
 
 private:
-  byte LastPDUType; // First byte of a received message
-  word ConnType;    // Programming or running mode
+  byte LastPDUType;     // First byte of a received message
+  word ConnType;        // Usually a PG connection
   
   pstream StreamClient;
   
-  int PDULength;    // PDU length negotiated (0 if not negotiated)
-  int PDUHeaderLen; // PDU header length negotiated (0 if not negotiated)
-  byte* Mapping;   // PDU Data mapping to VM
+  static int PDULength; // PDU length negotiated (0 if not negotiated)
+  byte* Mapping;        // PDU Data mapping to VM
 
-  int RecvIOPacket(size_t *Size);
+  int RecvControlResponse(size_t *Size);
   int RecvPacket(byte buf[], size_t Size);
   int StreamConnect();
   int LogoConnect();
@@ -173,10 +200,10 @@ private:
     26  26  37  output 1-8
     27  27  38  output 9-16
                 
-    28  28  39  merker 1-8
-    29  29  40  merker 9-16
-    30  30  41  merker 17-24
-            42  merker 25-27
+    28  28  39  flag 1-8
+    29  29  40  flag 9-16
+    30  30  41  flag 17-24
+            42  flag 25-27
                 
     31  31  43  shift register 1-8
                 
@@ -204,18 +231,18 @@ private:
     51  51  63  analog output 2 low
     52  52  64  analog output 2 high
                 
-    53  53  65  analog merker 1 low
-    54  54  66  analog merker 1 high
-    55  55  67  analog merker 2 low
-    56  56  68  analog merker 2 high
-    57  57  69  analog merker 3 low
-    58  58  70  analog merker 3 high
-    59  59  71  analog merker 4 low
-    60  60  72  analog merker 4 high
-    61  61  73  analog merker 5 low
-    62  62  74  analog merker 5 high
-    63  63  75  analog merker 6 low
-    64  64  76  analog merker 6 high
+    53  53  65  analog flag 1 low
+    54  54  66  analog flag 1 high
+    55  55  67  analog flag 2 low
+    56  56  68  analog flag 2 high
+    57  57  69  analog flag 3 low
+    58  58  70  analog flag 3 high
+    59  59  71  analog flag 4 low
+    60  60  72  analog flag 4 high
+    61  61  73  analog flag 5 low
+    62  62  74  analog flag 5 high
+    63  63  75  analog flag 6 low
+    64  64  76  analog flag 6 high
 ***********************************************************************
 */
 
@@ -250,9 +277,9 @@ private:
  * The keys must be mapped to the V address in the software via the
  * VM (Variable Memory) assignment.
  *
- * Not all of the VM space is available for accessing.You can specify
+ * Not all of the VM space is available for accessing. You can specify
  * a maximum of 64 parameters. If you try to specify more than 64
- * parameters, LogoClient generate an error code.
+ * parameters, LogoClient may generate an error code.
  *
  ***********************************************************************
  * VM data
@@ -301,48 +328,48 @@ private:
         1086     analog output 8 high
         1087     analog output 8 low
    
-   948  1104     merker 1-8
-   949  1105     merker 9-16
-   950  1106     merker 17-24
-   951           merker 25-27
-        1107     merker 25-32
-        1108     merker 33-40
-        1109     merker 41-48
-        1110     merker 49-56
-        1111     merker 47-64
+   948  1104     flag 1-8
+   949  1105     flag 9-16
+   950  1106     flag 17-24
+   951           flag 25-27
+        1107     flag 25-32
+        1108     flag 33-40
+        1109     flag 41-48
+        1110     flag 49-56
+        1111     flag 47-64
    
-   952  1118     analog merker 1 high
-   953  1119     analog merker 1 low
-   954  1120     analog merker 2 high
-   955  1121     analog merker 2 low
-   956  1122     analog merker 3 high
-   957  1123     analog merker 3 low
-   958  1124     analog merker 4 high
-   959  1125     analog merker 4 low
-   960  1126     analog merker 5 high
-   961  1127     analog merker 5 low
-   962  1128     analog merker 6 high
-   963  1129     analog merker 6 low
-   964  1130     analog merker 7 high
-   965  1131     analog merker 7 low
-   966  1132     analog merker 8 high
-   967  1133     analog merker 8 low
-   968  1134     analog merker 9 high
-   969  1135     analog merker 9 low
-   970  1136     analog merker 10 high
-   971  1137     analog merker 10 low
-   972  1138     analog merker 11 high
-   973  1139     analog merker 11 low
-   974  1140     analog merker 12 high
-   975  1141     analog merker 12 low
-   976  1142     analog merker 13 high
-   977  1143     analog merker 13 low
-   978  1144     analog merker 14 high
-   979  1145     analog merker 14 low
-   980  1146     analog merker 15 high
-   981  1147     analog merker 15 low
-   982  1148     analog merker 16 high
-   983  1149     analog merker 16 low
+   952  1118     analog flag 1 high
+   953  1119     analog flag 1 low
+   954  1120     analog flag 2 high
+   955  1121     analog flag 2 low
+   956  1122     analog flag 3 high
+   957  1123     analog flag 3 low
+   958  1124     analog flag 4 high
+   959  1125     analog flag 4 low
+   960  1126     analog flag 5 high
+   961  1127     analog flag 5 low
+   962  1128     analog flag 6 high
+   963  1129     analog flag 6 low
+   964  1130     analog flag 7 high
+   965  1131     analog flag 7 low
+   966  1132     analog flag 8 high
+   967  1133     analog flag 8 low
+   968  1134     analog flag 9 high
+   969  1135     analog flag 9 low
+   970  1136     analog flag 10 high
+   971  1137     analog flag 10 low
+   972  1138     analog flag 11 high
+   973  1139     analog flag 11 low
+   974  1140     analog flag 12 high
+   975  1141     analog flag 12 low
+   976  1142     analog flag 13 high
+   977  1143     analog flag 13 low
+   978  1144     analog flag 14 high
+   979  1145     analog flag 14 low
+   980  1146     analog flag 15 high
+   981  1147     analog flag 15 low
+   982  1148     analog flag 16 high
+   983  1149     analog flag 16 low
  ***********************************************************************
 */
 
