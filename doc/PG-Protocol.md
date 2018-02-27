@@ -361,7 +361,7 @@ Writes data contents of bytes into the Memory of the LOGO device.
 The command contains the standard fields of command code, address offset and Byte Count. The rest of the command specifies the group of bytes to be written into the LOGO device. 
 
 Command | Address | Byte Count | Data | Checksum
---- | --- | --- | ---
+--- | --- | --- | --- | ---
 1 byte | 2 or 4 bytes | 2 bytes | n bytes | 1 byte
 Data Code | 16/32bit Address | Number of bytes | Data Content | CRC8 XOR
 >Figure _Write Block_ Query Message
@@ -378,7 +378,7 @@ Reads the binary contents at the specified Memory address of the LOGO device.
 The query message specifies the starting Byte and quantity of Data to be read. The data are addressed starting at zero.
 
 Command | Address | Byte Count
---- | --- | --- | ---
+--- | --- | ---
 1 byte | 2 or 4 bytes | 2 bytes
 Data Code | 16/32bit Address | Number of bytes
 >Figure _Read Block_ Query Message
@@ -883,33 +883,33 @@ Write Clock Example:
 
 ## LOGO 0BA5
 
-Base Address | Byte Count (dec) | Access | Meaning | Example _Read Block_
+Base Address | Byte Count (dec) | Access | Meaning | Example
 ----------- | --- | --- | --- | ---
 0522        | 1   | W   |     | 
 --          | --  | --  | --  | --
 0552        | 1   |     | Default after power-on | 
 --          | --  | --  | --  | --
-0553 - 0557 | 5   |     | Setting the analog output in STOP mode | `05 53 00 05`
+0553 - 0557 | 5   |     | Setting the analog output in STOP mode | `05 05 53 00 05`
 --          | --  | --  | --  | --
 055E        | 1   |     |     |
 055F        | 1   |     |     |
 --          | --  | --  | --  | --
-0566 - 056F | 10  |     | Password memory area | `05 66 00 0A`
-0570 - 057F | 16  |     | Program Name | `05 70 00 10`
-05C0 - 05FF | 64  |     | Block Name index | `05 C0 00 40`
-0600 - 07FF | 512 |     | Block Name | 06 00 02 00
-0800 - 0A7F | 640 |     | Text Block 1..10 (64 bytes / each text box) | `08 00 02 80`
-0C00 - 0D17 | 280 |     | Function block memory area (Num of Blocks = 130) | 0C 00 01 18
-0E20 - 0E47 | 40  |     | Digital output Q1..16 | `0E 20 00 28`
-0E48 - 0E83 | 60  |     | Flag M1..24 | `0E 48 00 3C`
-0E84 - 0E97 | 20  |     | Analog output AQ1..2 | `0E 84 00 14`
-0E98 - 0EBF | 40  |     | Open Connector X1..16 | `0E 98 00 28`
-0EE8 - 16B7 | 2000 |    | Program memory area | `0E E8 07 D0`
+0566 - 056F | 10  |     | Password memory area | `05 05 66 00 0A`
+0570 - 057F | 16  |     | Program Name | `05 05 70 00 10`
+05C0 - 05FF | 64  |     | Block Name index | `05 05 C0 00 40`
+0600 - 07FF | 512 |     | Block Name | `05 06 00 02 00`
+0800 - 0A7F | 640 |     | Text Block 1..10 (64 bytes per Text Box) | `05 08 00 02 80`
+0C00 - 0D17 | 280 |     | Function block memory area ( = 130) | `05 0C 00 01 18`
+0E20 - 0E47 | 40  |     | Digital output Q1..16 | `05 0E 20 00 28`
+0E48 - 0E83 | 60  |     | Flag M1..24 | `05 0E 48 00 3C`
+0E84 - 0E97 | 20  |     | Analog output AQ1..2 | `05 0E 84 00 14`
+0E98 - 0EBF | 40  |     | Open Connector X1..16 | `05 0E 98 00 28`
+0EE8 - 16B7 | 2000 |    | Program memory area | `05 0E E8 07 D0`
 --          | --  | --  | --  | --
 4100        | 1   | W   |     | 
 4400        | 1   | W   | Clock write initialization; Data Byte = `00` |
 4740        | 1   | W   | Disable/Enable Password; Data Byte = `00` |
-48FF        | 1   | R   | Is a password set? yes = `40`; no = `00`
+48FF        | 1   | R   | Password set? yes = `40`; no = `00`
 --          | --  | --  | --  | --
 1F00        | 1   |     |     |
 1F01        | 1   |     |     |
