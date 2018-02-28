@@ -46,10 +46,12 @@ void loop()
       Result = LOGO.ReadArea(LogoAreaDB, 1, VM_Q01_08, 2, NULL);
       if (Result == 0)
       {
-        Serial.print("Output 8-1, 16-9: 0b");
+        Serial.print("Output 8-1, 16-9, analog input 1: 0b");
         printBinaryByte(LH.ByteAt(VM_Q01_08));
         Serial.print(" 0b");
         printBinaryByte(LH.ByteAt(VM_Q09_16));
+        Serial.print(" ");
+        Serial.print(LH.IntegerAt(VM_AI1_Hi));
         Serial.println();
       }
       else
@@ -64,7 +66,7 @@ void loop()
   else
     CheckError(Result);
 
-  delay(3000);  
+  delay(1000);  
 }
 
 bool Connect()
