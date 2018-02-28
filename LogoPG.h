@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.4.1
+ * LogoPG library, Version 0.4.2
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -43,6 +43,8 @@
  *    support different memory models 
  *  2018-02-26: Version 0.4.1
  *    bug fixing
+ *  2018-02-27: Version 0.4.2
+ *    optimizations
 */
 
 #ifndef LogoPG_h_

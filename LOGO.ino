@@ -37,15 +37,25 @@ void loop()
       delay(2000);
   }
   
-  delay(3000);
-
   Result = LOGO.GetPlcStatus(&Status);
   if (Result == 0)
   {
     if (Status == LogoCpuStatusRun)
     {
-      Serial.println("STOPPING THE PROG");
-      LOGO.PlcStop();
+      Serial.print("FETCH DATA ... ");
+      Result = LOGO.ReadArea(LogoAreaDB, 1, VM_Q01_08, 2, NULL);
+      if (Result == 0)
+      {
+        Serial.print("Output 8-1, 16-9, analog input 1: 0b");
+        printBinaryByte(LH.ByteAt(VM_Q01_08));
+        Serial.print(" 0b");
+        printBinaryByte(LH.ByteAt(VM_Q09_16));
+        Serial.print(" ");
+        Serial.print(LH.IntegerAt(VM_AI1_Hi));
+        Serial.println();
+      }
+      else
+        CheckError(Result);
     }
     else
     {
@@ -55,6 +65,8 @@ void loop()
   }
   else
     CheckError(Result);
+
+  delay(1000);  
 }
 
 bool Connect()
@@ -87,4 +99,11 @@ void CheckError(int ErrNo)
   }
 }
 
-
+// http://forum.arduino.cc/index.php?topic=246920.0
+void printBinaryByte(byte value)
+{
+    for (byte mask = 0x80; mask; mask >>= 1) 
+    {
+        Serial.print((mask & value) ? '1' : '0');
+    }
+}

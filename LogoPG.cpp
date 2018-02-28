@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.4.1
+ * LogoPG library, Version 0.4.2
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -35,6 +35,12 @@
 
 // For further informations about the structures, command codes, byte arrays and their meanings
 // see http://github.com/brickpool/logo
+
+/*
+  Arduino has not a multithreaded environment and we can only use one LogoClient instance.
+  To save memory we can define telegrams and data areas as globals, since only one client can be used at time.
+*/
+
 
 // LOGO Connection Request
 const byte LOGO_CR[] = {
@@ -180,7 +186,7 @@ bool LogoHelper::BitAt(void *Buffer, int ByteIndex, byte BitIndex)
 
 bool LogoHelper::BitAt(int ByteIndex, int BitIndex)
 {
-  if (ByteIndex < VM_0BA7_AREA || ByteIndex >= VM_DDT_AREA)
+  if (ByteIndex < VM_0BA7_AREA || ByteIndex > VM_DDT_AREA-1)
     return false;
 
   // https://www.arduino.cc/reference/en/language/variables/utilities/progmem/
@@ -200,7 +206,7 @@ byte LogoHelper::ByteAt(void *Buffer, int index)
 
 byte LogoHelper::ByteAt(int index)
 {
-  if (index < VM_0BA7_AREA || index >= VM_DDT_AREA)
+  if (index < VM_0BA7_AREA || index > VM_DDT_AREA-1)
     return 0;
   
   index = pgm_read_byte_near(LogoClient::Mapping + index - VM_0BA7_AREA);
@@ -219,15 +225,16 @@ word LogoHelper::WordAt(void *Buffer, int index)
 
 word LogoHelper::WordAt(int index)
 {
-  if (index < VM_0BA7_AREA || index >= VM_DDT_AREA)
+  if (index < VM_0BA7_AREA || index > VM_DDT_AREA-2)
     return 0;
   
-  index = pgm_read_byte_near(LogoClient::Mapping + index - VM_0BA7_AREA);
+  byte hi = pgm_read_byte_near(LogoClient::Mapping + index - VM_0BA7_AREA);
+  byte lo = pgm_read_byte_near(LogoClient::Mapping + index+1 - VM_0BA7_AREA);
   
-  if (index > MaxPduSize-Size_WR-1)
+  if (hi > MaxPduSize-Size_WR-1)
     return 0;
   else
-    return WordAt(PDU.DATA, index);
+    return (PDU.DATA[hi] << 8) + PDU.DATA[lo];
 }
 
 int LogoHelper::IntegerAt(void *Buffer, int index)
@@ -238,15 +245,16 @@ int LogoHelper::IntegerAt(void *Buffer, int index)
 
 int LogoHelper::IntegerAt(int index)
 {
-  if (index < VM_0BA7_AREA || index >= VM_DDT_AREA)
+  if (index < VM_0BA7_AREA || index > VM_DDT_AREA-2)
     return 0;
   
-  index = pgm_read_byte_near(LogoClient::Mapping + index - VM_0BA7_AREA);
+  byte hi = pgm_read_byte_near(LogoClient::Mapping + index - VM_0BA7_AREA);
+  byte lo = pgm_read_byte_near(LogoClient::Mapping + index+1 - VM_0BA7_AREA);
   
-  if (index > MaxPduSize-Size_WR-1)
+  if (hi > MaxPduSize-Size_WR-1)
     return 0;
   else
-    return IntegerAt(PDU.DATA, index);
+    return (PDU.DATA[hi] << 8) + PDU.DATA[lo];
 }
 
 #endif // _LOGOHELPER
@@ -295,7 +303,7 @@ void LogoClient::SetConnectionType(word ConnectionType)
   // to perform system tasks such as program upload/download, run/stop and configuration.
   // Other protocols are not implemented yet.
   if (ConnectionType != PG)
-    SetLastError(errPGConnect | errCliFunction);
+    SetLastError(errCliFunction);
   ConnType = ConnectionType;
 }
 
@@ -349,21 +357,21 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
   // For LOGO 0BA4 to 0BA6 the only compatible information that we can read are inputs, outputs, flags and rtc.
   // We will represented this as V memory, that is seen by all HMI as DB 1.
   if (Area != LogoAreaDB && DBNumber != 1)
-    SetLastError(errPGInvalidPDU | errCliInvalidPDU);
+    SetLastError(errCliInvalidPDU);
 
   // Access only allowed between 0 and 1023
   if (Start < VM_START && Start > VM_END)
-    SetLastError(errPGInvalidPDU | errCliInvalidPDU);
+    SetLastError(errCliInvalidPDU);
     
 #if defined _EXTENDED
   int Status;
   GetPlcStatus(&Status);
   if (LastError)
-    return SetLastError(LastError);
+    return LastError;
   
   // Operation mode must be RUN if we use LOGO_FETCH_DATA
   if (Status != LogoCpuStatusRun) // Exit with Error if the LOGO is not in operation mode RUN
-    return SetLastError(errPGInvalidPDU | errCliFunction);
+    return SetLastError(errCliFunction);
 #endif // _EXTENDED
 
   if (StreamClient->write(LOGO_FETCH_DATA, sizeof(LOGO_FETCH_DATA)) != sizeof(LOGO_FETCH_DATA))
@@ -375,10 +383,10 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
     return LastError;
 
   if (LastPDUType != ACK)         // Check Confirmation
-    return SetLastError(errPGInvalidPDU | errCliFunction);
+    return SetLastError(errCliDataRead);
 
   if (Length != GetPDULength())
-    return SetLastError(errPGInvalidPDU | errCliInvalidPDU);
+    return SetLastError(errCliInvalidPDU);
   
   // Done, as long as we only use the internal buffer
   if (ptrData == NULL)
@@ -479,12 +487,12 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
 }
 
 
-// -- Normal functions ------------------------------------------------
+// -- Extended functions ------------------------------------------------
 #ifdef _EXTENDED
 int LogoClient::PlcStart()
 {
   if (!Connected) // Exit with Error if not connected
-    return SetLastError(errPGConnect | errCliInvalidPDU);
+    return SetLastError(errPGConnect);
 
   int Status;
   GetPlcStatus(&Status);
@@ -502,13 +510,13 @@ int LogoClient::PlcStart()
     size_t Length;
     RecvControlResponse(&Length);   // Get PDU response
     if (LastError)
-      return SetLastError(LastError | errCliDataRead);
+      return LastError;
   
     if (LastPDUType != ACK)         // Check Confirmation
-      return SetLastError(errPGInvalidPDU | errCliFunction);
+      return SetLastError(errCliFunction);
   
     if (Length != 1)                // 1 is the expected value
-      return SetLastError(errPGInvalidPDU | errCliInvalidPDU);
+      return SetLastError(errCliInvalidPDU);
   }
 
   return SetLastError(0);
@@ -517,7 +525,7 @@ int LogoClient::PlcStart()
 int LogoClient::PlcStop()
 {
   if (!Connected) // Exit with Error if not connected
-    return SetLastError(errPGConnect | errCliInvalidPDU);
+    return SetLastError(errPGConnect);
 
   int Status;
   GetPlcStatus(&Status);
@@ -535,13 +543,13 @@ int LogoClient::PlcStop()
     size_t Length;
     RecvControlResponse(&Length);   // Get PDU response
     if (LastError)
-      return SetLastError(LastError | errCliDataRead);
+      return LastError;
   
     if (LastPDUType != ACK)         // Check Confirmation
-      return SetLastError(errPGInvalidPDU | errCliFunction);
+      return SetLastError(errCliFunction);
   
     if (Length != 1)                // 1 is the expected value
-      return SetLastError(errPGInvalidPDU | errCliInvalidPDU);
+      return SetLastError(errCliInvalidPDU);
   }
 
   return SetLastError(0);
@@ -549,6 +557,9 @@ int LogoClient::PlcStop()
 
 int LogoClient::GetPlcStatus(int *Status)
 {
+  if (!Connected) // Exit with Error if not connected
+    return SetLastError(errPGConnect);
+
   *Status = LogoCpuStatusUnknown;
   
   if (StreamClient->write(LOGO_MODE, sizeof(LOGO_MODE)) != sizeof(LOGO_MODE))
@@ -559,13 +570,13 @@ int LogoClient::GetPlcStatus(int *Status)
   size_t Length;
   RecvControlResponse(&Length);   // Get PDU response
   if (LastError)
-    return SetLastError(LastError | errCliDataRead);
+    return LastError;
 
   if (LastPDUType != ACK)         // Check Confirmation
-    return SetLastError(errPGInvalidPDU | errCliFunction);
+    return SetLastError(errCliFunction);
 
   if (Length != sizeof(PDU.H)+1)  // Size of Header + 1 Data Byte is the expected value
-    return SetLastError(errPGInvalidPDU | errCliInvalidPDU);
+    return SetLastError(errCliInvalidPDU);
 
   switch (PDU.DATA[0]) {
     case RUN:
@@ -600,107 +611,110 @@ int LogoClient::RecvControlResponse(size_t *Size)
   // Get first byte
   RecvPacket(PDU.H, 1); 
   if (LastError)
-    return SetLastError(LastError | errCliDataRead);
-  *Size = 1;                // Update Size
+    return LastError;
+  (*Size)++;                // Update size = 1
 
   LastPDUType = PDU.H[0];   // Store PDU Type
-
   if (LastPDUType == ACK)   // Connection confirmed
   {
     // Get next Byte
-    RecvPacket(PDU.DATA, 1);
-    if (LastError == errStreamDataRecvTout)
+    RecvPacket(&PDU.H[1], 1);
+    if (LastError & errStreamDataRecvTout)
       // OK, there are probably no more data available, for example Control Commands 0x12, 0x18
       return SetLastError(0);
     else if (LastError)
       // Other error than timeout
-      return SetLastError(LastError | errCliDataRead);
-    *Size = Size_WR+1;      // Update Size
+      return LastError;
+    (*Size)++;              // Update size = 2
 
-    if (PDU.DATA[0] != 0x55)
+    if (PDU.H[1] != 0x55)
+    {
       // OK, the response has no Control Code 0x55, for example Control Commands 0x17
+      *Size = Size_WR+1;    // Update size = 7
+      // We need to align with PDU.DATA
+      PDU.DATA[0] = PDU.H[1];
+      PDU.H[1] = 0;
       return SetLastError(0);
-
-    // Copy Control Code 0x55 to the Header and set Data Byte to zero
-    PDU.H[1] = PDU.DATA[0];
-    PDU.DATA[0] = 0;
-    *Size = 2;              // Update Size
+    }
 
     // Get Function Code (2 bytes)
     RecvPacket(&PDU.H[2], 2);
     if (LastError)
-      return SetLastError(LastError | errCliDataRead);
-    *Size += 2;             // Update Size
+      return LastError;
+    *Size += 2;             // Update size = 4
 
     if (PDU.H[2] != 0x11 || PDU.H[3] != 0x11)
       // Error, the response does not have the expected Function Code 0x11
-      return SetLastError(errPGInvalidPDU | errCliInvalidPDU);
+      return SetLastError(errCliDataRead);
     
     // Get Number of Bytes and the Padding Byte (2 bytes)
     RecvPacket(&PDU.H[4], 2);
     if (LastError)
-      return SetLastError(LastError | errCliDataRead);
-    *Size += 2;             // Update Size
+      return LastError;
+    *Size += 2;             // Update Size = 6
 
     // Store Number of Bytes
     size_t ByteCount = PDU.H[4];
 
     if (*Size+ByteCount < MinPduSize)
-      return SetLastError(errPGInvalidPDU);
+      return SetLastError(errCliInvalidPDU);
     else if (*Size+ByteCount > MaxPduSize)
-      return SetLastError(errPGInvalidPDU | errCliBufferTooSmall);
+      return SetLastError(errCliBufferTooSmall);
 
     // Get the Data Block (n bytes)
     RecvPacket(PDU.DATA, ByteCount);
     if (LastError)
-      return SetLastError(LastError | errCliDataRead);
-    *Size += ByteCount;     // Update Size
+      return LastError;
+    *Size += ByteCount;     // Update Size = 6+ByteCount
     
     // Get End Delimiter (1 byte)
-    byte Trailer[1];
-    RecvPacket(Trailer, 1);
+    byte Trailer;
+    RecvPacket(&Trailer, 1);
     if (LastError)
-      return SetLastError(LastError | errCliDataRead);
+      return LastError;
+
+    if (Trailer != AA)
+      // Error, the response does not have the expected value 0xAA
+      return SetLastError(errCliInvalidPDU);
   }
   else if (LastPDUType == NOK)    // Request not confirmed
   {
     // Get next byte
     RecvPacket(PDU.H[1], 1);
     if (LastError)
-      return SetLastError(LastError | errCliDataRead);
-    *Size = 2;              // Update Size
+      return LastError;
+    *Size++;                // Update Size = 2
 
     // Get Error Type
     switch (PDU.H[1]) {
       case PDU_BUSY:
         // LOGO can not accept a telegram
-        return SetLastError(errPGInvalidPDU | errCliSendingPDU);
+        return SetLastError(errCliSendingPDU);
       case PDU_TIMEOUT:
         // Resource unavailable, the second cycle of the operation timed out
-        return SetLastError(errPGInvalidPDU | errCliDataRead);
+        return SetLastError(errCliSendingPDU);
       case PDU_INVALID:
         // Illegal access, read across the border
-        return SetLastError(errPGInvalidPDU | errCliDataRead);
+        return SetLastError(errCliDataRead);
       case PDU_PAR_ERR:
         // parity error-, overflow or telegram error
-        return SetLastError(errPGInvalidPDU | errCliSendingPDU);
+        return SetLastError(errCliSendingPDU);
       case PDU_UNKNOWN: 
         // Unknown command, this mode is not supported
-        return SetLastError(errPGInvalidPDU | errCliInvalidPDU);
+        return SetLastError(errCliFunction);
       case PDU_XOR_ERR:
         // XOR-check incorrect
-        return SetLastError(errPGInvalidPDU | errCliSendingPDU);
-        break;
+        return SetLastError(errCliDataWrite);
       case PDU_SIM_ERR:
         // Faulty on simulation, RUN is not supported in this mode
-        return SetLastError(errPGInvalidPDU | errCliInvalidPDU);
+        return SetLastError(errCliFunction);
       default:
-        return SetLastError(errPGInvalidPDU | errCliDataRead);
+        return SetLastError(errCliInvalidPDU);
     }
 
   }
   else
-    return SetLastError(errPGInvalidPDU | errCliFunction);
+    return SetLastError(errCliInvalidPDU);
 
   return SetLastError(0);
 }
@@ -710,7 +724,7 @@ int LogoClient::RecvPacket(byte buf[], size_t Size)
 /*
   // If you doesn't need to transfer more than 80 byte (the length of a PDU) you can uncomment the next two lines
   if (Size > MaxPduSize)
-    return SetLastError(errStreamDataRecv | errCliBufferTooSmall);
+    return SetLastError(errCliBufferTooSmall);
 */
 
   // To recognize a timeout we save the number of milliseconds (since the Arduino began running the current program)
@@ -772,7 +786,7 @@ int LogoClient::LogoConnect()
   
   // Get 4 bytes
   RecvPacket(PDU.H, 4);
-  if (LastError == errStreamDataRecvTout)       // 0BA4 doesn't support a connection request
+  if (LastError & errStreamDataRecvTout)       // 0BA4 doesn't support a connection request
   {
     if (StreamClient->write(LOGO_REVISION, sizeof(LOGO_REVISION)) != sizeof(LOGO_REVISION))
       return SetLastError(errStreamDataSend);
@@ -796,9 +810,6 @@ int LogoClient::LogoConnect()
 int LogoClient::NegotiatePduLength()
 {
   size_t Length = 0;
-  if (PDULength)  // Exit if length has already been determined
-    return SetLastError(0);
-  
   PDULength = 0;
 
   if (StreamClient->write(LOGO_CR, sizeof(LOGO_CR)) != sizeof(LOGO_CR))
@@ -810,7 +821,7 @@ int LogoClient::NegotiatePduLength()
   // Get 4 bytes
   Length = 4;
   RecvPacket(PDU.H, Length);
-  if (LastError == errStreamDataRecvTout)       // 0BA4 doesn't support a connection request
+  if (LastError & errStreamDataRecvTout)       // 0BA4 doesn't support a connection request
   {
     if (StreamClient->write(LOGO_REVISION, sizeof(LOGO_REVISION)) != sizeof(LOGO_REVISION))
       return SetLastError(errStreamDataSend);
@@ -826,7 +837,7 @@ int LogoClient::NegotiatePduLength()
 
   LastPDUType = PDU.H[0];   // Store PDU Type
   if (LastPDUType != ACK)   // Check Confirmation
-    return SetLastError(errPGConnect);
+    return SetLastError(errCliNegotiatingPDU);
 
   // We should align PDU
   PDU.DATA[0] = PDU.H[Length-1];
@@ -834,15 +845,15 @@ int LogoClient::NegotiatePduLength()
 
   switch (PDU.DATA[0]) {
     case 0x40:
-    case 0x42:
       // 0BA4
+    case 0x42:
       // 0BA5
       PDULength = PduSize0BA4;
       Mapping = VM_MAP_923_983_0BA4;
       break;
     case 0x43:
-    case 0x44:
       // 0BA6
+    case 0x44:
       // 0BA6.ES3
       PDULength = PduSize0BA6;
       Mapping = VM_MAP_923_983_0BA6;
