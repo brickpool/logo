@@ -1,7 +1,7 @@
 # LOGO! PG Protocol Reference Guide
-Rev. Bi
+Rev. Bj
 
-February 2018
+March 2018
 
 ## Preface
 This guide is written for persons who will communicate with a Siemens (TM) _LOGO!_ __0BA4__, __0BA5__ or __0BA6__ using the PG Interface. The PG Interface used an undocumented protocol for program loading, diagnostics, etc. which is referred to here as PG protocol. This guide describes how messages are constructed, and how transactions take place by using the PG protocol. 
@@ -162,7 +162,7 @@ Trailer | `aa` | End Delimiter
 ### Command Query
 All commands are packed into a message by the _DTE_ sending device, which have a known structure. Valid command codes are in the range of `01` to `55` hexadecimal. Some of these codes apply to all _LOGO!_ controllers, while some codes apply only to certain models. Current codes are described in the following chapters.
 
-When a message is sent from a _DTE_ to a _LOGO!_ device the _Command Code_ field tells the _LOGO!_ what kind of action to perform. Examples are to read the RUN/STOP operation mode; to read the data contents; to read the diagnostic status of the _LOGO!_; to write some designated data; or to allow loading, recording, or verifying the program within the _LOGO!_. 
+When a message is sent from a _DTE_ to a _LOGO!_ device the _Command Code_ field tells the _LOGO!_ what kind of action to perform. Examples are to read the _RUN/STOP_ operation mode; to read the data contents; to read the diagnostic status of the _LOGO!_; to write some designated data; or to allow loading, recording, or verifying the program within the _LOGO!_. 
 
 Start | Content
 --- | --- 
@@ -498,9 +498,8 @@ Command | Function | Data 1) | Trailer
 Control Code | Function Code | Data byte 1) | End Delimiter
 >Figure _Start Fetch Data_ Query Message
 
->__Notes:__
->
->1) Is only omitted if a started request should be aborted
+__Notes:__ 1) Is only omitted if a started request should be aborted
+
 
 Here is an example of a single request of fetching the monitoring data from _LOGO!_ device:
 
@@ -630,15 +629,15 @@ These are the Operation Modes returned by _LOGO!_ controllers in the second byte
 
 Data | Meaning
 --- | ---
-`01` | _LOGO!_ in RUN mode
+`01` | _LOGO!_ in _RUN_ mode
 `20` | _LOGO!_ in Parameter mode
-`42` | _LOGO!_ in STOP mode
+`42` | _LOGO!_ in _STOP_ mode
 
 
 ## Start Operating `18`
 
 ### Description
-Executing the command switches the connected _LOGO!_ device from the STOP mode to the RUN mode.
+Executing the command switches the connected _LOGO!_ device from the _STOP_ mode to the _RUN_ mode.
 
 ### Query
 Send to _LOGO!_ to change the operation mode to _RUN_
@@ -694,9 +693,9 @@ Send to _LOGO!_ a _Connection Request_ `21`:
 controler | command | request | response | description
 --- | --- | --- | --- | ---
 0BA4 | Connection Request | `21` | _n/a_ | no Response
-0BA5.Standard | Connection Request | `21` | `06` `03` `21` 42` | Confirmation Response `42`
-0BA6.Standard | Connection Request | `21` | `06 `03` `21` 43` | Confirmation Response `43`
-0BA6.ES3 | Connection Request | `21` | `06 `03` `21` 44` | Confirmation Response `44`
+0BA5.Standard | Connection Request | `21` | `06` `03` `21` `42` | Confirmation Response `42`
+0BA6.Standard | Connection Request | `21` | `06 `03` `21` `43` | Confirmation Response `43`
+0BA6.ES3 | Connection Request | `21` | `06 `03` `21` `44` | Confirmation Response `44`
 >Figure Example _Connection Request_
 
 ## Restart `22`
@@ -758,7 +757,7 @@ Confirmation | Content
 Confirmation Code | Exception Code
 >Figure _Exception_ Response Message
 
-The next two Figures shows an example of a _DTE_ query and a exception response from a _LOGO!_ __0BA4__ device (operation mode STOP):
+The next two Figures shows an example of a _DTE_ query and a exception response from a _LOGO!_ __0BA4__ device (operation mode _STOP_):
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
@@ -782,7 +781,7 @@ Type | Name | Meaning
 `04` | PARITY ERROR | parity, overflow or telegram error
 `05` | UNKNOWN COMMAND | Unknown command, this mode is not supported
 `06` | XOR INCORRECT | XOR-check incorrect
-`07` | SIMULATION ERROR | Faulty on simulation, RUN is not supported in this mode
+`07` | SIMULATION ERROR | Faulty on simulation, _RUN_ is not supported in this mode
 
 
 # Appendix A - Address Scheme
@@ -797,7 +796,7 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 ----------- | --- | --- | --- | ---
 0522        | 1   | W   |     | `01 05 22 00`
 --          | --  | --  | --  | --
-0552        | 1   |     | Default after power-on | `02 05 52`
+0552        | 1   | W   | Display at power-on? I/O = `01`; DateTime = `FF`| `02 05 52`
 --          | --  | --  | --  | --
 0553 - 0557 | 5   |     | Analog output in mode _STOP_ | `05 05 53 00 05`
 --          | --  | --  | --  | --
@@ -817,16 +816,17 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 0EE8 - 16B7 | 2000 |    | Program memory area | `05 0E E8 07 D0`
 --          | --  | --  | --  | --
 4100        | 1   | W   |     | `01 41 00 00`
-4300        | 1   | W   | Clock rrite release; Data Byte = `00` | `01 43 00 00`
+4300        | 1   | W   | Clock write release; Data Byte = `00` | `01 43 00 00`
 4400        | 1   | W   | Clock read opening; Data Byte = `00` | `01 44 00 00`
 4740        | 1   | W   | Password R/W initialization; Data Byte = `00` | `01 47 40 00`
 48FF        | 1   |     | Password set? yes = `40`; no = `00` | `02 48 FF`
 --          | --  | --  | --  | --
-1F00        | 1   | W   |     | `01 1F 00 00`
-1F01        | 1   | W   |     | `01 1F 01 00`
+1F00        | 1   |     |     | `02 1F 00`
+1F01        | 1   |     |     | `02 1F 01`
 1F02        | 1   | R   | Revision Byte | `02 1F 02`
+1F03 - 1F07 | 5   |     | BIOS Version | `02 1F 03 02 1F 03 ..`
 --          | --  | --  | --  | --
-FB00 - FB05 | 6   |     | Clock memory area | `02 00 ff fb 00 02`
+FB00 - FB05 | 6   | W   | Clock memory area | `01 FB 00 03 01 FB 00 01 ..`
 
 
 # Appendix B - Application Notes
@@ -835,6 +835,8 @@ This Appendix contains information and suggestions for using the protocol in you
 ## Maximum Query/Response Parameters
 The listings in this section show the maximum amount of data that each controller can request or send in a _DTE_ query, or return in a _LOGO!_ response. All 
 codes are in hexadecimal and the quantities (number of bytes) are in decimal. The correct amount of data (c = _Byte Count_) is a multiple of 4 bytes.
+
+### Query Parameters List __0BA4__ and __0BA5__
 
 _N_ indicates that it is not supported. _0_ indicates that the command generate no response. 
 
@@ -854,9 +856,9 @@ Command | Description | Query | Response 1)
 `22` | Restart | N | 0
 >Figure Maximum Q/R Parameters __0BA4__ and __0BA5__
 
->__Notes:__
->
->1) The information in brackets applies to the _LOGO!_ Verison __0BA4__
+__Notes:__ 1) The information in brackets applies to the _LOGO!_ Verison __0BA4__
+
+### Response Parameter List __0BA4__ and __0BA5__
 
 Command | Description | Query 1) | Response
 --- | --- | --- | ---
@@ -866,9 +868,9 @@ Command | Description | Query 1) | Response
 `15` | Exception Response | (`..`) | 2
 >Figure Maximum R Parameters __0BA4__ and __0BA5__
 
->__Notes:__
->
->1) The information in brackets shows the command code to which a response related.
+__Notes:__ 1) The information in brackets shows the command code to which a response related.
+
+### Query Parameter List for __0BA6__
 
 Command | Description | Query | Response
 --- | --- | --- | ---
@@ -887,6 +889,8 @@ Command | Description | Query | Response
 `22` | Restart | 1 | 1
 >Figure Maximum Q/R Parameters __0BA6__
 
+### Response Parameter List for __0BA6__
+
 Command | Description | Query 1) | Response
 --- | --- | --- | ---
 `03` | Read Byte Response | (`02`) | 5
@@ -894,6 +898,8 @@ Command | Description | Query 1) | Response
 `11` | Fetch Data Response | (`13`) | 80
 `15` | Exception Response | (`..`) | 2
 >Figure Maximum R Parameters __0BA6__
+
+__Notes:__ 1) The information in brackets shows the command code to which a response related.
 
 ## Estimating Serial Transaction Timing
 
@@ -1024,7 +1030,7 @@ Read Block | `05` `05 66` `00 0a` | `06` `50 .. 64 00 00` `3f` | ASCII with 2 pa
 >Figure Example _Read Password_
 
 __Note:__
-The password can only be read or set in STOP mode.
+The password can only be read or set in _STOP_ mode.
 
 Format | Data
 --- | ---
