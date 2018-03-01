@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.4.2
+ * LogoPG library, Version 0.4.3
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -45,6 +45,8 @@
  *    bug fixing
  *  2018-02-27: Version 0.4.2
  *    optimizations
+ *  2018-01-01: Version 0.4.3
+ *    impl. of cyclic data reading
 */
 
 #ifndef LogoPG_h_
@@ -115,6 +117,7 @@ typedef int    *pint;
 typedef struct {
   byte H[Size_WR];                // PDU Header
   byte DATA[MaxPduSize-Size_WR];  // PDU Data
+  byte T[1];                      // PDU Trailer
 } TPDU;
 extern TPDU PDU;
 

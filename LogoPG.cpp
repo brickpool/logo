@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.4.2
+ * LogoPG library, Version 0.4.3
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -47,6 +47,11 @@ const byte LOGO_CR[] = {
   0x21
 };
 
+// LOGO Confirmation Request
+const byte LOGO_ACK[] = {
+  0x06
+};
+
 // LOGO Read Revision Request
 const byte LOGO_REVISION[] = {
   0x02, 0x1F, 0x02
@@ -78,15 +83,19 @@ const byte LOGO_MODE[] = {
 
 // If an error has occurred, the LOGO send a negative confirmation 0x14 (NOK)
 // and then an error byte with the following codes
-#define PDU_BUSY    0x01  // LOGO can not accept a telegram
-#define PDU_TIMEOUT 0x02  // Resource unavailable
-#define PDU_INVALID 0x03  // Illegal access
-#define PDU_PAR_ERR 0x04  // parity error-, overflow or telegram error
-#define PDU_UNKNOWN 0x05  // Unknown command
-#define PDU_XOR_ERR 0x06  // XOR-check incorrect
-#define PDU_SIM_ERR 0x07  // Faulty on simulation 
+#define PDU_BUSY      0x01  // LOGO can not accept a telegram
+#define PDU_TIMEOUT   0x02  // Resource unavailable
+#define PDU_INVALID   0x03  // Illegal access
+#define PDU_PAR_ERR   0x04  // parity error-, overflow or telegram error
+#define PDU_UNKNOWN   0x05  // Unknown command
+#define PDU_XOR_ERR   0x06  // XOR-check incorrect
+#define PDU_SIM_ERR   0x07  // Faulty on simulation 
 
-#define TIMEOUT     500   // set timeout between 75 and 600 ms
+// Since the millis() is unsigned long, also the testing
+// and updating the time must be done with unsigned long.
+// https://playground.arduino.cc/Code/TimingRollover
+#define TIMEOUT       500UL // set timeout between 200 and 600 ms
+#define CYCLETIME     600UL // set cycle time for function 0x17 between 190 and 600 ms
 
 #define VM_START      0     // first valid address
 #define VM_USER_AREA  0     // user defined area
@@ -349,10 +358,13 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
   size_t MaxElements;
   size_t TotElements;
   size_t SizeRequested;
+  size_t Length;
 
   pbyte Target = pbyte(ptrData);
   size_t Offset = 0;
-	const int WordSize = 1;  // DB1 element has a size of one byte
+  const int WordSize = 1;         // DB1 element has a size of one byte
+  static unsigned long LastCycle; // variable for storing the time from the last call
+                                  // declared statically, so that it can used locally
 
   // For LOGO 0BA4 to 0BA6 the only compatible information that we can read are inputs, outputs, flags and rtc.
   // We will represented this as V memory, that is seen by all HMI as DB 1.
@@ -362,25 +374,58 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
   // Access only allowed between 0 and 1023
   if (Start < VM_START && Start > VM_END)
     SetLastError(errCliInvalidPDU);
-    
+
+  // fetch data or cyclic data read?
+  // The next line will also notice a rollover after about 50 days.
+  // https://playground.arduino.cc/Code/TimingRollover
+  if (millis()-LastCycle > CYCLETIME)
+  {
+    // fetch data or start a continuously polling!
 #if defined _EXTENDED
-  int Status;
-  GetPlcStatus(&Status);
-  if (LastError)
-    return LastError;
-  
-  // Operation mode must be RUN if we use LOGO_FETCH_DATA
-  if (Status != LogoCpuStatusRun) // Exit with Error if the LOGO is not in operation mode RUN
-    return SetLastError(errCliFunction);
+    int Status;
+    GetPlcStatus(&Status);
+    if (LastError)
+      return LastError;
+    
+    // operation mode must be RUN if we use LOGO_FETCH_DATA
+    // so exit with an Error if the LOGO is not in operation mode RUN
+    if (Status != LogoCpuStatusRun) 
+      return SetLastError(errCliFunction);
 #endif // _EXTENDED
+  
+    if (StreamClient->write(LOGO_FETCH_DATA, sizeof(LOGO_FETCH_DATA)) != sizeof(LOGO_FETCH_DATA))
+      return SetLastError(errStreamDataSend);
+  
+    RecvControlResponse(&Length);
+    if (LastError)
+      return LastError;
+  }
+  else
+  {
+    // cyclic reading of data!
+    // If code 06 is sent to the LOGO device within 600 ms,
+    // the LOGO device sends updated data (cyclic data read). 
+    if (StreamClient->write(LOGO_ACK, sizeof(LOGO_ACK)) != sizeof(LOGO_ACK))
+      return SetLastError(errStreamDataSend);
+  
+    PDU.H[0] = 0;
+    RecvPacket(&PDU.H[1], GetPDULength()-1);
+    if (LastError)
+      return LastError;
+    Length = GetPDULength()-1;
 
-  if (StreamClient->write(LOGO_FETCH_DATA, sizeof(LOGO_FETCH_DATA)) != sizeof(LOGO_FETCH_DATA))
-    return SetLastError(errStreamDataSend);
+    // Get End Delimiter (1 byte)
+    RecvPacket(PDU.T, 1);
+    if (LastError)
+      return LastError;
+    Length++;
 
-  size_t Length;
-  RecvControlResponse(&Length);
-  if (LastError)
-    return LastError;
+    if (PDU.H[1] != 0x55 || PDU.T[0] != AA)
+      // Error, the response does not have the expected frame 0x55 .. 0xAA
+      return SetLastError(errCliInvalidPDU);
+
+    PDU.H[0] = ACK;
+  }
 
   if (LastPDUType != ACK)         // Check Confirmation
     return SetLastError(errCliDataRead);
@@ -388,6 +433,10 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
   if (Length != GetPDULength())
     return SetLastError(errCliInvalidPDU);
   
+  // To recognize a cycle time we save the number of milliseconds
+  // since the last successful call of the current function
+  LastCycle = millis();
+
   // Done, as long as we only use the internal buffer
   if (ptrData == NULL)
     return SetLastError(0);
@@ -668,12 +717,11 @@ int LogoClient::RecvControlResponse(size_t *Size)
     *Size += ByteCount;     // Update Size = 6+ByteCount
     
     // Get End Delimiter (1 byte)
-    byte Trailer;
-    RecvPacket(&Trailer, 1);
+    RecvPacket(PDU.T, 1);
     if (LastError)
       return LastError;
 
-    if (Trailer != AA)
+    if (PDU.T[0] != AA)
       // Error, the response does not have the expected value 0xAA
       return SetLastError(errCliInvalidPDU);
   }
@@ -739,9 +787,7 @@ int LogoClient::RecvPacket(byte buf[], size_t Size)
     else
       delayMicroseconds(500);
     
-    // The next line are important for rollover after approximately 50 days.
-    // Since the millis() is unsigned long, also the testing
-    // and updating the time must be done with unsigned long.
+    // The next line will also notice a rollover after about 50 days.
     // https://playground.arduino.cc/Code/TimingRollover
     if (millis()-Elapsed > RecvTimeout)
       break; // Timeout
