@@ -3,6 +3,7 @@
 
 const byte rxPin = 2;
 const byte txPin = 3;
+byte buf[1];
 
 // set up the SoftwareSerial object
 CustomSoftwareSerial LogoSerial(rxPin, txPin);
@@ -43,16 +44,11 @@ void loop()
     if (Status == LogoCpuStatusRun)
     {
       Serial.print("FETCH DATA ... ");
-      Result = LOGO.ReadArea(LogoAreaDB, 1, VM_Q01_08, 2, NULL);
+      Result = LOGO.ReadArea(LogoAreaDB, 1, VM_Q01_08, sizeof(buf), buf);
       if (Result == 0)
       {
-        Serial.print("Output 8-1, 16-9, analog input 1: 0b");
-        printBinaryByte(LH.ByteAt(VM_Q01_08));
-        Serial.print(" 0b");
-        printBinaryByte(LH.ByteAt(VM_Q09_16));
-        Serial.print(" ");
-        Serial.print(LH.IntegerAt(VM_AI1_Hi));
-        Serial.println();
+        Serial.print("OK: ");
+        Serial.println(buf[0], HEX);
       }
       else
         CheckError(Result);
@@ -66,7 +62,7 @@ void loop()
   else
     CheckError(Result);
 
-  delay(1000);  
+  delay(2000);  
 }
 
 bool Connect()
@@ -99,11 +95,3 @@ void CheckError(int ErrNo)
   }
 }
 
-// http://forum.arduino.cc/index.php?topic=246920.0
-void printBinaryByte(byte value)
-{
-    for (byte mask = 0x80; mask; mask >>= 1) 
-    {
-        Serial.print((mask & value) ? '1' : '0');
-    }
-}
