@@ -1,12 +1,11 @@
 # LogoPG
-
 Siemens (tm) LOGO! library for Arduino
 
-The library is based on the implementation of Settimino. 
+The library is based on the implementation of Settimino. Only LOGO 0BA4 to 0BA6 are supported via the serial programming interface.
 
-Only LOGO 0BA4 to 0BA6 are supported via the serial programming interface.
+The current library version is 0.4.3 (not final, release candidate 4, with patchlevel 3).
 
-Rev. Bb, Februar 2018
+All information about the protocol is described in a separate document: [PG-Protocol.md](/doc/PG-Protocol.md)
 
 ## Credits
 LogoPG is created by J. Schneider.
