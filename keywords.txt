@@ -1,5 +1,18 @@
+#######################################
+# Syntax Coloring Map For LogoPG
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
 LogoHelper	KEYWORD1
 LogoClient	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
 BitAt	KEYWORD2
 ByteAt	KEYWORD2
 WordAt	KEYWORD2
@@ -14,3 +27,23 @@ GetPDULength	KEYWORD2
 PlcStart	KEYWORD2
 PlcStop	KEYWORD2
 GetPlcStatus	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+errStreamConnectionFailed   LITERAL1
+errStreamConnectionReset   LITERAL1
+errStreamDataRecvTout   LITERAL1
+errStreamDataSend   LITERAL1
+errStreamDataRecv   LITERAL1
+errPGConnect   LITERAL1
+errPGInvalidPDU   LITERAL1
+errCliInvalidPDU   LITERAL1
+errCliSendingPDU   LITERAL1
+errCliDataRead   LITERAL1
+errCliDataWrite   LITERAL1
+errCliFunction   LITERAL1
+errCliBufferTooSmall   LITERAL1
+errCliNegotiatingPDU   LITERAL1
+
