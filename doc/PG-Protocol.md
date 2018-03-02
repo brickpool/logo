@@ -1,5 +1,5 @@
 # LOGO! PG Protocol Reference Guide
-Rev. Bj
+Rev. Bk
 
 March 2018
 
@@ -242,7 +242,7 @@ sets an error if they are not the same as configured for that device (_DTE_ and 
 Note that parity checking can only detect an error if an odd number of bits are picked up or dropped in a character frame during transmission. 
 
 ### CRC/XOR Checking
-For teh block commands `04` and `05`, the _DTE_ query or _LOGO!_ response messages include an error–checking field that is based on a Cyclical Redundancy Check XOR method. The _CRC_ field checks the contents of the entire data. It is applied regardless of any parity check method used for the individual characters of the message. 
+For the block commands `04` and `05`, the _DTE_ query or _LOGO!_ response messages include an error–checking field that is based on a Cyclical Redundancy Check XOR method. The _CRC_ field checks the contents of the entire data. It is applied regardless of any parity check method used for the individual characters of the message. 
 
 The _CRC_ field is one byte, containing an 8–bit binary value. The CRC value is calculated by the transmitting device, which appends the XOR value to the message. The receiving _DTE_ program must calculate the CRC during receipt of the message, and compares the calculated value to the actual value it received in the _CRC_ field. If the two values are not equal, an error results.
 
@@ -363,7 +363,7 @@ Writes data contents of bytes into the Memory of the _LOGO!_ device.
 ### Query
 The command contains the standard fields of command code, address offset and Byte Count. The rest of the command specifies the group of bytes to be written into the _LOGO!_ device. 
 
-Command | Address | Byte Count | Data | Checksum
+Command | Address | Byte Count | Data | Check sum
 --- | --- | --- | --- | ---
 1 byte | 2 or 4 bytes | 2 bytes | n bytes | 1 byte
 Data Code | 16/32bit Address | Number of bytes | Data Content | CRC8 XOR
@@ -398,7 +398,7 @@ Byte Count | `00 10` | Number of bytes 16 (dec)
 ### Response
 The data in the response message is sent as hexadecimal binary content. The number of data bytes sent corresponds to the requested number of bytes.
 
-Command | Data | Checksum
+Command | Data | Check sum
 --- | --- | ---
 1 byte | n bytes | 1 Byte
 Confirmation Code | Data Block | CRC8 XOR
@@ -410,10 +410,10 @@ Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Confirmation | `06` | Acknowledgment
 Data | `48 65 6C 6C 6F 20 77 6F 72 6C 64 21 20 20 20 20` | Data Block
-Checksum | `21` | XOR Byte
+Check sum | `21` | XOR Byte
 >Figure Example _Read Block_ Response
 
-In this example the program name is read out. The maximum text width is 16 characters. The reading direction is from left to right. In addition, the XOR checksum value is used in this example (`21` hex).
+In this example the program name is read out. The maximum text width is 16 characters. The reading direction is from left to right. In addition, the XOR check sum value is used in this example (`21` hex).
 
 Format | Data
 --- | ---
@@ -488,7 +488,7 @@ Command | `06` | Acknowledgment
 ### Description
 This function fetching the current data from the _LOGO!_ device. The _LOGO!_ device responds with ACK (`06`), followed by control code `55`, the response function code `11` and the data (length depends on the device type) or NAK (`15`), followed by an exception code. The fetching of the data can be done once or continuously (called _cyclic data query_).
 
-To fetch data or start a continuously polling, the _Data_ field must be existent and must set to `00`. If a confirmation code `06` is sent by the _DTE_ to the _LOGO!_ device within 600 ms, the _LOGO!_ device sends updated data (cyclic data read). To stop a data reading the Control Code `14` (_Stop Fetch Data_) must be sended. 
+To fetch data or start a continuously polling, the _Data_ field must be existent and must set to `00`. If a confirmation code `06` is sent by the _DTE_ to the _LOGO!_ device within 600 ms, the _LOGO!_ device sends updated data (cyclic data read). To stop a data reading the Control Code `14` (_Stop Fetch Data_) must be sensed. 
  
 ### Query
 
@@ -538,12 +538,12 @@ Register | __0BA4__ | __0BA5__ | __0BA6__ | Description
 I | 23 | 23 | 31 | input
 F | N | N | 34 | function keys
 O | 26 | 26 | 35 | output
-M | 28 | 38 | 37 | merker
+M | 28 | 38 | 37 | flag
 S | 31 | 31 | 41 | shift register
 C | 32 | 32 | 42 | cursor keys
 AI | 33 | 33 | 43 | analog input
 AO | 49 | 49 | 59 | analog output
-AM | 53 | 53 | 63 | analog merker
+AM | 53 | 53 | 63 | analog flag
 
 
 The examples shows how the _Byte Count_ field is implemented in a _LOGO!_ fetching data response:
@@ -682,7 +682,7 @@ Code | Name | __0BA4__ | __0BA5__ | __0BA6__
 --- | --- | --- | --- | ---
 `20` | Clear Program | N | N | Y
 `21` | Connection Request | N | Y | Y
-`22` | Restart | ? | ? | Y
+`22` | Restart | N | ? | Y
 
 ## Clear Program `20`
 This command allows you to clear the circuit program in the connected _LOGO!_ device and the program password if a password exists. The circuit program and password (if configured) remain in the _LOGO!_ device. _LOGO!_ devices prior to version __0BA6__ do not support this function. 
@@ -690,16 +690,18 @@ This command allows you to clear the circuit program in the connected _LOGO!_ de
 ## Connection Request `21`
 Send to _LOGO!_ a _Connection Request_ `21`:
 
-controler | command | request | response | description
+controller | command | request | response | description
 --- | --- | --- | --- | ---
 0BA4 | Connection Request | `21` | _n/a_ | no Response
 0BA5.Standard | Connection Request | `21` | `06` `03` `21` `42` | Confirmation Response `42`
-0BA6.Standard | Connection Request | `21` | `06 `03` `21` `43` | Confirmation Response `43`
-0BA6.ES3 | Connection Request | `21` | `06 `03` `21` `44` | Confirmation Response `44`
+0BA6.Standard | Connection Request | `21` | `06` `03` `21` `43` | Confirmation Response `43`
+0BA6.ES3 | Connection Request | `21` | `06` `03` `21` `44` | Confirmation Response `44`
 >Figure Example _Connection Request_
 
 ## Restart `22`
-Performs a restart
+In the case of a _LOGO!_ device __0BA6__, the execution of further commands is no longer possible after an error (for example, unauthorized memory access; exception code `03`). Additional commands are always answered with an exception code (e.g. _DEVICE TIMEOUT_ `02` or _ILLEGAL ACCESS_ `03`) by the LOGO device. To restart the communication (after an exception response), the _Restart_ command `21` is used.
+
+__Notes:__  The _Restart_ command '21' is currently only confirmed for the _LOGO! device __0BA6__.
 
 # Chapter 5 - Errors and Confirmations
 
@@ -768,7 +770,7 @@ Here is an example of a response to the query above:
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
-Confirmation | `15` | Eception
+Confirmation | `15` | Exception
 Exception Code | `05` | Unknown command
 >Figure Example _Exception_ Response ____0BA4____
 
@@ -796,7 +798,7 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 ----------- | --- | --- | --- | ---
 0522        | 1   | W   |     | `01 05 22 00`
 --          | --  | --  | --  | --
-0552        | 1   | W   | Display at power-on? I/O = `01`; DateTime = `FF`| `02 05 52`
+0552        | 1   | W   | Display at power-on? I/O = `01`; DateTime = `FF` | `02 05 52`
 --          | --  | --  | --  | --
 0553 - 0557 | 5   |     | Analog output in mode _STOP_ | `05 05 53 00 05`
 --          | --  | --  | --  | --
@@ -824,9 +826,10 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 1F00        | 1   |     |     | `02 1F 00`
 1F01        | 1   |     |     | `02 1F 01`
 1F02        | 1   | R   | Revision Byte | `02 1F 02`
-1F03 - 1F07 | 5   |     | BIOS Version | `02 1F 03 02 1F 03 ..`
+1F03        | 1   |     | Version character = `V`| `02 1F 03`
+1F04 - 1F09 | 6   |     | Firmware | `02 1F 04` `..`
 --          | --  | --  | --  | --
-FB00 - FB05 | 6   | W   | Clock memory area | `01 FB 00 03 01 FB 00 01 ..`
+FB00 - FB05 | 6   | W   | Clock memory area | `01 FB 00 03` `..`
 
 
 # Appendix B - Application Notes
@@ -856,7 +859,7 @@ Command | Description | Query | Response 1)
 `22` | Restart | N | 0
 >Figure Maximum Q/R Parameters __0BA4__ and __0BA5__
 
-__Notes:__ 1) The information in brackets applies to the _LOGO!_ Verison __0BA4__
+__Notes:__ 1) The information in brackets applies to the _LOGO!_ Version __0BA4__
 
 ### Response Parameter List __0BA4__ and __0BA5__
 
@@ -904,7 +907,7 @@ __Notes:__ 1) The information in brackets shows the command code to which a resp
 ## Estimating Serial Transaction Timing
 
 ### The Transaction Sequence
-The following sequence of events occusr during a serial transaction. Letters in parentheses ( ) refer to the timing notes at the end of the listing.
+The following sequence of events occurs during a serial transaction. Letters in parentheses ( ) refer to the timing notes at the end of the listing.
 
 1. The _DTE_ composes the message.
 2. The query message is transmitted to the _LOGO!_. ( 1 )
@@ -942,6 +945,37 @@ Read Byte | `02` `1f 02` | `06` `03` `1f 02` `40` | connection established to `4
 Read Byte | `02` `1f 02` | `06` `03` `00 ff 1f 02` `43` | connection established to `43` (_LOGO!_ __0BA6__)
 >Figure Example _Read Revision_
 
+### Read Firmware
+Commands for reading the Firmware (only available for __0BA5__ and __0BA6__). The access is only available in mode _STOP_. 
+
+The Firmware can be read out on the _LOGO!_ device as follows:
+
+1. Device _Operating Mode_
+2. _Read Byte_ at address `[00 ff] 1f 02` for reading the _Revision_ byte.
+2. _Read Byte_ at address `[00 ff] 1f 03` for reading the version character = `V`.
+4. _Read Byte_(s)
+ + _Major release_ 1st character at address `[00 ff] 1f 04`
+ + _Major release_ 2nd character at address `[00 ff] 1f 05`
+ + _Minor release_ 1st character at address `[00 ff] 1f 06`
+ + _Minor release_ 2nd character at address `[00 ff] 1f 07`
+ + _Patch level_ 1st character at address `[00 ff] 1f 08`
+ + _Patch level_ 2nd character at address `[00 ff] 1f 09`
+
+Example for the 1st major version of a firmware, in the 3rd minor version with the 32nd error correction (V1.03.32):
+
+Command | Query | Response | Description
+--- | --- | --- | ---
+Operation Mode | `55` `17 17` `aa` | `06` `42` | operation mode _STOP_ (`42`, _RUN_ = `01`)
+Read Byte | `02` `1f 02` | `06` `03` `00 ff 1f 02` `43` | connection established to `43` (_LOGO!_ __0BA6__)
+Read Byte | `02` `fb 00` | `06` `03` `00 ff 1f 03` `56` | major release 1st character = `V` (ASCII)
+Read Byte | `02` `fb 00` | `06` `03` `00 ff 1f 04` `30` | major release 1st character = `0` (ASCII)
+Read Byte | `02` `fb 01` | `06` `03` `00 ff 1f 05` `31` | major release 2nd character = `1` (ASCII)
+Read Byte | `02` `fb 02` | `06` `03` `00 ff 1f 06` `30` | minor release 1st character = `0` (ASCII)
+Read Byte | `02` `fb 03` | `06` `03` `00 ff 1f 07` `33` | minor release 2nd character = `3` (ASCII)
+Read Byte | `02` `fb 04` | `06` `03` `00 ff 1f 08` `33` | patch release 1st character = `3` (ASCII)
+Read Byte | `02` `fb 05` | `06` `03` `00 ff 1f 09` `32` | patch release 2nd character = `2` (ASCII)
+>Figure Example _Read Firmware_ __0BA6__
+
 ### Read Clock
 Commands for reading the RTC-Clock (if available). The access is only available in mode _STOP_.
 
@@ -964,12 +998,12 @@ Command | Query | Response | Description
 Connection Request | `21` | `06` `03` `21` `44` | connection established to `44` (_LOGO!_ __0BA6__)
 Operation Mode | `55` `17 17` `aa` | `06` `42` | operation mode _STOP_ (`42`, _RUN_ = `01`)
 Write Byte | `01` `44 00` `00` | `06` | clock reading initialized
-Read Byte | `02` `fb 00` | `06` `00 ff fb 00` `1e` | day = 30 (dec)
-Read Byte | `02` `fb 01` | `06` `00 ff fb 01` `0c` | month = 12 (dec)
-Read Byte | `02` `fb 02` | `06` `00 ff fb 02` `09` | year = 09 (dec)
-Read Byte | `02` `fb 03` | `06` `00 ff fb 03` `1c` | minute = 28 (dec)
-Read Byte | `02` `fb 04` | `06` `00 ff fb 04` `14` | hour = 20 (dec)
-Read Byte | `02` `fb 05` | `06` `00 ff fb 05` `03` | day-of-week = 3 (dec)
+Read Byte | `02` `fb 00` | `06` `03` `00 ff fb 00` `1e` | day = 30 (dec)
+Read Byte | `02` `fb 01` | `06` `03` `00 ff fb 01` `0c` | month = 12 (dec)
+Read Byte | `02` `fb 02` | `06` `03` `00 ff fb 02` `09` | year = 09 (dec)
+Read Byte | `02` `fb 03` | `06` `03` `00 ff fb 03` `1c` | minute = 28 (dec)
+Read Byte | `02` `fb 04` | `06` `03` `00 ff fb 04` `14` | hour = 20 (dec)
+Read Byte | `02` `fb 05` | `06` `03` `00 ff fb 05` `03` | day-of-week = 3 (dec)
 >Figure Example _Read Clock_ __0BA6__
 
 ### Write Clock
@@ -1078,15 +1112,15 @@ The Cyclical Redundancy Check (CRC) field is one byte, containing a 8–bit bina
 Only the data bytes of a message are used for generating the CRC. _Command_, _Address_ and _Byte Count_ fields, and the _End_ delimiter, do not apply to the CRC. 
 
 ### Example
-The implementation is simple because only an 8-bit checksum must be calculated for a sequence of hexadecimal bytes. We use a function `F(bval,cval)` that inputs one data byte and a check value and outputs a recalculated check value. The initial value for `cval` is 0. The checksum can be calculated using the following example function (in C language), which we call repeatedly for each byte of the _Data_ field. The 8-bit checksum is the 2's complement of the sum off all bytes.
+The implementation is simple because only an 8-bit check sum must be calculated for a sequence of hexadecimal bytes. We use a function `F(bval,cval)` that inputs one data byte and a check value and outputs a recalculated check value. The initial value for `cval` is 0. The check sum can be calculated using the following example function (in C language), which we call repeatedly for each byte of the _Data_ field. The 8-bit check sum is the 2's complement of the sum off all bytes.
 
 ```
 int F_chk_8( int bval, int cval )
 {
-  retun ( bval + cval ) % 256;
+  return ( bval + cval ) % 256;
 }
 ```
->Figure CRC implementtaion in C language
+>Figure CRC implementation in C language
 
 __Note:__ 
 Therefore the CRC value returned from the function can be directly placed into the message for transmission.
