@@ -8,8 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.4.4] - 2018-03-04
 ### Added
-- This CHANGELOG file to hopefully serve as an evolving example of a
-  standardized open source project CHANGELOG.
+- This CHANGELOG file should help that the library becomes a standardized open source project.
 
 ## 0.4.3 - 2018-03-01
 ### Added
