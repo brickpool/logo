@@ -1,11 +1,11 @@
 {
   "name": "LogoPG",
-  "keywords": "LOGO programming interface",
-  "description": "Allows easy use of read IO from a LOGO PLC",
+  "keywords": "logo siemens protocol arduino",
+  "description": "[EXPERIMENTAL] Easily interact with LOGO PLC from Arduino, using the serial interface.",
   "repository":
   {
-    "type": "",
-    "url": ""
+    "type": "git",
+    "url": "https://github.com/brickpool/logo"
   },
   "frameworks": "arduino",
   "platforms":
