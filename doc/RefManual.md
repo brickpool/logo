@@ -50,7 +50,7 @@ Refer to the following publication for details about the protocol using the PG-I
       * [Connected](#connected)
   * [Additional description](#additional-description)
     * [Memory models](#memory-models)
-    * [Error codes]](#error-codes)
+    * [Error codes](#error-codes)
 
 
 ----------
@@ -64,19 +64,19 @@ Arduino has not a multithreaded environment and we can only use one LogoClient i
 ### <a name="connect"></a>LogoClient.Connect()
 Connects the Client to the PLC with the parameters specified in the previous call of `ConnectTo()` or `SetConnectionParams()`.
 
-Returns `true` on success or `false` on error.
+Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
-### <a name="connect-to"></a>LogoClient.ConnectTo(Interface)
+### <a name="connect-to"></a>LogoClient.ConnectTo(Stream \*Interface)
 Connects the Client to the hardware connected via the serial port.
 
-- `Interface` LOGO!/Equipment stream object for example "&Serial"
+- `Interface` Stream object for example "Serial"
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
-### <a name="set-connection-params"></a>LogoClient.SetConnectionParams(Interface)
+### <a name="set-connection-params"></a>LogoClient.SetConnectionParams(Stream \*Interface)
 Links the Client to a stream object.
 
-- `Interface` LOGO!/Equipment stream object for example "&Serial"
+- `Interface` Stream object for example "Serial"
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
@@ -90,28 +90,28 @@ Connection Type | Value | Description
 `PG` | 0x01 | PG
 
 ### <a name="disconnect"></a>LogoClient.Disconnect()
-Disconnects ìgracefullyî the Client from the LOGO! device.
+Disconnects ‚Äúgracefully‚Äù the Client from the LOGO! device.
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
 
 ## <a name="base-data-functions"></a>API - Base Data I/O functions
 
-### <a name="read-area"></a>LogoClient.ReadArea(area, dbNumber, start, amount, wordLen)
+### <a name="read-area"></a>LogoClient.ReadArea(int Area, word DBNumber, word Start, word Amount, void \*ptrData)
 This is the main function to read data from a _LOGO!_ device. With it you can read Inputs, Outputs and Flags.
 
- - `area` Area identifier (see table [below](#table-area))
- - `dbNumber` DB number if area = S7AreaDB, otherwise ignored
- - `start` Offset to start
- - `amount` Amount of __words__ to read
- - `wordLen` Word size (see table [below](#table-wordlen))
+ - `Area` Area identifier (see table [below](#table-area))
+ - `DBNumber` DB number if area = LogoAreaDB, otherwise ignored
+ - `Start` Offset to start
+ - `Amount` Amount of __words__ to read
+ - `ptrData` Pointer to memory area
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
 
 ## <a name="datetime-functions"></a>API - Date/Time functions
 
-### <a name="get-plc-datetime"></a>LogoClient.GetPlcDateTime(time_t *dateTime)
+### <a name="get-plc-datetime"></a>LogoClient.GetPlcDateTime(time_t \*dateTime)
 Reads PLC date and time.
 
  - `dateTime`, see below
@@ -152,7 +152,7 @@ Returns a `0` on success or an `Error` code (see Errors Code List [below](#error
 
 ## <a name="systeminfo-functions"></a>API - System info functions
 
-### <a name="get-order-code"></a>LogoClient.GetOrderCode(TOrderCode *Info)
+### <a name="get-order-code"></a>LogoClient.GetOrderCode(TOrderCode \*Info)
 Gets CPU order code and version info.
 
  - `Info`, see below
@@ -191,7 +191,7 @@ Puts the LOGO! device in STOP mode.
 
 Returns a `0` on success and when the _LOGO!_ device is already stopped, otherwise an `Error` code (see Errors Code List [below](#error-codes)).
 
-### <a name="get-plc-status"></a>LogoClient.GetPlcStatus(int *Status)
+### <a name="get-plc-status"></a>LogoClient.GetPlcStatus(int \*Status)
 Returns the CPU status (running/stopped) into `Status` reference.
 
  - `Status`, see below
@@ -209,7 +209,7 @@ Returns a `0` on success or an `Error` code (see Errors Code List [below](#error
 
 ## <a name="security-functions"></a>API - Security functions
 
-### <a name="set-session-password"></a>LogoClient.SetSessionPassword(password)
+### <a name="set-session-password"></a>LogoClient.SetSessionPassword(char \*password)
 Send the password to the PLC to meet its security level.
 
  - `password` Password
@@ -223,7 +223,7 @@ Clears the password set for the current session (logout).
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
-### <a name="get-protection"></a>LogoClient.GetProtection(TProtection *Protection)
+### <a name="get-protection"></a>LogoClient.GetProtection(TProtection \*Protection)
 Gets the CPU protection level info.
 
  - `Protection`, see below
