@@ -1,5 +1,5 @@
 # LOGO! PG Protocol Reference Guide
-Rev. Bk
+Rev. Bl
 
 March 2018
 
@@ -108,11 +108,11 @@ The specification for each communication via the PG Interface:
 ### Pinout:
 - [x] RxD Receive Data; _DTE_ in direction; pin 2
 - [x] TxD Transmit Data; _DTE_ out direction; pin 3
-- [x] DTR Data Terminal Ready; _DTE_ out direction; pin 4 \* )
+- [x] DTR Data Terminal Ready; _DTE_ out direction; pin 4 \*)
 - [x] GND Ground; pin 5
-- [ ] RTS Request to Send; _DTE_ out direction; pin 7 \* )
+- [ ] RTS Request to Send; _DTE_ out direction; pin 7 \*)
 
->\* ) DTS and/or RTS are used to power the plug electronics
+__Note:__ \*) DTS and/or RTS are used to power the plug electronics
 
 ### Baud rate / Bits per byte:
 - 9600 baud rate
@@ -363,7 +363,7 @@ Writes data contents of bytes into the Memory of the _LOGO!_ device.
 ### Query
 The command contains the standard fields of command code, address offset and Byte Count. The rest of the command specifies the group of bytes to be written into the _LOGO!_ device. 
 
-Command | Address | Byte Count | Data | Check sum
+Command | Address | Byte Count | Data | Checksum
 --- | --- | --- | --- | ---
 1 byte | 2 or 4 bytes | 2 bytes | n bytes | 1 byte
 Data Code | 16/32bit Address | Number of bytes | Data Content | CRC8 XOR
@@ -398,7 +398,7 @@ Byte Count | `00 10` | Number of bytes 16 (dec)
 ### Response
 The data in the response message is sent as hexadecimal binary content. The number of data bytes sent corresponds to the requested number of bytes.
 
-Command | Data | Check sum
+Command | Data | Checksum
 --- | --- | ---
 1 byte | n bytes | 1 Byte
 Confirmation Code | Data Block | CRC8 XOR
@@ -410,10 +410,10 @@ Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Confirmation | `06` | Acknowledgment
 Data | `48 65 6C 6C 6F 20 77 6F 72 6C 64 21 20 20 20 20` | Data Block
-Check sum | `21` | XOR Byte
+Checksum | `21` | XOR Byte
 >Figure Example _Read Block_ Response
 
-In this example the program name is read out. The maximum text width is 16 characters. The reading direction is from left to right. In addition, the XOR check sum value is used in this example (`21` hex).
+In this example the program name is read out. The maximum text width is 16 characters. The reading direction is from left to right. In addition, the XOR checksum value is used in this example (`21` hex).
 
 Format | Data
 --- | ---
@@ -482,14 +482,15 @@ Field Name | Code \(hex\) | Meaning
 Command | `06` | Acknowledgment
 >Figure Example _Stop Operating_ Response
 
-
 ## Start Fetch Data `13`
 
 ### Description
 This function fetching the current data from the _LOGO!_ device. The _LOGO!_ device responds with ACK (`06`), followed by control code `55`, the response function code `11` and the data (length depends on the device type) or NAK (`15`), followed by an exception code. The fetching of the data can be done once or continuously (called _cyclic data query_).
 
-To fetch data or start a continuously polling, the _Data_ field must be existent and must set to `00`. If a confirmation code `06` is sent by the _DTE_ to the _LOGO!_ device within 600 ms, the _LOGO!_ device sends updated data (cyclic data read). To stop a data reading the Control Code `14` (_Stop Fetch Data_) must be sensed. 
- 
+To fetch data or start a continuously polling, the _Data_ field must be existent and must set to `00`. If a confirmation code `06` is sent by the _DTE_ to the _LOGO!_ device within 600 ms, the _LOGO!_ device sends updated data (cyclic data read). To stop a data reading the Control Code `14` (_Stop Fetch Data_) must be sent. 
+
+The distance between the data transfers (scan distance) depends on the cycle time of the _LOGO!_ device and the number of requested data (byte count). The data of the inputs and outputs as well as the flags are always read out as a block. The scan distance is about 200 ms, so valid cycle times are greater than 200 ms. For a shorter cycle time, the requesting _DTE_ system will not receive all data. 
+
 ### Query
 
 Command | Function | Data 1) | Trailer
@@ -681,8 +682,8 @@ _Y_ indicates that the command is supported. _N_ indicates that it is not suppor
 Code | Name | __0BA4__ | __0BA5__ | __0BA6__
 --- | --- | --- | --- | ---
 `20` | Clear Program | N | N | Y
-`21` | Connection Request | N | Y | Y
-`22` | Restart | N | ? | Y
+`21` | Connection Request | N | N | Y
+`22` | Restart | N | N | Y
 
 ## Clear Program `20`
 This command allows you to clear the circuit program in the connected _LOGO!_ device and the program password if a password exists. The circuit program and password (if configured) remain in the _LOGO!_ device. _LOGO!_ devices prior to version __0BA6__ do not support this function. 
@@ -693,7 +694,7 @@ Send to _LOGO!_ a _Connection Request_ `21`:
 controller | command | request | response | description
 --- | --- | --- | --- | ---
 0BA4 | Connection Request | `21` | _n/a_ | no Response
-0BA5.Standard | Connection Request | `21` | `06` `03` `21` `42` | Confirmation Response `42`
+0BA5.Standard | Connection Request | `21` | `15` `05` | Exception Response `05`
 0BA6.Standard | Connection Request | `21` | `06` `03` `21` `43` | Confirmation Response `43`
 0BA6.ES3 | Connection Request | `21` | `06` `03` `21` `44` | Confirmation Response `44`
 >Figure Example _Connection Request_
@@ -854,9 +855,9 @@ Command | Description | Query | Response 1)
 `14` | Stop Fetch Data | 4 | 0
 `17` | Operating Mode | 4 | 2
 `18` | Start Operating | 4 | 1
-`20` | Clear Program | N | 0
-`21` | Connection Request | 1 | 4 (0)
-`22` | Restart | N | 0
+`20` | Clear Program | N | (0)
+`21` | Connection Request | N | 0)
+`22` | Restart | N | (0)
 >Figure Maximum Q/R Parameters __0BA4__ and __0BA5__
 
 __Notes:__ 1) The information in brackets applies to the _LOGO!_ Version __0BA4__
@@ -976,6 +977,8 @@ Read Byte | `02` `fb 04` | `06` `03` `00 ff 1f 08` `33` | patch release 1st char
 Read Byte | `02` `fb 05` | `06` `03` `00 ff 1f 09` `32` | patch release 2nd character = `2` (ASCII)
 >Figure Example _Read Firmware_ __0BA6__
 
+__Note:__ The firmware can only be read in _STOP_ mode.
+
 ### Read Clock
 Commands for reading the RTC-Clock (if available). The access is only available in mode _STOP_.
 
@@ -1005,6 +1008,8 @@ Read Byte | `02` `fb 03` | `06` `03` `00 ff fb 03` `1c` | minute = 28 (dec)
 Read Byte | `02` `fb 04` | `06` `03` `00 ff fb 04` `14` | hour = 20 (dec)
 Read Byte | `02` `fb 05` | `06` `03` `00 ff fb 05` `03` | day-of-week = 3 (dec)
 >Figure Example _Read Clock_ __0BA6__
+
+__Note:__ The clock can only be read in _STOP_ mode.
 
 ### Write Clock
 Commands for writing the RTC-Clock (if available). The access is only available in mode _STOP_.
@@ -1036,6 +1041,7 @@ Write Byte | `01` `fb 05` `03` | `06` | day-of-week = 3 (dec)
 Write Byte | `01` `43 00` `00` | `06` | clock writing completed
 >Figure Example _Write Clock_ __0BA6__
 
+__Note:__ The clock can only be set in _STOP_ mode.
 
 ### Read Password
 The password is stored at address `05 66`. The maximum password length is 10 decimal. The access to the password storage is only allowed in operating mode _STOP_.
@@ -1063,8 +1069,7 @@ Read Byte | `02` `48 ff` | `06` `03` `48 ff` `40` | password exist _Y_ (= `40`, 
 Read Block | `05` `05 66` `00 0a` | `06` `50 .. 64 00 00` `3f` | ASCII with 2 padding bytes (length = 8)
 >Figure Example _Read Password_
 
-__Note:__
-The password can only be read or set in _STOP_ mode.
+__Note:__ The password can only be read or set in _STOP_ mode.
 
 Format | Data
 --- | ---
@@ -1112,7 +1117,7 @@ The Cyclical Redundancy Check (CRC) field is one byte, containing a 8–bit bina
 Only the data bytes of a message are used for generating the CRC. _Command_, _Address_ and _Byte Count_ fields, and the _End_ delimiter, do not apply to the CRC. 
 
 ### Example
-The implementation is simple because only an 8-bit check sum must be calculated for a sequence of hexadecimal bytes. We use a function `F(bval,cval)` that inputs one data byte and a check value and outputs a recalculated check value. The initial value for `cval` is 0. The check sum can be calculated using the following example function (in C language), which we call repeatedly for each byte of the _Data_ field. The 8-bit check sum is the 2's complement of the sum off all bytes.
+The implementation is simple because only an 8-bit checksum must be calculated for a sequence of hexadecimal bytes. We use a function `F(bval,cval)` that inputs one data byte and a check value and outputs a recalculated check value. The initial value for `cval` is 0. The checksum can be calculated using the following example function (in C language), which we call repeatedly for each byte of the _Data_ field. The 8-bit checksum is the 2's complement of the sum off all bytes.
 
 ```
 int F_chk_8( int bval, int cval )
