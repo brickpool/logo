@@ -1,6 +1,6 @@
 # LOGO! PG Library Reference Manual
 
-Rev. Aa
+Rev. Ab
 
 March 2018
 
@@ -87,27 +87,25 @@ Sets the connection resource type, i.e the way in which the Clients connects to 
 
 Connection Type | Value | Description
 --- | --- | --- 
-`PG` | 0x01 | PG
+`PG` | `0x01` | PG
 
 ### <a name="disconnect"></a>LogoClient.Disconnect()
-Disconnects ‚Äúgracefully‚Äù the Client from the LOGO! device.
+Disconnects ìgracefullyî the Client from the _LOGO!_ device.
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
-
 
 ## <a name="base-data-functions"></a>API - Base Data I/O functions
 
 ### <a name="read-area"></a>LogoClient.ReadArea(int Area, word DBNumber, word Start, word Amount, void \*ptrData)
-This is the main function to read data from a _LOGO!_ device. With it you can read Inputs, Outputs and Flags.
+This is the main function to read data from a _LOGO!_ device. With it Inputs, Outputs and Flags can be read.
 
- - `Area` Area identifier (see table [below](#table-area))
- - `DBNumber` DB number if area = LogoAreaDB, otherwise ignored
+ - `Area` Area identifier, must always be `LogoAreaDB`
+ - `DBNumber` DB number if area = `LogoAreaDB`, must always be `1`
  - `Start` Offset to start
  - `Amount` Amount of __words__ to read
  - `ptrData` Pointer to memory area
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
-
 
 ## <a name="datetime-functions"></a>API - Date/Time functions
 
@@ -149,7 +147,6 @@ __Note:__ The system time begins at zero when the sketch starts. The internal ti
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
-
 ## <a name="systeminfo-functions"></a>API - System info functions
 
 ### <a name="get-order-code"></a>LogoClient.GetOrderCode(TOrderCode \*Info)
@@ -172,12 +169,10 @@ The Order code is a _C_ string such as "0BA6".
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
-
 ### <a name="get-pdu-length"></a>LogoClient.GetPDULength()
-Returns the PDU length negotiated between the client and the LOGO device during the connection or `0` on error.
+Returns the PDU length negotiated between the client and the _LOGO!_ device during the connection or `0` on error.
 
 __Note:__ All data transfer functions handle this information by themselves and split the telegrams automatically if needed.
-
 
 ## <a name="control-functions"></a>API - PLC control functions
 
@@ -187,7 +182,7 @@ Puts the _LOGO!_ device in RUN mode.
 Returns a `0` on success and when the _LOGO!_ device is already running, otherwise an `Error` code (see Errors Code List [below](#error-codes)).
 
 ### <a name="plc-stop"></a>LogoClient.PlcStop()
-Puts the LOGO! device in STOP mode.
+Puts the _LOGO!_ device in STOP mode.
 
 Returns a `0` on success and when the _LOGO!_ device is already stopped, otherwise an `Error` code (see Errors Code List [below](#error-codes)).
 
@@ -205,7 +200,6 @@ LogoCpuStatusRun | 0x08 | The CPU is running.
 LogoCpuStatusStop | 0x04 | The CPU is stopped.
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
-
 
 ## <a name="security-functions"></a>API - Security functions
 
@@ -272,11 +266,11 @@ By default library is released as Extended.
 
 These directives are visible from your sketch:
 
-`#define \_SMALL`
+`#define _SMALL`<\br>
 or
-`#define \_NORMAL`
+`#define _NORMAL`<\br>
 or
-`#define \_EXTENDED`
+`#define _EXTENDED`
 
 
 ## Error codes
@@ -286,23 +280,24 @@ Severe errors, the Client should be disconnected:
 
 Mnemonic | HEX | Meaning
 --- | --- | ---
-errStreamConnectionFailed   | 0x0001 | Stream Connection error
-errStreamConnectionReset    | 0x0002 | Connection reset by the peer
-errStreamDataRecvTout       | 0x0003 | A timeout occurred waiting a reply
-errStreamDataSend           | 0x0004 | Stream error while sending the data
-errStreamDataRecv           | 0x0005 | Stream error while receiving the data
-errPGConnect                | 0x0006 | _LOGO!_ connection failed
-errPGInvalidPDU             | 0x0008 | Malformed Telegram supplied
+`errStreamConnectionFailed` | `0x0001` | Stream Connection error
+`errStreamConnectionReset` | `0x0002` | Connection reset by the peer
+`errStreamDataRecvTout` | `0x0003` | A timeout occurred waiting a reply
+`errStreamDataSend` | `0x0004` | Stream error while sending the data
+`errStreamDataRecv` | `0x0005` | Stream error while receiving the data
+`errPGConnect` | `0x0006` | _LOGO!_ connection failed
+`errPGInvalidPDU` | `0x0008` | Malformed Telegram supplied
 
 ### Device Error codes
 _LOGO!_ device errors such as DB not found or address beyond the limit:
 
 Mnemonic | HEX | Meaning
 --- | --- | ---
-errCliInvalidPDU            | 0x0100 | Invalid Telegram received
-errCliSendingPDU            | 0x0200 | Error sending a Telegram
-errCliDataRead              | 0x0300 | Error during data read
-errCliDataWrite             | 0x0400 | Error during data write
-errCliFunction              | 0x0500 | The _LOGO!_ reported an error for this function
-errCliBufferTooSmall        | 0x0600 | The supplied buffer is too small
-errCliNegotiatingPDU        | 0x0700 | _LOGO!_ negotiation failed
+`errCliInvalidPDU` | `0x0100` | Invalid Telegram received
+`errCliSendingPDU` | `0x0200` | Error sending a Telegram
+`errCliDataRead` | `0x0300` | Error during data read
+`errCliDataWrite` | `0x0400` | Error during data write
+`errCliFunction` | `0x0500` | The _LOGO!_ reported an error for this function
+`errCliBufferTooSmall` | `0x0600` | The supplied buffer is too small
+`errCliNegotiatingPDU` | `0x0700` | _LOGO!_ negotiation failed
+
