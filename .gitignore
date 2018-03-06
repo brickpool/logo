@@ -1,0 +1,19 @@
+# macOS cache files
+.DS_Store
+
+# Windows thumbnail cache files
+Thumbs.db
+
+# Ignore directory with old versions
+/00_old/
+/extras/docs/00_old/
+
+# Ignore document directory
+/01_doc/
+
+# Ignore some sketches
+LOGO.ino
+
+# Komodo files
+*.komodoproject
+/.komodotools/
