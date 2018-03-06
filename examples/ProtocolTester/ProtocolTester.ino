@@ -13,6 +13,10 @@ const byte txPin = 3;
 CustomSoftwareSerial LogoSerial(rxPin, txPin);
 
 void setup() {
+  // initialize digital pin LED_BUILTIN as an output and turn the LED off
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);   
+  
   // Init Monitor interface
   Serial.begin(9600);
   while (!Serial) {

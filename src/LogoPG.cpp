@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.4.3
+ * LogoPG library, Version 0.4.4
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -25,11 +25,12 @@
  * 
  ***********************************************************************
  *
- * Changelog: 
- *  see the associated *.h
+ * Changelog: https://github.com/brickpool/logo/blob/master/CHANGELOG.md
+ * 
 */
 
 #include "Arduino.h"
+#include "TimeLib.h"
 #include "LogoPG.h"
 #include <avr/pgmspace.h>
 
@@ -42,19 +43,19 @@
 */
 
 
-// LOGO Connection Request
-const byte LOGO_CR[] = {
+// LOGO 0BA4 Connection Request (Read Revision Byte)
+const byte LOGO4_CR[] = {
+  0x02, 0x1F, 0x02
+};
+
+// LOGO 0BA6 Connection Request
+const byte LOGO6_CR[] = {
   0x21
 };
 
 // LOGO Confirmation Request
 const byte LOGO_ACK[] = {
   0x06
-};
-
-// LOGO Read Revision Request
-const byte LOGO_REVISION[] = {
-  0x02, 0x1F, 0x02
 };
 
 // LOGO Fetch PLC Data Request Telegram
@@ -79,23 +80,31 @@ const byte LOGO_MODE[] = {
   0x55, 0x17, 0x17, 0xAA
 };
 
+#define ADDR_CLK_INIT     0x00FF4400UL
+#define ADDR_CLK_R_DAY    0x00FFFB00UL
+#define ADDR_CLK_R_MONTH  0x00FFFB01UL
+#define ADDR_CLK_R_YEAR   0x00FFFB02UL
+#define ADDR_CLK_R_MINUTE 0x00FFFB03UL
+#define ADDR_CLK_R_HOUR   0x00FFFB04UL
+#define ADDR_CLK_R_DOW    0x00FFFB05UL
+
 #endif // _EXTENDED
 
-// If an error has occurred, the LOGO send a negative confirmation 0x14 (NOK)
+// If an error has occurred, the LOGO send a negative confirmation 0x15 (NOK)
 // and then an error byte with the following codes
-#define PDU_BUSY      0x01  // LOGO can not accept a telegram
-#define PDU_TIMEOUT   0x02  // Resource unavailable
-#define PDU_INVALID   0x03  // Illegal access
-#define PDU_PAR_ERR   0x04  // parity error-, overflow or telegram error
-#define PDU_UNKNOWN   0x05  // Unknown command
-#define PDU_XOR_ERR   0x06  // XOR-check incorrect
-#define PDU_SIM_ERR   0x07  // Faulty on simulation 
+#define cpuCodeDeviceBusy       0x01  // LOGO can not accept a telegram
+#define cpuCodeDeviceTimeOut    0x02  // Resource unavailable
+#define cpuCodeInvalidAccess    0x03  // Illegal access
+#define cpuCodeParityError      0x04  // parity error-, overflow or telegram error
+#define cpuCodeUnknownCommand   0x05  // Unknown command
+#define cpuCodeXorIncorrect     0x06  // XOR-check incorrect
+#define cpuCodeSimulationError  0x07  // Faulty on simulation
 
 // Since the millis() is unsigned long, also the testing
 // and updating the time must be done with unsigned long.
 // https://playground.arduino.cc/Code/TimingRollover
 #define TIMEOUT       500UL // set timeout between 200 and 600 ms
-#define CYCLETIME     600UL // set cycle time for function 0x17 between 190 and 600 ms
+#define CYCLETIME     600UL // set cycle time for function 0x13 between 190 and 600 ms
 
 #define VM_START      0     // first valid address
 #define VM_USER_AREA  0     // user defined area
@@ -182,6 +191,7 @@ TPDU PDU;
 LogoHelper LH;
 
 //***********************************************************************
+
 bool LogoHelper::BitAt(void *Buffer, int ByteIndex, byte BitIndex)
 {
   byte mask[] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
@@ -368,12 +378,12 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
 
   // For LOGO 0BA4 to 0BA6 the only compatible information that we can read are inputs, outputs, flags and rtc.
   // We will represented this as V memory, that is seen by all HMI as DB 1.
-  if (Area != LogoAreaDB && DBNumber != 1)
-    SetLastError(errCliInvalidPDU);
+  if (Area != LogoAreaDB || DBNumber != 1)
+    SetLastError(errPGInvalidPDU);
 
   // Access only allowed between 0 and 1023
   if (Start < VM_START && Start > VM_END)
-    SetLastError(errCliInvalidPDU);
+    SetLastError(errPGInvalidPDU);
 
   // fetch data or cyclic data read?
   // The next line will also notice a rollover after about 50 days.
@@ -415,8 +425,7 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
     Length = GetPDULength()-1;
 
     // Get End Delimiter (1 byte)
-    RecvPacket(PDU.T, 1);
-    if (LastError)
+    if (RecvPacket(PDU.T, 1) != 0)
       return LastError;
     Length++;
 
@@ -428,7 +437,7 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
   }
 
   if (LastPDUType != ACK)         // Check Confirmation
-    return SetLastError(errCliDataRead);
+    return SetLastError(errCliFunction);
 
   if (Length != GetPDULength())
     return SetLastError(errCliInvalidPDU);
@@ -641,6 +650,85 @@ int LogoClient::GetPlcStatus(int *Status)
   return SetLastError(0);
 }
 
+int LogoClient::GetPlcDateTime(tmElements_t *DateTime)
+{
+  int Status;                     // Operation mode
+ 
+  if (DateTime == NULL)           // Exit with Error if DateTime is undefined
+    return SetLastError(errPGInvalidPDU);
+
+  if (!Connected)                 // Exit with Error if not connected
+    return SetLastError(errPGConnect);
+
+  // Check operation mode
+  if (GetPlcStatus(&Status) != 0)
+    return LastError;
+  if (Status != LogoCpuStatusStop)
+    return SetLastError(errCliFunction);
+
+  // clock reading initialized
+  if (WriteByte(ADDR_CLK_INIT, 0x00) != 0)
+    return LastError;
+
+  // clock reading day
+  if (ReadByte(ADDR_CLK_R_DAY, &DateTime->Day) != 0)
+    return LastError;
+
+  // clock reading month
+  if (ReadByte(ADDR_CLK_R_MONTH, &DateTime->Month) != 0)
+    return LastError;
+  
+  // clock reading year
+  if (ReadByte(ADDR_CLK_R_YEAR, &DateTime->Year) != 0)
+    return LastError;
+
+  // clock reading hour
+  if (ReadByte(ADDR_CLK_R_HOUR, &DateTime->Hour) != 0)
+    return LastError;
+
+  // clock reading minute
+  if (ReadByte(ADDR_CLK_R_MINUTE, &DateTime->Minute) != 0)
+    return LastError;
+
+  // clock reading day-of-week
+  if (ReadByte(ADDR_CLK_R_DOW, &DateTime->Wday) != 0)
+    return LastError;
+  DateTime->Wday++;               // day of week, sunday is day 1
+
+  memset(&PDU, 0, PDURequested);  // Clear the telegram
+  DateTime->Second = 0;           // set secounds to 0
+
+  return SetLastError(0);
+}
+
+int LogoClient::GetPlcDateTime(time_t *DateTime)
+{
+  tmElements_t tm;
+
+  if (GetPlcDateTime(&tm) != 0)
+    return LastError;
+
+  *DateTime = makeTime(tm);       // convert to time_t
+  return SetLastError(0);
+}
+
+int LogoClient::SetPlcDateTime(tmElements_t DateTime)
+{
+  return SetLastError(errCliFunction);
+}
+
+int LogoClient::SetPlcDateTime(time_t DateTime)
+{
+  tmElements_t tm;
+
+  breakTime(DateTime, tm);       // break time_t into elements
+
+  if (SetPlcDateTime(tm) != 0)
+    return LastError;
+
+  return SetLastError(0);
+}
+
 #endif // _EXTENDED
 
 // -- Private functions -------------------------------------------------
@@ -655,11 +743,10 @@ int LogoClient::RecvControlResponse(size_t *Size)
     return SetLastError(errCliNegotiatingPDU);
   
   // Setup the telegram
-  memset(&PDU, 0, sizeof(PDU));  
+  memset(&PDU, 0, sizeof(PDU));
   
   // Get first byte
-  RecvPacket(PDU.H, 1); 
-  if (LastError)
+  if (RecvPacket(PDU.H, 1) != 0)
     return LastError;
   (*Size)++;                // Update size = 1
 
@@ -676,7 +763,7 @@ int LogoClient::RecvControlResponse(size_t *Size)
       return LastError;
     (*Size)++;              // Update size = 2
 
-    if (PDU.H[1] != 0x55)
+    if (PDU.H[1] != 0x55)   // Control Command Code
     {
       // OK, the response has no Control Code 0x55, for example Control Commands 0x17
       *Size = Size_WR+1;    // Update size = 7
@@ -687,8 +774,7 @@ int LogoClient::RecvControlResponse(size_t *Size)
     }
 
     // Get Function Code (2 bytes)
-    RecvPacket(&PDU.H[2], 2);
-    if (LastError)
+    if (RecvPacket(&PDU.H[2], 2) != 0)
       return LastError;
     *Size += 2;             // Update size = 4
 
@@ -697,8 +783,7 @@ int LogoClient::RecvControlResponse(size_t *Size)
       return SetLastError(errCliDataRead);
     
     // Get Number of Bytes and the Padding Byte (2 bytes)
-    RecvPacket(&PDU.H[4], 2);
-    if (LastError)
+    if (RecvPacket(&PDU.H[4], 2) != 0)
       return LastError;
     *Size += 2;             // Update Size = 6
 
@@ -711,14 +796,12 @@ int LogoClient::RecvControlResponse(size_t *Size)
       return SetLastError(errCliBufferTooSmall);
 
     // Get the Data Block (n bytes)
-    RecvPacket(PDU.DATA, ByteCount);
-    if (LastError)
+    if (RecvPacket(PDU.DATA, ByteCount) != 0)
       return LastError;
     *Size += ByteCount;     // Update Size = 6+ByteCount
     
     // Get End Delimiter (1 byte)
-    RecvPacket(PDU.T, 1);
-    if (LastError)
+    if (RecvPacket(PDU.T, 1) != 0)
       return LastError;
 
     if (PDU.T[0] != AA)
@@ -728,38 +811,12 @@ int LogoClient::RecvControlResponse(size_t *Size)
   else if (LastPDUType == NOK)    // Request not confirmed
   {
     // Get next byte
-    RecvPacket(PDU.H[1], 1);
-    if (LastError)
+    if (RecvPacket(&PDU.H[1], 1) != 0)
       return LastError;
     *Size++;                // Update Size = 2
 
     // Get Error Type
-    switch (PDU.H[1]) {
-      case PDU_BUSY:
-        // LOGO can not accept a telegram
-        return SetLastError(errCliSendingPDU);
-      case PDU_TIMEOUT:
-        // Resource unavailable, the second cycle of the operation timed out
-        return SetLastError(errCliSendingPDU);
-      case PDU_INVALID:
-        // Illegal access, read across the border
-        return SetLastError(errCliDataRead);
-      case PDU_PAR_ERR:
-        // parity error-, overflow or telegram error
-        return SetLastError(errCliSendingPDU);
-      case PDU_UNKNOWN: 
-        // Unknown command, this mode is not supported
-        return SetLastError(errCliFunction);
-      case PDU_XOR_ERR:
-        // XOR-check incorrect
-        return SetLastError(errCliDataWrite);
-      case PDU_SIM_ERR:
-        // Faulty on simulation, RUN is not supported in this mode
-        return SetLastError(errCliFunction);
-      default:
-        return SetLastError(errCliInvalidPDU);
-    }
-
+    return SetLastError(CpuError(PDU.H[1]));
   }
   else
     return SetLastError(errCliInvalidPDU);
@@ -824,7 +881,7 @@ int LogoClient::LogoConnect()
   if (StreamClient == NULL) // Exit with Error if stream is not assigned
     return SetLastError(errStreamConnectionFailed);
 
-  if (StreamClient->write(LOGO_CR, sizeof(LOGO_CR)) != sizeof(LOGO_CR))
+  if (StreamClient->write(LOGO6_CR, sizeof(LOGO6_CR)) != sizeof(LOGO6_CR))
     return SetLastError(errStreamDataSend);
 
   // Setup the telegram
@@ -832,16 +889,15 @@ int LogoClient::LogoConnect()
   
   // Get 4 bytes
   RecvPacket(PDU.H, 4);
-  if (LastError & errStreamDataRecvTout)       // 0BA4 doesn't support a connection request
+  if (LastError & errStreamDataRecvTout)       // 0BA4 and 0BA5 doesn't support a connection request
   {
-    if (StreamClient->write(LOGO_REVISION, sizeof(LOGO_REVISION)) != sizeof(LOGO_REVISION))
+    if (StreamClient->write(LOGO4_CR, sizeof(LOGO4_CR)) != sizeof(LOGO4_CR))
       return SetLastError(errStreamDataSend);
 
     // Get 5 bytes
-    RecvPacket(PDU.H, 5);
-    if (LastError)
+    if (RecvPacket(PDU.H, 5) != 0)
       return SetLastError(errPGConnect);
-  }  
+  }
   else if (LastError)
     return SetLastError(errPGConnect);
 
@@ -855,46 +911,42 @@ int LogoClient::LogoConnect()
 
 int LogoClient::NegotiatePduLength()
 {
-  size_t Length = 0;
   PDULength = 0;
 
-  if (StreamClient->write(LOGO_CR, sizeof(LOGO_CR)) != sizeof(LOGO_CR))
+  if (StreamClient->write(LOGO6_CR, sizeof(LOGO6_CR)) != sizeof(LOGO6_CR))
     return SetLastError(errStreamDataSend);
 
   // Setup the telegram
   memset(&PDU, 0, sizeof(PDU));
+  PDURequested = 4;
   
   // Get 4 bytes
-  Length = 4;
-  RecvPacket(PDU.H, Length);
-  if (LastError & errStreamDataRecvTout)       // 0BA4 doesn't support a connection request
+  RecvPacket(PDU.H, PDURequested);
+  if (LastError & errStreamDataRecvTout)       // 0BA4 and 0BA5 doesn't support a connection request
   {
-    if (StreamClient->write(LOGO_REVISION, sizeof(LOGO_REVISION)) != sizeof(LOGO_REVISION))
+    if (StreamClient->write(LOGO4_CR, sizeof(LOGO4_CR)) != sizeof(LOGO4_CR))
       return SetLastError(errStreamDataSend);
 
     // Get 5 bytes
-    Length = 5;
-    RecvPacket(PDU.H, Length);
-    if (LastError)
+    PDURequested = 5;
+    if (RecvPacket(PDU.H, PDURequested) != 0)
       return SetLastError(errCliNegotiatingPDU);
   }
   else if (LastError)
-    return SetLastError(errCliNegotiatingPDU);
+    return LastError;
 
   LastPDUType = PDU.H[0];   // Store PDU Type
   if (LastPDUType != ACK)   // Check Confirmation
     return SetLastError(errCliNegotiatingPDU);
 
-  // We should align PDU
-  PDU.DATA[0] = PDU.H[Length-1];
-  PDU.H[Length-1] = 0;
-
-  switch (PDU.DATA[0]) {
+  byte Revision = PDU.H[PDURequested-1];
+  switch (Revision) {
     case 0x40:
       // 0BA4
     case 0x42:
       // 0BA5
       PDULength = PduSize0BA4;
+      AddrLength = AddrSize0BA4;
       Mapping = VM_MAP_923_983_0BA4;
       break;
     case 0x43:
@@ -902,12 +954,13 @@ int LogoClient::NegotiatePduLength()
     case 0x44:
       // 0BA6.ES3
       PDULength = PduSize0BA6;
+      AddrLength = AddrSize0BA6;
       Mapping = VM_MAP_923_983_0BA6;
       break;
     default:
       // 0BAx
       return SetLastError(errCliNegotiatingPDU);
-  } 
+  }
 
   return SetLastError(0);
 }
@@ -917,3 +970,151 @@ int LogoClient::SetLastError(int Error)
   LastError = Error;
   return Error;
 }
+
+int LogoClient::ReadByte(dword Addr, byte *Data)
+{
+  size_t Length = 0;
+
+  if (!Connected) // Exit with Error if not connected
+    return SetLastError(errPGConnect);
+  
+  if (Data == NULL)
+    return SetLastError(errCliInvalidPDU);
+  *Data = 0;
+
+  // Setup the telegram
+  memset(&PDU, 0, sizeof(PDU));
+  
+  PDU.H[Length++] = 0x02;       // Read Byte Command Code
+  if (AddrLength == 4)
+  {
+    PDU.H[Length++] = highByte(word(Addr >> 16));
+    PDU.H[Length++] = lowByte(word(Addr >> 16));
+  }
+  PDU.H[Length++] = highByte(word(Addr));
+  PDU.H[Length++] = lowByte(word(Addr));
+
+  if (StreamClient->write(PDU.H, Length) != Length)
+    return SetLastError(errStreamDataSend);
+
+  // Setup the telegram
+  memset(&PDU, 0, Length);
+  PDURequested = 2 + AddrLength + 1;
+
+  // Get first byte
+  if (RecvPacket(PDU.H, 1) != 0)
+    return LastError;
+
+  LastPDUType = PDU.H[0];       // Store PDU Type
+  if (LastPDUType == ACK)       // Connection confirmed
+  {
+    // Get next bytes
+    if (RecvPacket(&PDU.H[1], PDURequested-1) != 0)
+      return LastError;
+    
+    if (PDU.H[1] != 0x03)
+      // Error, the response does not have the expected Code 0x03
+      return SetLastError(errCliDataRead);
+
+    // We should align PDU
+    if (PDURequested < sizeof(PDU.H))
+    {
+      PDU.DATA[0] = PDU.H[PDURequested-1];
+      PDU.H[PDURequested-1] = 0;
+      PDURequested = Size_WR+1;
+    }
+  }
+  else if (LastPDUType == NOK)  // Request not confirmed
+  {
+    // Get second byte
+    if (RecvPacket(PDU.H[1], 1) != 0)
+      return LastError;
+
+    // Get Error Type
+    return SetLastError(CpuError(PDU.H[1]));
+  }
+  else
+    return SetLastError(errCliDataRead);
+
+  *Data = PDU.DATA[0];
+  return SetLastError(0);
+}
+
+int LogoClient::WriteByte(dword Addr, byte Data)
+{
+  size_t Length = 0;
+
+  if (!Connected) // Exit with Error if not connected
+    return SetLastError(errPGConnect);
+  
+  // Setup the telegram
+  memset(&PDU, 0, sizeof(PDU));
+  
+  PDU.H[Length++] = 0x01;       // Write Byte Command Code
+  if (AddrLength == 4)
+  {
+    PDU.H[Length++] = highByte(word(Addr >> 16));
+    PDU.H[Length++] = lowByte(word(Addr >> 16));
+  }
+  PDU.H[Length++] = highByte(word(Addr));
+  PDU.H[Length++] = lowByte(word(Addr));
+
+  PDU.H[Length++] = Data;
+
+  if (StreamClient->write(PDU.H, Length) != Length)
+    return SetLastError(errStreamDataSend);
+
+  // Setup the telegram
+  memset(&PDU, 0, Length);
+  PDURequested = 1;
+
+  // Get first byte
+  if (RecvPacket(PDU.H, 1) != 0)
+    return LastError;
+
+  LastPDUType = PDU.H[0];       // Store PDU Type
+  if (LastPDUType != ACK)       // Check Confirmation
+  {
+    if (LastPDUType == NOK)     // Get Exception Code
+    {
+      // Get second byte
+      if (RecvPacket(PDU.H[1], 1) != 0)
+        return LastError;
+    }
+    return SetLastError(errCliDataWrite);
+  }
+
+  return SetLastError(0);
+}
+
+int LogoClient::CpuError(int Error)
+{
+  switch(Error)
+  {
+    case 0:
+      return 0;
+    case cpuCodeDeviceBusy:
+      // LOGO can not accept a telegram
+      return errCliSendingPDU;
+    case cpuCodeDeviceTimeOut:
+      // Resource unavailable, the second cycle of the operation timed out
+      return errCliSendingPDU;
+    case cpuCodeInvalidAccess:
+      // Illegal access, read across the border
+      return errCliDataRead;
+    case cpuCodeParityError:
+      // parity error-, overflow or telegram error
+      return errCliSendingPDU;
+    case cpuCodeUnknownCommand:
+      // Unknown command, this mode is not supported
+      return errCliFunction;
+    case cpuCodeXorIncorrect:
+      // XOR-check incorrect
+      return errCliDataWrite;
+    case cpuCodeSimulationError:
+      // Faulty on simulation, RUN is not supported in this mode
+      return errCliFunction;
+    default:
+      return errCliInvalidPDU;
+  };
+};

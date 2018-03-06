@@ -1,5 +1,5 @@
 # Changelog
-All notable changes to this project will be documented in this file.
+This CHANGELOG file should help that the library becomes a standardized open source project. All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.4.4] - 2018-03-04
 ### Added
-- This CHANGELOG file should help that the library becomes a standardized open source project.
+- CHANGELOG added to the project folder.
+- LogoClient::GetPlcDateTime
 
 ## 0.4.3 - 2018-03-01
 ### Added
@@ -23,11 +24,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Optimizations in LogoClient
 
 ### Fixed
-- serveral bug fixing
+- Serveral bug fixing
 
 ## 0.4.0 - 2018-02-26
 ### Added
-- different memory models
+- Now different memory models are supported
 - LogoClient::RecvControlResponse
 
 ### Changed
@@ -52,15 +53,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - LogoClient::ReadArea
 - LogoClient error codes
 
+### Removed
+- LogoClient::ErrorText
+
 ### Fixed
 - PDU related constants
 - _LOGO!_ Exception Codes
 - LogoClient::ReadArea
 - LogoClient::NegotiatePduLength
 - LogoClient::PlcStop
-
-### Removed
-- LogoClient::ErrorText
 
 ## 0.2.0 - 2018-02-15:
 Alpha version created, not tested.
@@ -96,4 +97,5 @@ Alpha version created, not tested.
 
 [Unreleased]: https://github.com/brickpool/logo/compare/v0.4.3...HEAD
 [0.4.4]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.4.4...v0.4.3
+
 

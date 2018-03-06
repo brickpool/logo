@@ -1,4 +1,5 @@
 #include <CustomSoftwareSerial.h>
+#include <TimeLib.h>
 #include "LogoPG.h"
 
 const byte rxPin = 2;
@@ -51,14 +52,47 @@ void loop()
     }
     else
     {
-      Serial.println("STARTING THE PROG");
-      LOGO.PlcStart(); 
+      tmElements_t DateTime;
+      Serial.print("LOGO Clock: ");
+      Result = LOGO.GetPlcDateTime(&DateTime);
+      if (Result == 0)
+      {
+        DisplayClock(DateTime);
+      }
+      else
+      {
+        Serial.println("unknown");
+        CheckError(Result);
+      }
     }
   }
   else
     CheckError(Result);
 
-  delay(3000);  
+  delay(5000);  
+}
+
+void DisplayClock(tmElements_t DateTime)
+{
+  const char* dayOfWeek[] = {  "??", "So", "Mo", "Tu", "We", "Th", "Fr", "Sa" };
+
+  Serial.print(dayOfWeek[DateTime.Wday % 8]);
+  Serial.print(" ");
+  Serial.print(DateTime.Hour);
+  Serial.print(":");
+  if (DateTime.Minute < 10) Serial.print('0');
+  Serial.print(DateTime.Minute);
+  Serial.print(" ");
+  Serial.print(DateTime.Year < 70 ? "20" : "19");
+  if (DateTime.Year < 10) Serial.print('0');
+  Serial.print(DateTime.Year); 
+  Serial.print("-");
+  if (DateTime.Month < 10) Serial.print('0');
+  Serial.print(DateTime.Month);
+  Serial.print("-");
+  if (DateTime.Day < 10) Serial.print('0');
+  Serial.print(DateTime.Day);
+  Serial.println(); 
 }
 
 bool Connect()
