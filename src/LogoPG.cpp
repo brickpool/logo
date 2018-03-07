@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.5.0-beta
+ * LogoPG library, Version 0.5.0-beta.2
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -80,13 +80,14 @@ const byte LOGO_MODE[] = {
   0x55, 0x17, 0x17, 0xAA
 };
 
-#define ADDR_CLK_INIT     0x00FF4400UL
-#define ADDR_CLK_R_DAY    0x00FFFB00UL
-#define ADDR_CLK_R_MONTH  0x00FFFB01UL
-#define ADDR_CLK_R_YEAR   0x00FFFB02UL
-#define ADDR_CLK_R_MINUTE 0x00FFFB03UL
-#define ADDR_CLK_R_HOUR   0x00FFFB04UL
-#define ADDR_CLK_R_DOW    0x00FFFB05UL
+#define ADDR_CLK_W_INIT     0x00FF4400UL
+#define ADDR_CLK_RW_DAY     0x00FFFB00UL
+#define ADDR_CLK_RW_MONTH   0x00FFFB01UL
+#define ADDR_CLK_RW_YEAR    0x00FFFB02UL
+#define ADDR_CLK_RW_MINUTE  0x00FFFB03UL
+#define ADDR_CLK_RW_HOUR    0x00FFFB04UL
+#define ADDR_CLK_RW_DOW     0x00FFFB05UL
+#define ADDR_CLK_W_COMPL    0x00FF4300UL
 
 #endif // _EXTENDED
 
@@ -673,32 +674,32 @@ int LogoClient::GetPlcDateTime(TimeElements *DateTime)
     return SetLastError(errCliFunction);
 
   // clock reading initialized
-  if (WriteByte(ADDR_CLK_INIT, 0x00) != 0)
+  if (WriteByte(ADDR_CLK_W_INIT, 0x00) != 0)
     return LastError;
 
   // clock reading day
-  if (ReadByte(ADDR_CLK_R_DAY, &DateTime->Day) != 0)
+  if (ReadByte(ADDR_CLK_RW_DAY, &DateTime->Day) != 0)
     return LastError;
 
   // clock reading month
-  if (ReadByte(ADDR_CLK_R_MONTH, &DateTime->Month) != 0)
+  if (ReadByte(ADDR_CLK_RW_MONTH, &DateTime->Month) != 0)
     return LastError;
   
   // clock reading year
-  if (ReadByte(ADDR_CLK_R_YEAR, &DateTime->Year) != 0)
+  if (ReadByte(ADDR_CLK_RW_YEAR, &DateTime->Year) != 0)
     return LastError;
   DateTime->Year = y2kYearToTm(DateTime->Year);
     
   // clock reading hour
-  if (ReadByte(ADDR_CLK_R_HOUR, &DateTime->Hour) != 0)
+  if (ReadByte(ADDR_CLK_RW_HOUR, &DateTime->Hour) != 0)
     return LastError;
 
   // clock reading minute
-  if (ReadByte(ADDR_CLK_R_MINUTE, &DateTime->Minute) != 0)
+  if (ReadByte(ADDR_CLK_RW_MINUTE, &DateTime->Minute) != 0)
     return LastError;
 
   // clock reading day-of-week
-  if (ReadByte(ADDR_CLK_R_DOW, &DateTime->Wday) != 0)
+  if (ReadByte(ADDR_CLK_RW_DOW, &DateTime->Wday) != 0)
     return LastError;
   DateTime->Wday += 1;            // day of week, sunday is day 1
 
@@ -721,7 +722,48 @@ int LogoClient::GetPlcDateTime(time_t *DateTime)
 
 int LogoClient::SetPlcDateTime(TimeElements DateTime)
 {
-  return SetLastError(errCliFunction);
+  int Status;                     // Operation mode
+ 
+  if (!Connected)                 // Exit with Error if not connected
+    return SetLastError(errPGConnect);
+
+  // Check operation mode
+  if (GetPlcStatus(&Status) != 0)
+    return LastError;
+  if (Status != LogoCpuStatusStop)
+    return SetLastError(errCliFunction);
+
+  // clock writing day
+  if (WriteByte(ADDR_CLK_RW_DAY, DateTime.Day) != 0)
+    return LastError;
+
+  // clock writing month
+  if (WriteByte(ADDR_CLK_RW_MONTH, DateTime.Month) != 0)
+    return LastError;
+
+  // clock writing year
+  if (WriteByte(ADDR_CLK_RW_YEAR, tmYearToY2k(DateTime.Year)) != 0)
+    return LastError;
+
+  // clock writing hour
+  if (WriteByte(ADDR_CLK_RW_HOUR, DateTime.Hour) != 0)
+    return LastError;
+
+  // clock writing minute
+  if (WriteByte(ADDR_CLK_RW_MINUTE, DateTime.Minute) != 0)
+    return LastError;
+
+  // clock writing day-of-week (sunday is day 0)
+  if (WriteByte(ADDR_CLK_RW_DOW, (DateTime.Wday-1) % 7) != 0)
+    return LastError;
+
+  // clock writing completed
+  if (WriteByte(ADDR_CLK_W_COMPL, 0x00) != 0)
+    return LastError;
+
+  memset(&PDU, 0, PDURequested);  // Clear the telegram
+
+  return SetLastError(0);
 }
 
 int LogoClient::SetPlcDateTime(time_t DateTime)

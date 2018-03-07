@@ -5,6 +5,8 @@
 const byte rxPin = 2;
 const byte txPin = 3;
 
+const unsigned long START_TIME = 1357041600; // Jan 1 2013
+
 // set up the SoftwareSerial object
 CustomSoftwareSerial LogoSerial(rxPin, txPin);
 // set up the LogoClient object
@@ -17,9 +19,7 @@ void setup() {
 
   // Init Monitor interface
   Serial.begin(9600);
-  while (!Serial) {
-   ; // wait for serial port to connect. Needed for native USB port only
-  }
+  while (!Serial) ; // Needed for Leonardo only
 
   // Start the SoftwareSerial Library
   LogoSerial.begin(9600, CSERIAL_8E1);
@@ -34,6 +34,7 @@ void setup() {
 void loop() 
 {
   int Result, Status;
+  TimeElements DateTime;
   
   // Connection
   while (!LOGO.Connected)
@@ -49,22 +50,24 @@ void loop()
     {
       Serial.println("STOPPING THE PROG");
       LOGO.PlcStop();
+      Serial.print("DEFAULT: ");
+      Result = LOGO.SetPlcDateTime(START_TIME);
+      breakTime(START_TIME, DateTime);
     }
     else
     {
-      TimeElements DateTime;
       Serial.print("LOGO Clock: ");
       Result = LOGO.GetPlcDateTime(&DateTime);
-      if (Result == 0)
-      {
-        DisplayClock(DateTime);
-        Serial.println();
-      }
-      else
-      {
-        Serial.println("unknown");
-        CheckError(Result);
-      }
+    }
+    if (Result == 0)
+    {
+      DisplayClock(DateTime);
+      Serial.println();
+    }
+    else
+    {
+      Serial.println("unknown");
+      CheckError(Result);
     }
   }
   else
