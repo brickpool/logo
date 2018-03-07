@@ -42,4 +42,4 @@ __Note:__ 1) Pin 4 and 6 have to be bridged to power the electronics in the PC c
 
 [RS232converter]: https://github.com/brickpool/logo/blob/master/extras/images/RS232_to_TTL_converter.jpg "RS232 to TTL Converter"
 
-[RS232converter]: https://github.com/brickpool/logo/blob/master/extras/images/Pin_Assignment.jpg "Pin Assignment"
+[PinAssignment]: https://github.com/brickpool/logo/blob/master/extras/images/Pin_Assignment.jpg "Pin Assignment"
