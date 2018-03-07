@@ -6,11 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## 0.5.0-beta - 2018-03-07
+## 0.5.0-beta.2 - 2018-03-07
 ### Added
 - CHANGELOG.md added to the project folder
 - Library Reference Manual (RefManual.md) added to the project folder
 - LogoClient::GetPlcDateTime
+- LogoClient::WritePlcDateTime
 - LogoClient::ReadByte, WriteByte and CpuError
 - Example ReadClockDemo.ino
 

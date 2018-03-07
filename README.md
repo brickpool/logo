@@ -1,7 +1,9 @@
 # LogoPG
 Siemens (TM) LOGO! PG Library for Arduino
 
-The library is based on the implementation of Settimino. Only _LOGO!_ __0BA4__ to __0BA6__ are supported via the serial programming interface.
+The library is based on the implementation of Settimino. Only _LOGO!_ __0BA4__ to __0BA6__ are supported via the serial programming interface. 
+
+Information about the API is described in the document [LOGO! PG Library Reference Manual](/extras/docs/RefManual.md)
 
 All information about the protocol is described in a separate document: [LOGO! PG Protocol Reference Guide](/extras/docs/PG-Protocol.md)
 
@@ -15,11 +17,13 @@ This directory contains the library and some examples that illustrate how the li
 - [FetchDataDemo.ino](/examples/FetchDataDemo/FetchDataDemo.ino) The sample program uses the _LOGO!_ PG-protocol command _Fetch Data_.
 - [CyclicReading.ino](/examples/CyclicReading/CyclicReading.ino) Cyclic reading of inputs, outputs and flags. The example uses the same function as the LOGO!Soft Routine _Online Test_.
 - [ReadClockDemo.ino](/examples/ReadClockDemo/ReadClockDemo.ino) The example reads the date and time from the _LOGO!_ controller.
+- [WriteClockDemo.ino](/examples/WriteClockDemo/WriteClockDemo.ino) The example writes a date and time to the _LOGO!_ controller.
 
 ## Dependencies
-- Arduino board, e.g. UNO
-- _LOGO!_ controller, release __0BA4__, __0BA5__ or __0BA6__, e.g. "6ED1052-1MD00-0BA6"
-- _LOGO!_ PG-Cable ("6ED1057-1AA00-0BA0")
+- _LOGO!_ controller, generation __0BA4__, __0BA5__ or __0BA6__, e.g. part number `6ED1052-1MD00-0BA6`
+- _LOGO!_ PC cable, part number `6ED1057-1AA00-0BA0`
+- Arduino board, e.g. [UNO](http://www.arduino.cc/)
+- [DTE-Interface](/extras/docs/DTE-Interface.md) for connection to the Arduino board
 - Arduino Time Library [TimeLib](https://github.com/PaulStoffregen/Time)
 - For the examples, the alternative SoftwareSerial library [CustomSoftwareSerial](https://github.com/ledongthuc/CustomSoftwareSerial)
 
