@@ -18,6 +18,7 @@ This directory contains the library and some examples that illustrate how the li
 ## Dependencies
 - Arduino board, e.g. UNO
 - _LOGO!_ controller, release __0BA4__, __0BA5__ or __0BA6__
+- Arduino Time Library [TimeLib](https://github.com/PaulStoffregen/Time)
 
 ## License
 The library is licensed under the [GNU Library or Lesser General Public License version 3.0](/LICENSE). However, LogoPG distributes and uses code from other Open Source Projects that have their own licenses. 

@@ -40,7 +40,6 @@ LogoCpuStatusUnknown	LITERAL1
 LogoCpuStatusRun	LITERAL1
 LogoCpuStatusStop	LITERAL1
 
-
 errStreamConnectionFailed   LITERAL1
 errStreamConnectionReset   LITERAL1
 errStreamDataRecvTout   LITERAL1

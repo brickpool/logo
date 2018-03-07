@@ -12,7 +12,7 @@ Thumbs.db
 /01_doc/
 
 # Ignore some sketches
-LOGO.ino
+/src/src.ino
 
 # Komodo files
 *.komodoproject

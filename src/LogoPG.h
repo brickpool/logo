@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.4.3
+ * LogoPG library, Version 0.4.4
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -25,34 +25,14 @@
  * 
  ***********************************************************************
  *
- * Changelog: 
- *  2018-02-07: Version 0.1
- *    initial version created
- *  2018-02-15: Version 0.2
- *    alpha version created
- *    not tested
- *  2018-02-20: Version 0.3
- *    first executable version
- *  2018-02-24: Version 0.3.x
- *    change PduSize
- *    change struct of TPDU
- *    change mapping
- *  2018-02-26: Version 0.4
- *    impl. RecvControlResponse
- *    change LogoHelper indexing from PDU to VM
- *    support different memory models 
- *  2018-02-26: Version 0.4.1
- *    bug fixing
- *  2018-02-27: Version 0.4.2
- *    optimizations
- *  2018-01-01: Version 0.4.3
- *    impl. of cyclic data reading
+ * Changelog: https://github.com/brickpool/logo/blob/master/CHANGELOG.md
+ * 
 */
 
 #ifndef LogoPG_h_
 #define LogoPG_h_
 
-#define LOGO_PG_0_4
+#define LOGO_PG_0_4_4
 
 // Memory models
 // _SMALL
@@ -66,6 +46,7 @@
 #endif
 
 #include "Arduino.h"
+#include "TimeLib.h"
 
 // Error Codes 
 // from 0x0001 up to 0x00FF are severe errors, the Client should be disconnected
@@ -90,6 +71,8 @@
 #define PG          0x01
 
 // PDU related constants
+#define AddrSize0BA4   2    // Size of Address for 0BA4
+#define AddrSize0BA6   4    // Size of Address for 0BA4
 #define PduSize0BA4   70    // Fetch Data PDU size for 0BA4 and 0BA5
 #define PduSize0BA6   80    // Fetch Data PDU size for 0BA6
 #define MinPduSize    70    // Minimum Fetch Data PDU size (0BA4, 0BA5)
@@ -109,6 +92,8 @@ const byte LogoCpuStatusRun     = 0x08;
 const byte LogoCpuStatusStop    = 0x04;
 
 #define Size_WR 6
+
+typedef unsigned long dword;      // 32 bit unsigned integer
 
 typedef Stream *pstream;
 typedef byte   *pbyte;
@@ -145,7 +130,7 @@ extern LogoHelper LH;
 class LogoClient
 {
 public:
-  static byte* Mapping;   // PDU Data mapping to VM
+  friend class LogoHelper;
 
   // Output properties
   bool Connected;   // true if the Client is connected
@@ -170,22 +155,47 @@ public:
 
   // Extended functions
 #ifdef _EXTENDED
+  // Control functions
   int PlcStart();       // start PLC
   int PlcStop();        // stop PLC
   int GetPlcStatus(int *Status);
-  // void ErrorText(int Error, char *Text, int TextLen);
+  // Date/Time functions
+  int GetPlcDateTime(tmElements_t *DateTime);
+  int GetPlcDateTime(time_t *DateTime);
+  int SetPlcDateTime(tmElements_t DateTime);
+  int SetPlcDateTime(time_t DateTime);
+/*
+  int SetPlcSystemDateTime();
+  // System info functions
+  ReadSZL
+  ReadSZLList
+  GetOrderCode
+  GetCpuInfo
+  GetCpInfo
+  // Security functions
+  SetSessionPassword
+  ClearSessionPassword
+  GetProtection
+  // Miscellaneous functions
+  GetExecTime
+  void ErrorText(int Error, char *Text, int TextLen);
+*/
 #endif
 
 
 private:
-  byte LastPDUType;     // First byte of a received message
-  word ConnType;        // Usually a PG connection
+  static byte* Mapping;   // PDU Data mapping to VM
+
+  byte LastPDUType;       // First byte of a received message
+  word ConnType;          // Usually a PG connection
   
   // We use the Stream class as a common class, 
   // so LogoClient can use HardwareSerial or CustomSoftwareSerial
   pstream StreamClient;
 
   int PDULength;          // PDU length negotiated (0 if not negotiated)
+  int PDURequested;       // PDU length requested by the client
+  int AddrLength;         // Address length negotiated (in bytes for function sizeof)
 
   int RecvControlResponse(size_t *Size);
   int RecvPacket(byte buf[], size_t Size);
@@ -193,6 +203,11 @@ private:
   int LogoConnect();
   int NegotiatePduLength();
   int SetLastError(int Error);
+  
+  // Low level functions
+  int ReadByte(dword Addr, byte *Data);
+  int WriteByte(dword Addr, byte Data);
+  int CpuError(int Error);
 };
 
 
