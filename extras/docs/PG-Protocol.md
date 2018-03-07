@@ -1,6 +1,6 @@
 # LOGO! PG Protocol Reference Guide
 
-Rev. Bm
+Rev. Bn
 
 March 2018
 
@@ -917,7 +917,7 @@ Command | Description | Query | Response
 
 Command | Description | Query 1) | Response
 --- | --- | --- | ---
-`03` | Read Byte Response | (`02`) | 5
+`03` | Read Byte Response | (`02`) | 7
 `06` | Acknowledge Response | 1 | 1 + n
 `11` | Fetch Data Response | (`13`) | 80
 `15` | Exception Response | (`..`) | 2
