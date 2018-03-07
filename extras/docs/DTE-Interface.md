@@ -1,6 +1,6 @@
-# DTE-Interface for connecting the LOGO! PG-Cable
+# DTE-Interface for connecting the LOGO! PC cable
 
-Rev. Aa
+Rev. Ab
 
 March 2018
 
@@ -11,7 +11,7 @@ The Model NS-RS232-02 from [NulSon Inc.](http://www.nulsom.com/) is a compact UA
 I have ordered this version, although I was not sure if the DB9 connector is standard and whether the necessary connection for the power supply (here RTS) is usable. The product works according to the [5-wire](https://en.wikipedia.org/wiki/RS-232#3-wire_and_5-wire_RS-232) RS232 standard. Therefore, it is well suited for our layout. 
 
 ### Specs.
-- Convert TTL (__T__ransistor-__T__ransistor __L__ogic) level signals to __RS-232__ interface 
+- Convert TTL (Transistor-Transistor Logic) level signals to __RS-232__ interface
 - D-SUB 9pin (RS232) __MALE__ connector mounting
 - Supports 3V to 5.5V power supply (we must use 5V for our project)
 - IC: SP3232
@@ -28,7 +28,7 @@ DB9 Pin | Name | Signal
 4 | VCC | Voltage 5V
 6 | RTS | Request to Send 1)
 
-__Note:__ 1) Pin 4 and 6 have to be bridged to power the electronics in the PG-Cable. 
+__Note:__ 1) Pin 4 and 6 have to be bridged to power the electronics in the PC cable. 
 
 ![alt text][RS232converter]
 >Figure _RS232 Converter_ connected to the Arduino
