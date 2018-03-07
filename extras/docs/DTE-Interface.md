@@ -1,4 +1,4 @@
-# _DTE_-Interface for connecting the _LOGO!_ PG-Cable
+# DTE-Interface for connecting the LOGO! PG-Cable
 
 Rev. A
 
@@ -33,7 +33,7 @@ Pin | Name | Signal
 __Note:__ 1) Pin 4 and 6 have to be bridged to power the electronics in the PG-Cable. 
 
 ### Usefull links
-- [Compact RS232 to TTL Converter with Male DB9 (3.3V to 5V)](http://www.google.com/search?q=compact+rs232+ttl+converter+3.3v+to+5v+male "Google search))
-- ([NS-RS232-02 Datasheet](http://www.nulsom.com/datasheet/NS-RS232_en.pdf))
+- [Compact RS232 to TTL Converter with Male DB9 (3.3V to 5V)](http://www.google.com/search?q=compact+rs232+ttl+converter+3.3v+to+5v+male "Google search")
+- [NS-RS232-02 Datasheet](http://www.nulsom.com/datasheet/NS-RS232_en.pdf)
 
-[RS232converter]: https://github.com/brickpool/logo/extras/images/RS232_to_TTL_converter.jpg "RS232 to TTL Converter"
+[RS232converter]: https://github.com/brickpool/logo/blob/master/extras/images/RS232_to_TTL_converter.jpg "RS232 to TTL Converter"
