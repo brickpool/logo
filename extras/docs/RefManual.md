@@ -1,11 +1,11 @@
 # LOGO! PG Library Reference Manual
 
-Rev. Ac
+Rev. Ad
 
 March 2018
 
 ## Preface
-Siemens (TM) LOGO! library for ARDUINO. 
+Siemens (TM) LOGO! library for Arduino. 
 
 The library is based on the implementation of [Settimino](http://settimino.sourceforge.net/) and [Snap7](http://snap7.sourceforge.net/). Only _LOGO!_ __0BA4__ to __0BA6__ are supported via the serial programming interface.
 
@@ -125,8 +125,8 @@ typedef struct {
   uint8_t Wday;   // day of week, sunday is day 1 
   uint8_t Day;    // day of the month           1-31
   uint8_t Month;  // months                     1-12
-  uint8_t Year;   // offset from 1970;  
-} tmElements_t;
+  uint8_t Year;   // offset from 1970;
+} TimeElements;
 ```
 
 The Time library includes low-level conversion functions between system time and individual time elements.
@@ -136,7 +136,7 @@ Returns a `0` on success or an `Error` code (see Errors Code List [below](#error
 ### <a name="set-plc-datetime"></a>LogoClient.SetPlcDateTime(time_t dateTime)
 Sets the _LOGO!_ date and time.
 
- - `dateTime` a standard Unix `time_t` variable or an element with the _C_ structure `tmElements_t`
+ - `dateTime` a standard Unix `time_t` variable or an element with the _C_ structure `TimeElements`
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
