@@ -77,7 +77,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - LogoClient::NegotiatePduLength
 - LogoClient::PlcStop
 
-## 0.2.0-alpha - 2018-02-15:
+## 0.2.0-alpha - 2018-02-15
 ### Added
 - VM indexing
 - LogoClient::ReadArea
