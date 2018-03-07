@@ -6,42 +6,41 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## 0.5.0-beta - 2018-03-06
+## 0.5.0-beta - 2018-03-07
 ### Added
-- CHANGELOG added to the project folder
+- CHANGELOG.md added to the project folder
 - Library Reference Manual (RefManual.md) added to the project folder
 - LogoClient::GetPlcDateTime
 - LogoClient::ReadByte, WriteByte and CpuError
 - Example ReadClockDemo.ino
 
 ### Changed
-- Customization of exception codes for LogoClient::CpuError
+- Customization of CPU Exception Codes for LogoClient::CpuError
 - LogoClient::RecvControlResponse uses the LogoClient::CpuError function
 - Rename LOGO_CR to LOGO6_CR and LOGO_REVISION to LOGO4_CR
-- LogoClient::RecvControlResponse uses the LogoClient::CpuError function
 
 ### Fixed
-- Validation of DBNumber in LogoClient::ReadArea
-- Exception Code in LogoClient::RecvControlResponse
+- Validation of DBNumber and Start in LogoClient::ReadArea
+- Reading Exception Code in LogoClient::RecvControlResponse
 
 ## 0.4.3 - 2018-03-01
 ### Added
-- Examples CyclicReading.ino
+- Example CyclicReading.ino added to the project folder
 - LogoClient::RecvControlResponse now with cyclic data reading
 
 ## 0.4.2 - 2018-02-27
 ### Added
-- Example FetchDataDemo.ino
+- Example FetchDataDemo.ino added to the project folder
 
 ### Changed
 - Optimizations in LogoClient
 
 ### Fixed
-- Serveral bug fixing
+- Several bug fixes
 
 ## 0.4.0 - 2018-02-26
 ### Added
-- Now different memory models are supported
+- Now different memory models are supported (as in Settimino)
 - LogoClient::RecvControlResponse
 
 ### Changed
@@ -58,9 +57,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## 0.3.0 - 2018-02-20
 ### Added
-- First executable version, not fully tested
-- Examples RunStopDemo.ino, ProtocolTester.ino
-- VM mapping table
+- First executable version (not fully tested)
+- Example RunStopDemo.ino added to the project folder
+- Example ProtocolTester.ino added to the project folder
+- VM mapping table for assigning the inputs, outputs and flags to the 0BA7 address layout
 
 ### Changed
 - LogoClient::ReadArea
@@ -71,17 +71,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - PDU related constants
-- _LOGO!_ Exception Codes
+- CPU Exception Codes
 - LogoClient::ReadArea
 - LogoClient::NegotiatePduLength
 - LogoClient::PlcStop
 
-## 0.2.0 - 2018-02-15:
-Alpha version created, not tested.
+## 0.2.0-alpha - 2018-02-15:
 ### Added
 - VM indexing
 - LogoClient::ReadArea
-- _LOGO!_ Exception codes
+- CPU Exception Codes
 
 ### Changed
 - LogoClient::Serial to LogoClient::Stream
@@ -91,16 +90,19 @@ Alpha version created, not tested.
 - LogoClient::WaitForData
 
 ### Fixed
-- Bug fix in LogoHelper for memory access to PDU
+- LogoHelper memory access to PDU
 - Name of file keywords.txt
 
 ## 0.1.2 - 2018-02-13
 ### Changed
 - Change licence from MIT to GPL-3.0, because Settimino is distributed as shared library with full source code under GNU Library or Lesser General Public License version 3.0
 
-## 0.1.1 - 2018-02-12
+## 0.1.0-alpha - 2018-02-12
 ### Added
-- Pre alpha version of LogoPG.h, LogoPG.cpp, keywords.txt (not compiled, not tested)
+- Pre alpha version the Library of (not compiled, not tested)
+- LogoPG.h added to the project folder
+- LogoPG.cpp added to the project folder
+- keywords.txt added to the project folder
 
 ## 0.1.0 - 2018-02-07
 ### Added
