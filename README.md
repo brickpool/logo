@@ -6,7 +6,7 @@ The library is based on the implementation of Settimino. Only _LOGO!_ __0BA4__ t
 All information about the protocol is described in a separate document: [LOGO! PG Protocol Reference Guide](/extras/docs/PG-Protocol.md)
 
 ## Releases
-The current library version is [0.4.3](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate 4, with patchlevel 3.
+The current library version is [0.4.3](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate, with patchlevel 3.
 
 ## Examples
 This directory contains the library and some examples that illustrate how the library can be used. The examples were tested with an Arduino UNO. Other hardware has not been tried.

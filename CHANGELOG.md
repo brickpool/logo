@@ -6,10 +6,23 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.4.4] - 2018-03-04
+## 0.5.0-beta - 2018-03-06
 ### Added
-- CHANGELOG added to the project folder.
+- CHANGELOG added to the project folder
+- Library Reference Manual (RefManual.md) added to the project folder
 - LogoClient::GetPlcDateTime
+- LogoClient::ReadByte, WriteByte and CpuError
+- Example ReadClockDemo.ino
+
+### Changed
+- Customization of exception codes for LogoClient::CpuError
+- LogoClient::RecvControlResponse uses the LogoClient::CpuError function
+- Rename LOGO_CR to LOGO6_CR and LOGO_REVISION to LOGO4_CR
+- LogoClient::RecvControlResponse uses the LogoClient::CpuError function
+
+### Fixed
+- Validation of DBNumber in LogoClient::ReadArea
+- Exception Code in LogoClient::RecvControlResponse
 
 ## 0.4.3 - 2018-03-01
 ### Added
@@ -18,7 +31,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## 0.4.2 - 2018-02-27
 ### Added
-- Examples FetchDataDemo.ino 
+- Example FetchDataDemo.ino
 
 ### Changed
 - Optimizations in LogoClient
@@ -92,10 +105,9 @@ Alpha version created, not tested.
 ## 0.1.0 - 2018-02-07
 ### Added
 - Initial version created
-- LICENCE.md
-- README.md
+- LICENCE.md added to the project
+- README.md added to the project
 
 [Unreleased]: https://github.com/brickpool/logo/compare/v0.4.3...HEAD
-[0.4.4]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.4.4...v0.4.3
-
+[0.5.0]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.5.0...v0.4.3
 
