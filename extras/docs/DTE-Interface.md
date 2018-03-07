@@ -1,6 +1,6 @@
 # DTE-Interface for connecting the LOGO! PC cable
 
-Rev. Ac
+Rev. Ad
 
 March 2018
 
@@ -26,8 +26,8 @@ I have ordered this version, although I was not sure if the DB9 connector is sta
 Pin | Name | Signal
 --- | --- | ---
 1 | GND | Ground
-2 | &darr; TX | Transmit Data
-3 | &uarr; RX | Receive Data
+2 | &darr; RX | Receive Data
+3 | &uarr; TX | Transmit Data
 4 | VCC | Voltage 5V
 6 | RTS | Request to Send 1)
 
