@@ -1,6 +1,6 @@
-# _DTE_-Interface for connecting the _LOGO!_ PG-Cable
+# DTE-Interface for connecting the LOGO! PG-Cable
 
-Rev. A
+Rev. Aa
 
 March 2018
 
@@ -20,7 +20,7 @@ I have ordered this version, although I was not sure if the DB9 connector is sta
 
 ### PIN Layout
 
-Pin | Name | Signal
+DB9 Pin | Name | Signal
 --- | --- | ---
 1 | GND | Ground
 2 | &darr; TX | Transmit Data
@@ -28,12 +28,13 @@ Pin | Name | Signal
 4 | VCC | Voltage 5V
 6 | RTS | Request to Send 1)
 
-![alt text][RS232converter]
-
 __Note:__ 1) Pin 4 and 6 have to be bridged to power the electronics in the PG-Cable. 
 
-### Usefull links
-- [Compact RS232 to TTL Converter with Male DB9 (3.3V to 5V)](http://www.google.com/search?q=compact+rs232+ttl+converter+3.3v+to+5v+male "Google search))
-- ([NS-RS232-02 Datasheet](http://www.nulsom.com/datasheet/NS-RS232_en.pdf))
+![alt text][RS232converter]
+>Figure _RS232 Converter_ connected to the Arduino
 
-[RS232converter]: https://github.com/brickpool/logo/extras/images/RS232_to_TTL_converter.jpg "RS232 to TTL Converter"
+### Usefull links
+- [Compact RS232 to TTL Converter with Male DB9 (3.3V to 5V)](http://www.google.com/search?q=compact+rs232+ttl+converter+3.3v+to+5v+male "Google search")
+- [NS-RS232-02 Datasheet](http://www.nulsom.com/datasheet/NS-RS232_en.pdf)
+
+[RS232converter]: https://github.com/brickpool/logo/blob/master/extras/images/RS232_to_TTL_converter.jpg "RS232 to TTL Converter"
