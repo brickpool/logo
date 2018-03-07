@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.4.4
+ * LogoPG library, Version 0.5.0-beta
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -32,7 +32,7 @@
 #ifndef LogoPG_h_
 #define LogoPG_h_
 
-#define LOGO_PG_0_4_4
+#define LOGO_PG_0_5
 
 // Memory models
 // _SMALL
@@ -160,9 +160,9 @@ public:
   int PlcStop();        // stop PLC
   int GetPlcStatus(int *Status);
   // Date/Time functions
-  int GetPlcDateTime(tmElements_t *DateTime);
+  int GetPlcDateTime(TimeElements *DateTime);
   int GetPlcDateTime(time_t *DateTime);
-  int SetPlcDateTime(tmElements_t DateTime);
+  int SetPlcDateTime(TimeElements DateTime);
   int SetPlcDateTime(time_t DateTime);
 /*
   int SetPlcSystemDateTime();

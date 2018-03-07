@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.4.4
+ * LogoPG library, Version 0.5.0-beta
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -288,6 +288,8 @@ LogoClient::LogoClient()
   Connected     = false;
   LastError     = 0;
   PDULength     = 0;
+  PDURequested  = 0;
+  AddrLength    = 0;
   Mapping       = VM_MAP_923_983_0BA6;
   RecvTimeout   = TIMEOUT;
   StreamClient  = NULL;
@@ -299,6 +301,8 @@ LogoClient::LogoClient(pstream Interface)
   Connected     = false;
   LastError     = 0;
   PDULength     = 0;
+  PDURequested  = 0;
+  AddrLength    = 0;
   Mapping       = VM_MAP_923_983_0BA6;
   RecvTimeout   = TIMEOUT;
   StreamClient  = Interface;
@@ -382,8 +386,11 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
     SetLastError(errPGInvalidPDU);
 
   // Access only allowed between 0 and 1023
-  if (Start < VM_START && Start > VM_END)
+  if (Start < VM_START || Start > VM_END)
     SetLastError(errPGInvalidPDU);
+
+  if (!Connected) // Exit with Error if not connected
+    return SetLastError(errPGConnect);
 
   // fetch data or cyclic data read?
   // The next line will also notice a rollover after about 50 days.
@@ -393,8 +400,7 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
     // fetch data or start a continuously polling!
 #if defined _EXTENDED
     int Status;
-    GetPlcStatus(&Status);
-    if (LastError)
+    if (GetPlcStatus(&Status) != 0)
       return LastError;
     
     // operation mode must be RUN if we use LOGO_FETCH_DATA
@@ -549,12 +555,12 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
 #ifdef _EXTENDED
 int LogoClient::PlcStart()
 {
+  int Status;
+
   if (!Connected) // Exit with Error if not connected
     return SetLastError(errPGConnect);
 
-  int Status;
-  GetPlcStatus(&Status);
-  if (LastError)
+  if (GetPlcStatus(&Status) != 0)
     return LastError;
 
   if (Status == LogoCpuStatusStop)
@@ -582,12 +588,12 @@ int LogoClient::PlcStart()
 
 int LogoClient::PlcStop()
 {
+  int Status;
+
   if (!Connected) // Exit with Error if not connected
     return SetLastError(errPGConnect);
 
-  int Status;
-  GetPlcStatus(&Status);
-  if (LastError)
+  if (GetPlcStatus(&Status) != 0)
     return LastError;
 
   if (Status != LogoCpuStatusStop)
@@ -650,7 +656,7 @@ int LogoClient::GetPlcStatus(int *Status)
   return SetLastError(0);
 }
 
-int LogoClient::GetPlcDateTime(tmElements_t *DateTime)
+int LogoClient::GetPlcDateTime(TimeElements *DateTime)
 {
   int Status;                     // Operation mode
  
@@ -681,7 +687,8 @@ int LogoClient::GetPlcDateTime(tmElements_t *DateTime)
   // clock reading year
   if (ReadByte(ADDR_CLK_R_YEAR, &DateTime->Year) != 0)
     return LastError;
-
+  DateTime->Year = y2kYearToTm(DateTime->Year);
+    
   // clock reading hour
   if (ReadByte(ADDR_CLK_R_HOUR, &DateTime->Hour) != 0)
     return LastError;
@@ -693,7 +700,7 @@ int LogoClient::GetPlcDateTime(tmElements_t *DateTime)
   // clock reading day-of-week
   if (ReadByte(ADDR_CLK_R_DOW, &DateTime->Wday) != 0)
     return LastError;
-  DateTime->Wday++;               // day of week, sunday is day 1
+  DateTime->Wday += 1;            // day of week, sunday is day 1
 
   memset(&PDU, 0, PDURequested);  // Clear the telegram
   DateTime->Second = 0;           // set secounds to 0
@@ -703,7 +710,7 @@ int LogoClient::GetPlcDateTime(tmElements_t *DateTime)
 
 int LogoClient::GetPlcDateTime(time_t *DateTime)
 {
-  tmElements_t tm;
+  TimeElements tm;
 
   if (GetPlcDateTime(&tm) != 0)
     return LastError;
@@ -712,14 +719,14 @@ int LogoClient::GetPlcDateTime(time_t *DateTime)
   return SetLastError(0);
 }
 
-int LogoClient::SetPlcDateTime(tmElements_t DateTime)
+int LogoClient::SetPlcDateTime(TimeElements DateTime)
 {
   return SetLastError(errCliFunction);
 }
 
 int LogoClient::SetPlcDateTime(time_t DateTime)
 {
-  tmElements_t tm;
+  TimeElements tm;
 
   breakTime(DateTime, tm);       // break time_t into elements
 
@@ -736,12 +743,6 @@ int LogoClient::RecvControlResponse(size_t *Size)
 {
   *Size = 0;  // Start with a size of 0
 
-  if (!Connected) // Exit with Error if not connected
-    return SetLastError(errPGConnect);
-  
-  if (PDULength == 0) // Exit with Error if not negotiated
-    return SetLastError(errCliNegotiatingPDU);
-  
   // Setup the telegram
   memset(&PDU, 0, sizeof(PDU));
   
@@ -826,6 +827,8 @@ int LogoClient::RecvControlResponse(size_t *Size)
 
 int LogoClient::RecvPacket(byte buf[], size_t Size)
 {
+  size_t Length = 0;
+
 /*
   // If you doesn't need to transfer more than 80 byte (the length of a PDU) you can uncomment the next two lines
   if (Size > MaxPduSize)
@@ -836,11 +839,10 @@ int LogoClient::RecvPacket(byte buf[], size_t Size)
   unsigned long Elapsed = millis();
 
   // The Serial buffer can hold only 64 bytes, so we can't use readBytes()
-  size_t i = 0;
-  while (i < Size)
+  while (Length < Size)
   {
     if (StreamClient->available())
-      buf[i++] = StreamClient->read();
+      buf[Length++] = StreamClient->read();
     else
       delayMicroseconds(500);
     
@@ -851,14 +853,14 @@ int LogoClient::RecvPacket(byte buf[], size_t Size)
   }
 
   // Here we are in timeout zone, if there's something into the buffer, it must be discarded.
-  if (i < Size)
+  if (Length < Size)
   {
     // Clearing serial incomming buffer
     // http://forum.arduino.cc/index.php?topic=396450.0
     while (StreamClient->available() > 0)
       StreamClient->read();
 
-    if ((i > 0) && (buf[i-1] == AA))
+    if (Length > 0 && buf[Length-1] == AA)
       // Timeout, but we have an End delimiter
       return SetLastError(errStreamConnectionReset);
 
@@ -975,9 +977,6 @@ int LogoClient::ReadByte(dword Addr, byte *Data)
 {
   size_t Length = 0;
 
-  if (!Connected) // Exit with Error if not connected
-    return SetLastError(errPGConnect);
-  
   if (Data == NULL)
     return SetLastError(errCliInvalidPDU);
   *Data = 0;
@@ -1044,9 +1043,6 @@ int LogoClient::WriteByte(dword Addr, byte Data)
 {
   size_t Length = 0;
 
-  if (!Connected) // Exit with Error if not connected
-    return SetLastError(errPGConnect);
-  
   // Setup the telegram
   memset(&PDU, 0, sizeof(PDU));
   

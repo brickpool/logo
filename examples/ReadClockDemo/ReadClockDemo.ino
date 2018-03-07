@@ -52,7 +52,7 @@ void loop()
     }
     else
     {
-      tmElements_t DateTime;
+      TimeElements DateTime;
       Serial.print("LOGO Clock: ");
       Result = LOGO.GetPlcDateTime(&DateTime);
       if (Result == 0)
@@ -72,7 +72,7 @@ void loop()
   delay(5000);  
 }
 
-void DisplayClock(tmElements_t DateTime)
+void DisplayClock(TimeElements DateTime)
 {
   const char* dayOfWeek[] = {  "??", "So", "Mo", "Tu", "We", "Th", "Fr", "Sa" };
 
@@ -83,9 +83,7 @@ void DisplayClock(tmElements_t DateTime)
   if (DateTime.Minute < 10) Serial.print('0');
   Serial.print(DateTime.Minute);
   Serial.print(" ");
-  Serial.print(DateTime.Year < 70 ? "20" : "19");
-  if (DateTime.Year < 10) Serial.print('0');
-  Serial.print(DateTime.Year); 
+  Serial.print(tmYearToCalendar(DateTime.Year));
   Serial.print("-");
   if (DateTime.Month < 10) Serial.print('0');
   Serial.print(DateTime.Month);
@@ -128,5 +126,3 @@ void CheckError(int ErrNo)
     LOGO.Disconnect(); 
   }
 }
-
-
