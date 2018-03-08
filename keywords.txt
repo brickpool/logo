@@ -27,6 +27,8 @@ GetPDULength	KEYWORD2
 PlcStart	KEYWORD2
 PlcStop	KEYWORD2
 GetPlcStatus	KEYWORD2
+GetPlcDateTime	KEYWORD2
+SetPlcDateTime	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
@@ -47,6 +49,7 @@ errStreamDataSend   LITERAL1
 errStreamDataRecv   LITERAL1
 errPGConnect   LITERAL1
 errPGInvalidPDU   LITERAL1
+
 errCliInvalidPDU   LITERAL1
 errCliSendingPDU   LITERAL1
 errCliDataRead   LITERAL1

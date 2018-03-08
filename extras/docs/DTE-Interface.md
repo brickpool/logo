@@ -1,12 +1,12 @@
 # DTE-Interface for connecting the LOGO! PC cable
 
-Rev. Ad
+Rev. Ae
 
 March 2018
 
 ## Compact RS232 to TTL Converter with Male DB9
 
-The Model NS-RS232-02 from [NulSon Inc.](http://www.nulsom.com/) is a compact UART to RS232 Converter Module for connection the Arduino to the PG Cable. 
+The Model NS-RS232-02 from [NulSom Inc.](http://www.nulsom.com/) is a compact UART to RS232 Converter Module for connection the Arduino to the PG Cable. 
 
 I have ordered this version, although I was not sure if the DB9 connector is standard and whether the necessary connection for the power supply (here RTS) is usable. The product works according to the [5-wire](https://en.wikipedia.org/wiki/RS-232#3-wire_and_5-wire_RS-232) RS232 standard. Therefore, it is well suited for our layout. 
 
@@ -23,15 +23,15 @@ I have ordered this version, although I was not sure if the DB9 connector is sta
 
 ### PIN Layout
 
-Pin | Name | Signal
---- | --- | ---
-1 | GND | Ground
-2 | &darr; RX | Receive Data
-3 | &uarr; TX | Transmit Data
-4 | VCC | Voltage 5V
-6 | RTS | Request to Send 1)
+Pin | Name | Signal | Color (see above)
+--- | --- | --- | ---
+1 | GND | Ground | white
+2 | &darr; RX | Receive Data | yellow
+3 | &uarr; TX | Transmit Data | blue
+4 | VCC | Voltage 5V | black
+6 | RTS | Request to Send | black 1)
 
-__Note:__ 1) Pin 4 and 6 have to be bridged to power the electronics in the PC cable. 
+__Note:__ 1) Pin 4 and 6 have to be bridged to power the electronics in the PC cable. Chances are that it's just wired from the DB9 connector to a breakout pin on the PCB, and not connected to the IC on that PCB.
 
 ![alt text][PinAssignment]
 >Figure _PIN Layout_ of the board
