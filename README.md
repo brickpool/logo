@@ -20,7 +20,7 @@ This directory contains the library and some examples that illustrate how the li
 - [WriteClockDemo.ino](/examples/WriteClockDemo/WriteClockDemo.ino) The example writes a date and time to the _LOGO!_ controller.
 
 ## Dependencies
-- _LOGO!_ controller, generation __0BA4__, __0BA5__ or __0BA6__, e.g. part number `6ED1052-1MD00-0BA6`
+- _LOGO!_ controller version __0BA4__, __0BA5__ or __0BA6__, e.g. part number `6ED1052-1MD00-0BA6`
 - _LOGO!_ PC cable, part number `6ED1057-1AA00-0BA0`
 - Arduino board, e.g. [UNO](http://www.arduino.cc/)
 - [DTE-Interface](/extras/docs/DTE-Interface.md) for connection to the Arduino board

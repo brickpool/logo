@@ -6,19 +6,23 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## 0.5.0-beta.2 - 2018-03-07
+## 0.5.0-beta.3 - 2018-03-08
 ### Added
 - CHANGELOG.md added to the project folder
 - Library Reference Manual (RefManual.md) added to the project folder
-- LogoClient::GetPlcDateTime
-- LogoClient::WritePlcDateTime
+- DTE Interface description (DTE-Interface.md) added to the project folder
+- LogoClient::GetPlcDateTime and WritePlcDateTime
 - LogoClient::ReadByte, WriteByte and CpuError
-- Example ReadClockDemo.ino
+- Example ReadClockDemo.ino added to the project folder
+- Example WriteClockDemo.ino added to the project folder
 
 ### Changed
 - Customization of CPU Exception Codes for LogoClient::CpuError
 - LogoClient::RecvControlResponse uses the LogoClient::CpuError function
 - Rename LOGO_CR to LOGO6_CR and LOGO_REVISION to LOGO4_CR
+
+### Removed
+- typedef pstream for Stream*
 
 ### Fixed
 - Validation of DBNumber and Start in LogoClient::ReadArea
@@ -27,6 +31,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## 0.4.3 - 2018-03-01
 ### Added
 - Example CyclicReading.ino added to the project folder
+
+### Changed
 - LogoClient::RecvControlResponse now with cyclic data reading
 
 ## 0.4.2 - 2018-02-27
@@ -46,6 +52,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - LogoHelper indexing from PDU to VM
+- Update file PG-protocol.md to Rev. Bg
 
 ### Removed
 - LogoClient::RecvIOPacket
@@ -59,13 +66,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## 0.3.0 - 2018-02-20
 ### Added
 - First executable version (not fully tested)
-- Example RunStopDemo.ino added to the project folder
 - Example ProtocolTester.ino added to the project folder
+- Example RunStopDemo.ino added to the project folder
 - VM mapping table for assigning the inputs, outputs and flags to the 0BA7 address layout
+- Rev. B: LOGO! PG Protocol Reference Guide (PG-protocol.md) created
 
 ### Changed
 - LogoClient::ReadArea
 - LogoClient error codes
+- Update in file keywords.txt
 
 ### Removed
 - LogoClient::ErrorText
@@ -76,6 +85,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - LogoClient::ReadArea
 - LogoClient::NegotiatePduLength
 - LogoClient::PlcStop
+
+## 0.2.0 - 2018-02-19
+### Added
+- Rev. A: LOGO! PG Protocol Reference Guide (PG-protocol.md) added to the project folder
 
 ## 0.2.0-alpha - 2018-02-15
 ### Added
@@ -100,7 +113,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## 0.1.0-alpha - 2018-02-12
 ### Added
-- Pre alpha version the Library of (not compiled, not tested)
+- Pre alpha version of the Library (not compiled, not tested)
 - LogoPG.h added to the project folder
 - LogoPG.cpp added to the project folder
 - keywords.txt added to the project folder
