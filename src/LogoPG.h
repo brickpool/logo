@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.5.0-beta.2
+ * LogoPG library, Version 0.5.0-beta.3
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -42,11 +42,13 @@
 #define _EXTENDED
 
 #if defined(_NORMAL) || defined(_EXTENDED)
-# define _LOGOHELPER
+#define _LOGOHELPER
 #endif
 
 #include "Arduino.h"
+#ifdef _EXTENDED
 #include "TimeLib.h"
+#endif
 
 // Error Codes 
 // from 0x0001 up to 0x00FF are severe errors, the Client should be disconnected
@@ -91,11 +93,11 @@ const byte LogoCpuStatusUnknown = 0x00;
 const byte LogoCpuStatusRun     = 0x08;
 const byte LogoCpuStatusStop    = 0x04;
 
+#define Size_OC 18
 #define Size_WR 6
 
 typedef unsigned long dword;      // 32 bit unsigned integer
 
-typedef Stream *pstream;
 typedef byte   *pbyte;
 typedef int    *pint;
 
@@ -105,6 +107,21 @@ typedef struct {
   byte T[1];                      // PDU Trailer
 } TPDU;
 extern TPDU PDU;
+
+#ifdef _EXTENDED
+typedef struct {
+  char Code[Size_OC]; // Order Code
+  byte V1;            // Version V1.V2.V3
+  byte V2;
+  byte V3;
+} TOrderCode;
+
+typedef struct {
+  byte sch_par;
+  byte bart_sch;
+  byte anl_sch;
+} TProtection;
+#endif
 
 #ifdef _LOGOHELPER
 
@@ -141,13 +158,13 @@ public:
 
   // Methods
   LogoClient();
-  LogoClient(pstream Interface);
+  LogoClient(Stream *Interface);
   ~LogoClient();
 
   // Basic functions
-  void SetConnectionParams(pstream Interface);
+  void SetConnectionParams(Stream *Interface);
   void SetConnectionType(word ConnectionType);
-  int ConnectTo(pstream Interface);
+  int ConnectTo(Stream *Interface);
   int Connect();
   void Disconnect();
   int ReadArea(int Area, word DBNumber, word Start, word Amount, void *ptrData);
@@ -155,6 +172,10 @@ public:
 
   // Extended functions
 #ifdef _EXTENDED
+/*
+	int GetDBSize(word DBNumber, size_t *Size);
+	int DBGet(word DBNumber, void *ptrData, size_t *Size);
+*/
   // Control functions
   int PlcStart();       // start PLC
   int PlcStop();        // stop PLC
@@ -164,24 +185,21 @@ public:
   int GetPlcDateTime(time_t *DateTime);
   int SetPlcDateTime(TimeElements DateTime);
   int SetPlcDateTime(time_t DateTime);
-/*
   int SetPlcSystemDateTime();
   // System info functions
-  ReadSZL
-  ReadSZLList
-  GetOrderCode
-  GetCpuInfo
-  GetCpInfo
+  int GetOrderCode(TOrderCode *Info);
   // Security functions
+/*
   SetSessionPassword
   ClearSessionPassword
-  GetProtection
-  // Miscellaneous functions
-  GetExecTime
-  void ErrorText(int Error, char *Text, int TextLen);
 */
+  int GetProtection(TProtection *Protection);
+  // Miscellaneous functions
+/*
+  GetExecTime
+*/
+  void ErrorText(int Error, char *Text, int TextLen);
 #endif
-
 
 private:
   static byte* Mapping;   // PDU Data mapping to VM
@@ -191,7 +209,7 @@ private:
   
   // We use the Stream class as a common class, 
   // so LogoClient can use HardwareSerial or CustomSoftwareSerial
-  pstream StreamClient;
+  Stream *StreamClient;
 
   int PDULength;          // PDU length negotiated (0 if not negotiated)
   int PDURequested;       // PDU length requested by the client

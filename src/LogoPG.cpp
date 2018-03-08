@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.5.0-beta.2
+ * LogoPG library, Version 0.5.0-beta.3
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -30,7 +30,9 @@
 */
 
 #include "Arduino.h"
+#ifdef _EXTENDED
 #include "TimeLib.h"
+#endif
 #include "LogoPG.h"
 #include <avr/pgmspace.h>
 
@@ -296,7 +298,7 @@ LogoClient::LogoClient()
   StreamClient  = NULL;
 }
 
-LogoClient::LogoClient(pstream Interface)
+LogoClient::LogoClient(Stream *Interface)
 {
   ConnType      = PG;
   Connected     = false;
@@ -315,7 +317,7 @@ LogoClient::~LogoClient()
 }
 
 // -- Basic functions ---------------------------------------------------
-void LogoClient::SetConnectionParams(pstream Interface)
+void LogoClient::SetConnectionParams(Stream *Interface)
 {
   StreamClient = Interface;
 }
@@ -331,7 +333,7 @@ void LogoClient::SetConnectionType(word ConnectionType)
   ConnType = ConnectionType;
 }
 
-int LogoClient::ConnectTo(pstream Interface)
+int LogoClient::ConnectTo(Stream *Interface)
 {
   SetConnectionParams(Interface);
   return Connect();
@@ -776,6 +778,28 @@ int LogoClient::SetPlcDateTime(time_t DateTime)
     return LastError;
 
   return SetLastError(0);
+}
+
+int LogoClient::SetPlcSystemDateTime()
+{
+  if (timeStatus() == timeNotSet)
+    // the time has never been set, the clock started on Jan 1, 1970
+    return SetLastError(errCliFunction);
+  
+  if (SetPlcDateTime(now()) != 0)
+    return LastError;
+
+  return SetLastError(0);
+}
+
+int LogoClient::GetOrderCode(TOrderCode *Info)
+{
+  return SetLastError(errCliFunction);
+}
+
+void LogoClient::ErrorText(int Error, char *Text, int TextLen)
+{
+
 }
 
 #endif // _EXTENDED
