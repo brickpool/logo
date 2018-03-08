@@ -1,6 +1,6 @@
 # LOGO! PG Library Reference Manual
 
-Rev. Ad
+Rev. Ae
 
 March 2018
 
@@ -157,15 +157,14 @@ Gets CPU order code and version info.
 The `Info` argument is an _C_ structure defined in the library:
 ```
 typedef struct {
-{
-  char[4] Code, // Order Code
-  byte V1,      // Version V1.V2.V3
-  byte V2,
-  byte V3
+  char Code[18];  // Order Code
+  byte V1;        // Version V1.V2.V3
+  byte V2;
+  byte V3;
 } TOrderCode;
 ```
 
-The Order code is a _C_ string such as `0BA6`.
+The Order code is a _C_ string such as `6ED1052-xxx00-0BA6`.
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
@@ -202,6 +201,7 @@ LogoCpuStatusStop | 0x04 | The CPU is stopped.
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
 ## <a name="security-functions"></a>API - Security functions
+The password protects the circuit program in LOGO!. Editing values and parameters, or viewing the circuit program in LOGO!, or uploading the circuit program from LOGO! is only possible after you have entered the password. 
 
 ### <a name="set-session-password"></a>LogoClient.SetSessionPassword(char \*password)
 Send the password to the _LOGO!_ to meet its security level.
@@ -210,7 +210,7 @@ Send the password to the _LOGO!_ to meet its security level.
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
-A `password` accepted by a _LOGO!_ is an 8 chars string, a longer password will be trimmed, and a shorter one will be "right space padded".
+A `password` accepted by a _LOGO!_ is an 10 chars string, a longer password will be trimmed, and a shorter one will be "right space padded". Only upper case charaters from `A` to `Z` can be used for the `password`.
 
 ### <a name="clear-session-password"></a>LogoClient.ClearSessionPassword()
 Clears the password set for the current session.
@@ -225,10 +225,9 @@ Gets the CPU protection level info.
 The `Protection` argument is an _C_ structure defined in the library:
 ```
 typedef struct {
-{
-  byte sch_par,
-  byte bart_sch,
-  byte anl_sch,
+  byte sch_par;
+  byte bart_sch;
+  byte anl_sch;
 } TProtection;
 ```
 
@@ -267,9 +266,9 @@ By default library is released as Extended.
 These directives are visible from your sketch:
 
 `#define _SMALL`<br />
-or
+or<br />
 `#define _NORMAL`<br />
-or
+or<br />
 `#define _EXTENDED`
 
 
