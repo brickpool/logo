@@ -26,51 +26,40 @@
 
 ## Adressübersicht
 
-Beispiel    | Adresse     | Länge |   | 
-------------|-------------|-------|---|-------------------------------------------------------------
-            | 0522        | 1     | W |
-------------|-------------|-------|---|-------------------------------------------------------------
-            | 0552        | 1     |   | LOGO! Default nach Power-On
-------------|-------------|-------|---|-------------------------------------------------------------
-05 53 00 05 | 0553 - 0558 | 5     |   | LOGO! Einstellung des Analogausgangs im Betriebszustand STOP
-------------|-------------|-------|---|-------------------------------------------------------------
-            | 055E        | 1     |   |
-            | 055F        | 1     |   |
-------------|-------------|-------|---|-------------------------------------------------------------
-05 66 00 0A | 0566 - 0570 | 10    |   | LOGO! Passwortspeicherbereich
-05 70 00 10 | 0570 - 0580 | 16    |   | LOGO! Programmname
-            | 0580 - 05C0 | null  |   | (0040H = 64)
-05 C0 00 40 | 05C0 - 0600 | 64    |   | Blocknamenindex
-06 00 02 00 | 0600 - 0800 | 512   |   | Blockname
-08 00 02 80 | 0800 - 0A80 | 640   |   | Textfeld 10; 64 Bytes / jedes Textfeld
-------------|-------------|-------|---|-------------------------------------------------------------
-            | 0A80 - 0C00 | null  |   | (0180h = 384)
-------------|-------------|-------|---|-------------------------------------------------------------
-0C 00 00 14 | 0C00 - 0014 | 20    |   | Verweis auf Ein-/Ausgänge, Merker (0E20 - 0EE8)
-0C 14 01 04 | 0C14 - 0D18 | 260   |   | Verweis auf Programmspeicher (130 Blöcken)
-------------|-------------|-------|---|-------------------------------------------------------------
-            | 0D18 - 0E20 | null  |   | (0108h = 264)
-------------|-------------|-------|---|-------------------------------------------------------------
-0E 20 00 28 | 0E20 - 0E48 | 40    |   | Digitalausgänge Q1 bis Q16
-0E 48 00 3C | 0E48 - 0E84 | 60    |   | REM ??
-0E 84 00 14 | 0E84 - 0E98 | 20    |   | Analogausgang AQ1 bis AQ2
-0E 98 00 28 | 0E98 - 0EC0 | 40    |   | unbeschaltete Ausgänge X1 bis X16
-0E C0 00 28 | 0EC0 - 0EE8 | 40    |   |
-------------|-------------|-------|---|-------------------------------------------------------------
-0E E8 07 D0 | 0EE8 - 16B8 | 2000  |   | Programmspeicherbereich
-------------|-------------|-------|---|-------------------------------------------------------------
-            | 4100        | 1     | W |
-            | 4400        | 1     | W | = 00, Clock-Schreibinitialisierung
-            | 4740        | 1     | W | = 00, Passwort. Die Übertragung beginnt
-            | 48FF        | 1     | R | Passwort vorhanden? ja 40h; nein 00h
-------------|-------------|-------|---|-------------------------------------------------------------
-            | 1F00        | 1     |   |
-            | 1F01        | 1     |   |
-            | 1F02        | 1     |   | Revision
-            | FB00 - FB05 | 6     |   | LOGO! Uhr
-01 FB 00    |             |       |   | LOGO! Uhr Parameter 1
-...         |             |       |   | ..
-01 FB 05    |             |       |   | LOGO! Uhr Parameter 6
+| Beispiel    | Adresse     | Länge |   |                                                             |
+|-------------|-------------|-------|---|-------------------------------------------------------------|
+|             | 0522        | 1     | W |                                                             |
+|             | 0552        | 1     |   | LOGO! Default nach Power-On                                 |
+| 05 53 00 05 | 0553 - 0558 | 5     |   | LOGO! Einstellung des Analogausgangs im Betriebszustand STOP|
+|             | 055E        | 1     |   |                                                             |
+|             | 055F        | 1     |   |                                                             |
+| 05 66 00 0A | 0566 - 0570 | 10    |   | LOGO! Passwortspeicherbereich                               |
+| 05 70 00 10 | 0570 - 0580 | 16    |   | LOGO! Programmname                                          |
+|             | 0580 - 05C0 |       |   | = 0 (0040H = 64)                                            |
+| 05 C0 00 40 | 05C0 - 0600 | 64    |   | Blocknamenindex                                             |
+| 06 00 02 00 | 0600 - 0800 | 512   |   | Blockname                                                   |
+| 08 00 02 80 | 0800 - 0A80 | 640   |   | Textfeld 10; 64 Bytes / jedes Textfeld                      |
+|             | 0A80 - 0C00 |       |   | = 0 (0180h = 384)                                           |
+| 0C 00 00 14 | 0C00 - 0014 | 20    |   | Verweis auf Ein-/Ausgänge, Merker (0E20 - 0EE8)             |
+| 0C 14 01 04 | 0C14 - 0D18 | 260   |   | Verweis auf Programmspeicher (130 Blöcken)                  |
+|             | 0D18 - 0E20 | null  |   | (0108h = 264)                                               |
+| 0E 20 00 28 | 0E20 - 0E48 | 40    |   | Digitalausgänge Q1 bis Q16                                  |
+| 0E 48 00 3C | 0E48 - 0E84 | 60    |   | Merker (REM ??)                                             |
+| 0E 84 00 14 | 0E84 - 0E98 | 20    |   | Analogausgang AQ1 bis AQ2                                   |
+| 0E 98 00 28 | 0E98 - 0EC0 | 40    |   | unbeschaltete Ausgänge X1 bis X16                           |
+| 0E C0 00 28 | 0EC0 - 0EE8 | 40    |   |                                                             |
+| 0E E8 07 D0 | 0EE8 - 16B8 | 2000  |   | Programmspeicherbereich                                     |
+|             | 4100        | 1     | W |                                                             |
+|             | 4400        | 1     | W | = 00, Clock-Schreibinitialisierung                          |
+|             | 4740        | 1     | W | = 00, Passwort. Die Übertragung beginnt                     |
+|             | 48FF        | 1     | R | Passwort vorhanden? ja 40h; nein 00h                        |
+|             | 1F00        | 1     |   |                                                             |
+|             | 1F01        | 1     |   |                                                             |
+|             | 1F02        | 1     |   | Revision Byte                                               |
+|             | FB00 - FB05 | 6     |   | LOGO! Uhr                                                   |
+| 01 FB 00    |             |       |   | LOGO! Uhr Parameter 1                                       |
+| ...         |             |       |   | ..                                                          |
+| 01 FB 05    |             |       |   | LOGO! Uhr Parameter 6                                       |
 
 __Hinweis:__
 Maximaler Bereich = [0E 20 08 98] Adr [0E20 - 16B8]
@@ -176,7 +165,6 @@ FB05 | Wochentag
 ```
 01 44 00 00       // initialisieren
 02 FB XX          // XX: Adresse
-
 -> 06 03 FB XX YY // YY: Wert
 ```
 
@@ -291,7 +279,6 @@ HEX | BIN       | Grundfunktion
 Beispiel
 ```
 05 0E 98 00 28
-
 ->
 80 00 0A 80 FF FF 17 80 14 80 12 80 FF FF FF FF FF FF FF FF
 80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
@@ -757,14 +744,17 @@ JJ:
   XX = 01/03 Die Anfangsposition des Textes
 
   XX = 02 Blockeinfügeposition
-  Die Textausrichtung ist linksbündig, und der Text an der aktuellen Position wird beim Einfügen des Blocks nach rechts verschoben [Block Parameter Display Length].
+    Die Textausrichtung ist linksbündig, 
+    und der Text an der aktuellen Position wird beim Einfügen des Blocks nach rechts verschoben 
+    [Block Parameter Display Length].
   Beispiel
     Originaltext:
        "ABCDE"
     Fügen Sie die aktuelle Uhrzeit nach dem Buchstaben "B" ein:
        "AB [] CDE"
 
-ZZ: Text (ACSII) -Zeichen, wenn die Zeile einen Block hat, repräsentieren die ersten 4 Bytes den Block.
+ZZ: Text (ACSII)-Zeichen, wenn die Zeile einen Block hat, 
+  repräsentieren die ersten 4 Bytes den Block.
 
 80 Pfeil nach oben ↑
 81 Pfeil nach unten ↓
@@ -833,7 +823,7 @@ Beispiel:
 
 ## Speicherbereich 0C 00
 Rolle:
-Verweis auf Ein/Ausgänge und Merker.
+Verweis auf Ein-/Ausgänge und Merker.
 
 Länge:
 20 Bytes
@@ -1032,7 +1022,7 @@ BIOS-Version = 2.02.0
 
 # Anmerkungen zu 0BA6
 
-Beispiel    | Adresse     | Länge |   | 
-------------|-------------|-------|---|-------------------------------------
-0C 00 01 A4 | 0C00 - 0DA4 | 420   |   | Anzahl der Blöcke 200 / REM 250
-0E E8 0E D8 | 0EE8 - 1DC0 | 3800  |   | Programmspeicherbereich 1DC0h = 7616
+| Beispiel    | Adresse     | Länge |   |                                      |
+| ------------|-------------|-------|---|--------------------------------------|
+| 0C 00 01 A4 | 0C00 - 0DA4 | 420   |   | Anzahl der Blöcke 200 / REM 250      |
+| 0E E8 0E D8 | 0EE8 - 1DC0 | 3800  |   | Programmspeicherbereich 1DC0h = 7616 |
