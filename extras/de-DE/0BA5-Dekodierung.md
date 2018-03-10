@@ -29,8 +29,8 @@
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
 |             | 0522        | 1     | W |                                                        |
-|             | [0552]        | 1     |   | Standardanzeige nach dem Einschalten                   |
-| 05 53 00 05 | [0553] - 0558 | 5     |   | Einstellung des Analogausgangs im Betriebszustand STOP |
+|             | [0552](#0552)        | 1     |   | Standardanzeige nach dem Einschalten                   |
+| 05 53 00 05 | [0553](#0553) - 0558 | 5     |   | Einstellung des Analogausgangs im Betriebszustand STOP |
 |             | 055E        | 1     |   |                                                        |
 |             | 055F        | 1     |   |                                                        |
 | 05 66 00 0A | 0566 - 0570 | 10    |   | Passwortspeicherbereich                                |
@@ -40,13 +40,13 @@
 | 06 00 02 00 | 0600 - 0800 | 512   |   | Blockname                                              |
 | 08 00 02 80 | 0800 - 0A80 | 640   |   | Textfeld 10; 64 Bytes / jedes Textfeld                 |
 |             | 0A80 - 0C00 |       |   | = 0 (0180h = 384)                                      |
-| 0C 00 00 14 | 0C00 - 0014 | 20    |   | Verweis auf Ein-/Ausgänge, Merker (0E20 - 0EE8)        |
-| 0C 14 01 04 | 0C14 - 0D18 | 260   |   | Verweis auf Programmspeicher (130 Blöcken)             |
+| 0C 00 00 14 | 0C00 - 0014 | 20    |   | Verweis auf Ausgänge, Merker (0E20 - 0EE8)             |
+| 0C 14 01 04 | 0C14 - 0D18 | 260   |   | Verweis auf Programmspeicher (130 Blöcke)              |
 |             | 0D18 - 0E20 | null  |   | (0108h = 264)                                          |
-| 0E 20 00 28 | 0E20 - 0E48 | 40    |   | Digitalausgänge Q1 bis Q16                             |
-| 0E 48 00 3C | 0E48 - 0E84 | 60    |   | Merker M1 bis M24                                      |
-| 0E 84 00 14 | 0E84 - 0E98 | 20    |   | Analogausgang AQ1 bis AQ2                              |
-| 0E 98 00 28 | 0E98 - 0EC0 | 40    |   | unbeschaltete Ausgänge X1 bis X16                      |
+| 0E 20 00 28 | [0E20](#0E20) - 0E48 | 40    |   | Digitalausgänge Q1 bis Q16                             |
+| 0E 48 00 3C | [0E48](#0E48) - 0E84 | 60    |   | Merker M1 bis M24                                      |
+| 0E 84 00 14 | [0E84](#0E84) - 0E98 | 20    |   | Analogausgang AQ1, AQ2 / Analogmerker AM1 bis AM6      |
+| 0E 98 00 28 | [0E98](#0E98) - 0EC0 | 40    |   | Offene Klemme X1 bis X16                               |
 | 0E C0 00 28 | 0EC0 - 0EE8 | 40    |   |                                                        |
 | 0E E8 07 D0 | 0EE8 - 16B8 | 2000  |   | Programmspeicherbereich                                |
 |             | 4100        | 1     | W |                                                        |
@@ -183,8 +183,56 @@ Beispiele
 
 # Konstanten und Klemmen - Co
 
-## Digitalausgänge - Q
-Die Digitalausgänge Q1 bis Q16 befinden sich im Speicherbereich 0E20 - 0EC0.
+## Liste Konstanten
+HEX   | Konstante | Beschreibung
+------|-----------|-------------------------
+FC    | Float     | ??
+FD    | Pegel hi  | Blockeingang logisch = 1
+FE    | Pegel lo  | Blockeingang logisch = 0
+FF    | -         | nicht belegt
+
+## Liste Klemmen
+HEX   | Klemme/Marker | Beschreibung
+------|---------------|-------------------------------
+00-17 | I1..24        | Digitaleingänge
+30-3F | Q1..16        | _Klemme_ Digitalausgang
+50-67 | M1..24        | _Marker_ Digitalmerker
+80-87 | AI1..8        | Analogeingänge
+92-97 | AM1..6        | _Marker_ Analoger Merker
+A0-A3 | C1..3         | Cursortasten (▲, ▼, <, >)
+B0-B7 | S1..8         | Schieberegisterbits
+
+## Format
+Format einheitlich, vielfache von 20 Bytes = 2 Bytes <80 00> + 16 Bytes <Daten> + 2 Bytes <FF FF>.
+```
+80 00 1a 1b ... ... 8a 8b FF FF // (20 Byte)
+```
+
+__Hinweis:__ nicht verwendete Klemmen werden mit FF angezeigt.
+
+```
+Xa: Eingang, abhängig von b7
+Xb: BIN Hi ---------------- Lo
+           b7 b6 b5 b4 0000
+
+    b7 = 0, Co: siehe Listen Konstanten und Klemmen
+    b7 = 1, Verweis auf ein Funktionsblock
+```
+
+Xa Xb: X = Element 1-8
+
+Beispiel - Verweis von Q auf Klemme:
+```
+send> 05 0E 20 00 28 
+recv< 06
+80 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+00 
+```
+Das Beispiel zeigt dass der Eingang von Q1 mit der Klemme I1 verbunden ist.
+
+## <a name="0E20"></a>Digitalausgänge - Q
+Die Digitalausgänge Q1 bis Q16 befinden sich im Speicherbereich 0E20 - 0EC0 (2*20 Bytes).
 
 Darstellungsformat:
 ```
@@ -192,14 +240,33 @@ Darstellungsformat:
 80 00 Q9a Q9b ... ... Q16a Q16b FF FF
 ```
 
-QXa QXb: X = Element Q1-16
+Qna Qnb: n = Element 1-16
 
-## Analogausgänge - AQ
-Die Analogen Ausgänge AQ1 und AQ2 befinden sich im Speicherbereich 0E84 - 0E98.
+## <a name="0EC0"></a>Merker - M
+Die Digitalausgänge M1 bis M24 befinden sich im Speicherbereich 0EC0 - 0E84 (3*20 Bytes).
 
+Darstellungsformat:
+```
+80 00 M1a  M1b  ... ... M8a  M8b  FF FF // (20 Byte)
+80 00 M9a  M9b  ... ... M16a M16b FF FF
+80 00 M17a M17b ... ... M24a M24b FF FF
+```
 
-## Offene Klemmen - X
-Die Offenen Klemmen X1 bis X16 befinden sich im Speicherbereich 0E98 - 0EC0.
+Mna Mnb: n = Element 1-24
+
+## <a name="0E84"></a>Analogausgänge, Analoge Merker - AQ, AM
+Die Analogen Ausgänge AQ1 und AQ2 befinden sich im Speicherbereich 0E84 - 0E98 (1*20 Bytes).
+
+Darstellungsformat:
+```
+80 00 AQ1a AQ1b AQ2a AQ2b AM1a AM1b ... ... AM6a AM6b  FF FF // (20 Byte)
+```
+
+AQXa AQXb: X = Element AQ1-2<br />
+AMXa AMXb: X = Element AM1-6
+
+## <a name="0E98"></a>Offene Klemmen - X
+Die Offenen Klemmen X1 bis X16 befinden sich im Speicherbereich 0E98 - 0EC0 (2*20 Bytes).
 
 Darstellungsformat:
 ```
@@ -207,136 +274,117 @@ Darstellungsformat:
 80 00 X9a  X9b  ... ... X16a X16b FF FF
 ```
 
-Xza Xzb: z = Element X1-16
+Xna Xnb: n = Element 1-16
 
-## Liste Konstanten
-HEX   | Konstantent | Beschreibung
-------|-------------|-------------------------------
-FC    | Float       | 
-FD    | Pegel hi    | Blockeingang logisch = 1
-FE    | Pegel lo    | Blockeingang logisch = 0
-
-## Liste Eingänge und Merker
-HEX   | Klemme/Konst. | Beschreibung
-------|---------------|-------------------------------
-00-17 | I1..24        | Digitaleingänge
-50-67 | M1..24        | Digitalmerker
-80-87 | AI1..8        | Analogeingänge
-92-97 | AM1..6        | Analogmerker
-A0-A3 | C1..3         | Cursortasten (▲, ▼, <, >)
-B0-B7 | S1..8         | Schieberegisterbits
-
-
-# Grundfunktionen - GF
-
-## Format
-Format einheitlich, vielfache von 20 Bytes = 1Byte <80 00> + 16Byte <Daten> + 2Byte <FF FF> + XOR.
+Beispiel - Verweis von X auf Funktionsblock:
 ```
-80 00 1a 1b ... ... 8a 8b FF FF // (20 Byte)
-XX ll Pa Da Pb Db Pc Dc Pd Dd ...
-```
-
-```
-LL: Funktionsblock
-ll: ??
-
-Px: GF siehe Liste Grundfunktionen
-
-Dx:
-  Hi ---------------- Lo
-     b7 b6 b5 b4 0000
-
-  b7 = 0, dies ist eine Konstante oder Klemme
-  b7 = 1, dies ist ein Block
-
-  b6 = 0, Konnektor normal
-  b6 = 1, Konnektor negiert
-
-```
-
-Konnektor Beispiel:
-```
-| Konnektor | Verschiedenes (Port...)                 |
-| --------------------------------------------------- |
-| normal    | 0A 80 | 1000 0000 = 80 | 0000 0000 = 00 |
-| negiert   | 0A C0 | 1100 0000 = C0 | 0100 0000 = 40 |
-```
-
-Beispiel
-```
-05 0E 98 00 28
-->
+send> 05 0E 98 00 28
+recv< 06
 80 00 0A 80 FF FF 17 80 14 80 12 80 FF FF FF FF FF FF FF FF
-80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
 1B
 ```
 
-__Hinweis:__ nicht verwendete Ports werden mit FF angezeigt.
+Klemme | Block | HEX | TEN
+-------|-------|-----|-----
+X1     | B001  | 0A  | 10
+X2     | -     | FF  | -
+X3     | B014  | 17  | 23
+X4     | B011  | 14  | 20
+X5     | B009  | 12  | 18
 
-Block | HEX | TEN
-------|-----|-----
-B001  | 0A  | 10
-B002  | -   | -
-B014  | 17  | 23
-B011  | 14  | 20
-B009  | 12  | 18
-
-Block | HEX | TEN | Offset (-10)
+Block | HEX | TEN | Offset (-9)
 ------|-----|-----|-------------
-B001  | 0A  | 10  | 0
-B009  | 12  | 18  | 8
-B011  | 14  | 20  | 10
-B014  | 17  | 23  | 13
+B001  | 0A  | 10  | 1
+B009  | 12  | 18  | 9
+B011  | 14  | 20  | 11
+B014  | 17  | 23  | 14
 
-
+# Grundfunktionen - GF
+Die Grundfunktionen befinden sich im Speicherbereich ab 0EE8 (x*20 Bytes).
 
 ## Liste Grundfunktionen
-HEX | BIN       | Grundfunktion
-----|-----------|----------------------------
-01  | 0000 0001 | AND (UND)
-02  | 0000 0010 | OR (ODER)
-03  | 0000 0011 | NOT (Negation, Inverter)
-04  | 0000 0100 | NAND (UND nicht)
-05  | 0000 0101 | NOR (ODER nicht)
-06  | 0000 0110 | XOR (exklusiv ODER)
-07  | 0000 0111 | AND mit Flankenauswertung
-08  | 0000 1000 | NAND mit Flankenauswertung
+HEX | BIN       | RAM (Bytes) | Beschreibung
+----|-----------|-------------|---------------------------
+01  | 0000 0001 | 12          | AND (UND)
+02  | 0000 0010 | 12          | OR (ODER)
+03  | 0000 0011 | 4           | NOT (Negation, Inverter)
+04  | 0000 0100 | 12          | NAND (UND nicht)
+05  | 0000 0101 | 12          | NOR (ODER nicht)
+06  | 0000 0110 | 8           | XOR (exklusiv ODER)
+07  | 0000 0111 | 12          | AND mit Flankenauswertung
+08  | 0000 1000 | 12          | NAND mit Flankenauswertung
+
+## Format
+Formatlänge variable zwischen 4 und 12 Bytes = 2 Bytes <XX 00> + 0 bis 8 Bytes <Daten> + 2 Bytes <FF FF>.
+```
+GF 00 1a 1b ... ... 4a 4b FF FF // (4 bis 12 Bytes)
+```
+
+__Hinweis:__ nicht verwendete Blöcke werden mit FF angezeigt.
+
+```
+GF: Funktionsblock, siehe Liste Grundfunktionen
+
+Xa: Eingang, abhängig von b7
+Xb: BIN Hi ---------------- Lo
+           b7 b6 b5 b4 0000
+
+    b7 = 0, Co: siehe Listen Konstanten und Klemmen
+    b7 = 1, Verweis auf ein Funktionsblock
+    b6 = 0, Konnektor normal (nicht negiert)
+    b6 = 1, Konnektor negiert
+
+```
+
+Xa Xb: X = Element 1-4
+
+
+Konnektor:
+| Konnektor | HEX | BIN            |
+|-----------|-----|----------------|
+| normal    | 80  | 1000 0000 = 80 |
+| negiert   | C0  | 1100 0000 = C0 |
 
 
 # Sonderfunktionen - SF
+Die Sonderunktionen befinden sich im Speicherbereich ab 0EE8 (x*20 Bytes).
 
 ## Liste Sonderfunktionen
 HEX | RAM (Bytes) | Rem (Bytes) | Beschreibung
 ----|-------------|-------------|---------------------------------
-12  | 12          | 3           | Speichernde Einschaltverzögerung
-21  | 8           | 3           | Einschaltverzögerung
-22  | 12          | 3           | Ausschaltverzögerung
-23  | 12          | 1           | Stromstoßrelais
-24  | 20          | -           | Wochenschaltuhr
-25  | 8           | 1           | Selbsthalterelais
-2B  | 28          | 5           | Vor-/Rückwärtszähler
-2D  | 12          | 3           | Asynchroner Impulsgeber
+[21](#SF21)  | 8           | 3           | Einschaltverzögerung
+[22](#SF22)  | 12          | 3           | Ausschaltverzögerung
+[23](#SF23)  | 12          | 1           | Stromstoßrelais
+[24](#SF24)  | 20          | -           | Wochenschaltuhr
+[25](#SF25)  | 8           | 1           | Selbsthalterelais
+[27](#SF27)  | 12          | 3           | Speichernde Einschaltverzögerung
+[2B](#SF2B)  | 24          | 5           | Vor-/Rückwärtszähler
+[2D](#SF2D)  | 12          | 3           | Asynchroner Impulsgeber
+[39](#SF39)  | 20          | -           | Analogwertüberwachung
 
+## <a name="SF21"></a>Einschaltverzögerung
 
-## Einschaltverzögerung
-Speicherbereich: Programmspeicherbereich [0EE8 +]
+RAM/Rem: 8/3
 
 Darstellungsformat:
 ```
 21 40 01 00 7A 80 00 00 FF FF FF FF
-XX Xp Yt Yt Z2 Z1 00 00 FF FF FF FF
+21 40 [01 00] [7A 80] 00 00 FF FF FF FF
+SF Pa [Trg  ] [Par  ] 00 00 FF FF FF FF
 ```
 
 ```
-XX: Funktionsblock
-Xp: Funktionsblockparameter
-  Hi ---------------- Lo
-  b7 b6 b5 b4 0000
-  ~~~~~
-  b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
-  b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
-Yt Yt: Eingang Trg
-Z1 Z2: Parameter T (T ist die Zeit, nach der der Ausgang eingeschaltet wird)
+SF: Funktionsblock, siehe Liste Sonderfunktionen
+Pa: Funktionsblockparameter
+    Hi ---------------- Lo
+      b7 b6 b5 b4 0000
+
+    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
+    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+
+Trg: Eingang Trg (Co oder GF/SF)
+Par: Parameter [T](#zeitdefinition) (T ist die Zeit, nach der der Ausgang eingeschaltet wird)
 ```
 
 Beispiel:
@@ -346,132 +394,152 @@ Beispiel:
 21 C0 01 00 FE 41 00 00 // Einschaltverzögerung 5:10 (s: 1 / 100s) Aktivierung Remanenz
 ```
 
-## Ausschaltverzögerung
-Speicherbereich: Programmspeicherbereich [0EE8 +]
+## <a name="SF22"></a>Ausschaltverzögerung
+
+RAM/Rem: 12/3
 
 Darstellungsformat:
 ```
 22 80 01 00 02 00 1F CD 00 00 00 00
-XX Xp Yt Yt Yr Yr Z2 Z1 00 00 00 00
+22 80 [01 00] [02 00] [1F CD] 00 00 00 00
+SF Pa [Trg  ] [R    ] [Par  ] 00 00 00 00
 ```
 
 ```
-XX Funktionsblock
-Xp Funktionsblockparameter
- Hi ---------------- Lo
-    b7 b6 b5 b4 0000
-    ~~~~~
+SF: Funktionsblock, siehe Liste Sonderfunktionen
+Pa: Funktionsblockparameter
+    Hi ---------------- Lo
+      b7 b6 b5 b4 0000
+
     b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
     b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
 
-Yt Yt: Eingang Trg
-Yr Yr: Eingang R
-Z1 Z2: Parameter T (Der Ausgang schaltet aus, wenn die Verzögerungszeit T abläuft)
+Trg: Eingang Trg (Co oder GF/SF)
+R: Eingang R (Co oder GF/SF)
+Par: Parameter [T](#zeitdefinition) (Der Ausgang schaltet aus, wenn die Verzögerungszeit T abläuft)
 ```
-
 
 Beispiel:
 ```
-80 01 00 02 00 1F CD 00 00 00 00 // Disconnect Verzögerung RAM: 12, REM: 3; 55:59 (h: m)
+22 80 01 00 02 00 1F CD 00 00 00 00 // Disconnect Verzögerung RAM: 12, REM: 3; 55:59 (h: m)
 ```
 
-## Speichernde Einschaltverzögerung
+## <a name="SF23"></a>Stromstoßrelais
 
-Speicherbereich: Programmspeicherbereich [0EE8 +]
-
-RAM/Rem: 12/3
+RAM/Rem: 12/1
 
 Darstellungsformat:
 ```
-27 40 02 00 FF FF 00 40 00 00 00 00
-27 80 02 00 FF FF 36 81 00 00 00 00
-XX Xp Yt Yt Yr Yr Z2 Z1 00 00 00 00
-```
-
-```
-XX Funktionsblock
-Xp Funktionsblockparameter
- Hi ---------------- Lo
-    b7 b6 b5 b4 0000
-    ~~~~~
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
-    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
-
-Yt Yt: Eingang Trg
-Yr Yr: Eingabe R-Element
-Z1 Z2: Zeitdefinition (siehe [LOGO! Funktionsblock Zeitdefinition])
-```
-
-
-Beispiel:
-```
-27 80 02 00 FF FF 36 81 00 00 00 00 // Remanenz aktiv, Parameterschutz aktiv; Trg = I3, Yr = NA; 5:10 (h: m)
-```
-
-## Asynchroner Impulsgeber
-
-Speicherbereich: Programmspeicherbereich [0EE8 +]
-
-RAM/Rem: 12/3
-
-Darstellungsformat:
-```
-2D 40 02 00 FF FF 02  80  02  80  00 00
-XX Xp Yt Yt Yr Yr ZH2 ZH1 ZL2 ZL1 00 00
-```
-
-```
-XX Funktionsblock
-Xp Funktionsblockparameter
- Hi ---------------- Lo
-    b7 b6 b5 b4 0000
-    ~~~~~
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
-    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
-
-Yt Yt: Eingang En
-Yr Yr: Eingang INV
-ZH1 ZH2: Parameter TH (Impulsdauer TH, siehe Handbuch)
-ZL1 ZL2: Parameter TL (Impulspausendauer TL, siehe Handbuch)
-```
-
-
-## Vor-/Rückwärtszähler
-
-Speicherbereich: Programmspeicherbereich [0EE8 +]
-
-RAM/Rem: 28/5
-
-Darstellungsformat:
-```
-2B 40 FF FF 02 00 FF FF 00 00 00 00 00 00 00 00
-00 00 00 00 00 00 00 00 25 00 0A 80 FF FF 00 00
 23 00 02 00 FF FF FF FF 00 00 00 00
-
-2B 40 [FF FF] [02 00] [FF FF] [00 00 00 00 00 00 00 00] [00 00 00 00 00 00 00 00]
-XX Xp [R    ] [Cnt  ] [Dir  ] [Parameter On           ] [Parameter Off          ]
-25 00 0A 80 FF FF 00 00 23 00 02 00 FF FF FF FF 00 00 00 00
+23 00 [02 00] [FF FF] [FF FF] 00 00 00 00
+SF Pa [Trg  ] [S    ] [R    ] 00 00 00 00
 ```
 
 ```
-XX Funktionsblock
-Xp Funktionsblockparameter
- Hi ---------------- Lo
-    b7 b6 b5 b4 0000
-    ~~~~~
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
+SF: Funktionsblock, siehe Liste Sonderfunktionen
+Pa: Funktionsblockparameter
+    Hi ---------------- Lo
+      b7 b6 b5 b4 0000
+
+    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 1 Byte REM
     b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
 
-Eingang R
-Eingang Cnt
-Eingang Dir
-Parameter
-  On: Einschaltschwelle, Wertebereich: 0 ... 999999
-  Off: Ausschaltschwelle, Wertebereich: 0 ... 999999
-StartVal: Ausgangswert, ab dem entweder vorwärts oder rückwärts gezählt wird. (0BA6)
+Trg: Eingang Trg (Co oder GF/SF)
+S: Eingabe S (Co oder GF/SF)
+R: Eingang R (Co oder GF/SF)
+Par:
+  RS (Vorrang Eingang R) oder
+  SR (Vorrang Eingang S)
 ```
 
-## Selbsthalterelais
+## <a name="SF24"></a>Wochenschaltuhr
+
+RAM/Rem: 20/-
+
+Darstellungsformat:
+```
+24 40 F2 00 A0 00 FF FF FF FF FF FF FF FF 2A 00 00 00 00 00
+24 40 [F2 00] [A0 00] [FF FF] [FF FF] [FF FF] [FF FF]  2A 00 00  00 00 00
+SF Pa [On1  ] [Off1 ] [On2  ] [Off2 ] [On3  ] [Off3 ]  D1 D2 D3
+SF Pa [No1          ] [No2          ] [No3          ] [Tage    ]
+```
+
+```
+SF: Funktionsblock, siehe Liste Sonderfunktionen
+Pa: Funktionsblockparameter
+    Hi ---------------- Lo
+      b7 b6 b5 b4 0000
+
+    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 0 Byte REM (Def)
+    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+
+NoPar1: Nockenparameter 1
+NoPar2: Nockenparameter 2
+NoPar3: Nockenparameter 3
+
+  OnX:  Einschaltzeitpunkt hh:mm (0-23:0-59)
+        FF FF = deaktiviert
+        OnL OnH
+          \ /
+          / \
+        OnH OnL
+        T = 60 * h + m
+  
+        Beispiel:
+        F2 = 1111 0010 = 242 (Dec) = 60 × 4 + 2 = 242   // On = 04:02h
+  
+  OffX: Ausschaltzeitpunkt hh:mm (0-23:0-59)
+        FF FF = deaktiviert
+        OffL OffH
+           \ /
+           / \
+        OffH OffL
+        T = 60 * h + m
+  
+        Beispiel:
+        A0 = 1010 0000 = 160 (Dec) = 60 * 2 + 40 = 160  // Off = 02:40h
+
+Dx: Wochentage
+    Dx = 00 = täglich (D=MTWTFSS) (Def)
+
+    Hi ----------------------- Lo
+       b7 b6 b5 b4 b3 b2 b1 b0
+       -  S  F  T  W  T  M  S
+
+    b0 = Sonntag,     // D=------S
+    b1 = Montag,      // D=M------
+    b2 = Dienstag,    // D=-T-----
+    b3 = Mittwoch,    // D=--W----
+    b4 = Donnerstag,  // D=---T---
+    b5 = Freitag,     // D=----F--
+    b6 = Samstag,     // D=-----S-
+    b7 = - (ohne Bedeutung)
+
+    Beispiel:
+    2A = 0010 1010 // D=M-W-F--
+    0E = 0000 1110 // D=MTW----
+    41 = 0100 0001 // D=-----SS
+
+??:
+    bx: Impusleinstellung, Pulse=On/Off
+```
+
+Beispiel 1:
+```
+24 40 F2 00 A0 00 FF FF FF FF FF FF FF FF 2A 00 00 00 00 00
+24 40 [F2 00] [A0 00] FF FF FF FF FF FF FF FF [2A 00] 00 00 00 00
+// No1: D=M-W-F--, On=04:02, Off=02:40
+```
+
+Beispiel 2:
+```
+24 40 F2 00 A0 00 36 01 FF FF FF FF FF FF 2A 0E 00 00 00 00
+24 40 [F2 00] [A0 00] [36 01] [FF FF] FF FF FF FF [2A 0E] 00 00 00 00
+No1: D=M-W-F---, On=04:02, Off=02:40
+No2: D=MTW ----, On=05:10, Off=--:--
+```
+
+## <a name="SF25"></a>Selbsthalterelais
 
 RAM/Rem: 8/1
 
@@ -479,193 +547,202 @@ Darstellungsformat:
 ```
 25 00 0A 80 FF FF 00 00
 25 00 [0A 80] [FF FF] 00 00
-XX Xp [S    ] [R    ] 00 00
+SF Pa [S    ] [R    ] 00 00
 ```
 
 ```
-XX Funktionsblock
-Xp Funktionsblockparameter
- Hi ---------------- Lo
-    b7 b6 b5 b4 0000
-    ~~~~~
+SF: Funktionsblock, siehe Liste Sonderfunktionen
+Pa: Funktionsblockparameter
+    Hi ---------------- Lo
+       b7 b6 b5 b4 0000
+
     b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 1 Byte REM
     b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
 
-Eingabe S
-Eingang R
+S: Eingabe S (Co oder GF/SF)
+R: Eingang R (Co oder GF/SF)
 ```
 
-## Stromstoßrelais
-RAM/Rem: 12/1
+## <a name="SF27"></a>Speichernde Einschaltverzögerung
+
+RAM/Rem: 12/3
 
 Darstellungsformat:
 ```
-23 00 02 00 FF FF FF FF 00 00 00 00
-23 00 [02 00] [FF FF] [FF FF] 00 00 00 00
-XX Xp [Trg  ] [S    ] [R    ] 00 00 00 00
+27 80 02 00 FF FF 36 81 00 00 00 00
+27 80 [02 00] [FF FF] [36 81] 00 00 00 00
+SF Pa [Trg  ] [R    ] [Par  ] 00 00 00 00
 ```
 
 ```
-XX Funktionsblock
-Xp Funktionsblockparameter
- Hi ---------------- Lo
-    b7 b6 b5 b4 0000
-    ~~~~~
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 1 Byte REM
+SF: Funktionsblock, siehe Liste Sonderfunktionen
+Pa: Funktionsblockparameter
+    Hi ---------------- Lo
+      b7 b6 b5 b4 0000
+
+    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
     b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
 
-Eingang Trg
-Eingabe S
-Eingang R
-  Parameter
-  RS (Vorrang Eingang R) oder
-  SR (Vorrang Eingang S)
-```
-
-## Wochenschaltuhr
-Speicherbereich: Programmspeicherbereich [0EE8 +]
-
-RAM/Rem: 20/-
-
-Darstellungsformat:
-```
-24 40 F2 00 A0 00 FF FF FF FF FF FF FF FF 2A 00 00 00 00 00
-24 40 [(F2 00) (A0 00)] [(FF FF) (FF FF)] [(FF FF) (FF FF)] [2A 00 00 00 00 00]
-XX Xp TOa2 TOa1 TCa2 TCa1 TOb2 TOb1 TCb2 TCb1 TOc2 TOC1 TCc2 TCc1 TWa TWb TWcxxxxxx]
-```
-
-```
-XX Funktionsblock
-Xp Funktionsblockparameter
- Hi ---------------- Lo
-    b7 b6 b5 b4 0000
-    ~~~~~
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 1 Byte REM
-
-     Txax: Periode 1, Txbx: Periode 2, Txcx: Periode 3;
-
-     TOx1 TOx2: Pünktliche Definition [0-23: 0-59 (h: m)
-       TOX2 TOx1
-        \ /
-        / \
-       TOX1 TOx2
-       Zeit T = 60 x h + m
-
-     TCx1 TCx2: Aus-Zeit-Definition [0-23: 0-59 (h: m)
-       TCx2 TCx1
-        \ /
-        / \
-       TCx1 TCx2
-       Zeit T = 60 x h + m
-
-       TOx1 TOx2 / TCx1 TCx2 = FF FF = Deaktivierung / Deaktivierung der Abschaltung
-       Ein- / Auszeit exp:
-        F2 = 1111 0010 = 242 Zehn = 60 × 4 + 2 = 242 // Einschaltzeit [4: 2 (h: m)]
-        A0 = 1010 0000 = 160 (Zehn) = (60 x 2) + 40 = 160 // AUS-Moment [2:40 (h: m)]
-
-     TWx: Arbeitstagendefinition aktivieren
-      Hi ----------------------- Lo
-         b7 b6 b5 b4 b3 b2 b1 b0
-
-      b0 = Sonntag, b1 = Woche1, b2 = Woche2, b3 = Woche3, b4 = Woche4, b5 = Woche5, b6 = Woche6, b7 = x;
-      TWx = 00 (Def)
-
-      Beispiel
-        2A = 0010 1010 // Woche 1, Woche 3, Woche 5,
-        0E = 0000 1110 // Woche 1, Woche 2, Woche 3,
-        41 = 0100 0001 // Woche 6, Sonntag
+Trg: Eingang Trg (Co oder GF/SF)
+R: Eingang R (Co oder GF/SF)
+Par: Parameter [T](#zeitdefinition) (T ist die Zeit, nach der der Ausgang eingeschaltet wird)
 ```
 
 Beispiel:
 ```
-24 40 F2 00 A0 00 FF FF FF FF FF FF FF FF 2A 00 00 00 00 00
-24 40 [(F2 00) (A0 00)] [(FF FF) (FF FF)] [(FF FF) (FF FF)] [2A 00 00 00 00 00]
-Sitzung 1: {Geschäftstage: Montag, Woche 3, Woche 5; Pünktlich [4: 2 (h: m)]; Feierabend [2:40 (h: m)]}
-  M-W-F--, 04: 02h, 02: 40h
+27 80 02 00 FF FF 36 81 00 00 00 00
+```
+Remanenz aktiv, Parameterschutz aktiv, Trg = I3, R = -, 05:10 (h:m)
 
-24 40 F2 00 A0 00 36 01 FF FF FF FF FF FF 2A 0E 00 00 00 00
-24 40 [(F2 00) (A0 00)] [(36 01) (FF FF)] [(FF FF) (FF FF)] [2A 0E 00 00 00 00]
-Periode 1, {Geschäftstag: Montag, Woche 3, Woche 5, pünktlich [4: 2 (h: m)], Feierabend [2:40 (h: m)]}
-Zeitraum 2, {Geschäftstag: Montag, 2. Woche, 3. Woche; Einschaltzeit [5:20 (h: m)];
-  M-W-F-- 04: 02h 02: 40h MTW ---- 05: 10h -: -
+## <a name="SF2B"></a>Vor-/Rückwärtszähler
 
-Periode 1, Periode 2, Periode 3
+RAM/Rem: 24/5
 
-Zeit 1,
-Arbeitstage: Montag, Woche 2, Woche 3, Woche 4, Woche 5, Woche 6, Sonntag
-
-Keine Verbindung herstellen
-Pünktlich [0-23: 0-59 (h: m)]
-
-Schalte nicht aus
-Auszeit [0-23: 0-59 (h: m)]
+Darstellungsformat:
+```
+send> 05 0F 00 00 18
+recv< 06
+2B 40 FF FF FF FF FF FF 3F 42 0F 00 BC 6C 06 00 00 00 00 00 00 00 00 00 CF
+2B 40 [FF FF] [FF FF] [FF FF] [3F 42 0F 00] [BC 6C 06 00] 00 00 00 00 00 00 00 00
+SF Pa [R    ] [Cnt  ] [Dir  ] [On         ] [Off        ] 00 00 00 00 00 00 00 00
+SF Pa [R    ] [Cnt  ] [Dir  ] [Par                      ] 00 00 00 00 00 00 00 00
 ```
 
-## Analogwertüberwachung
+```
+SF: Funktionsblock, siehe Liste Sonderfunktionen
+Pa: Funktionsblockparameter
+    Hi ---------------- Lo
+      b7 b6 b5 b4 0000
+
+    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
+    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+
+R: Eingang R (Co oder GF/SF)
+Cnt: Eingang Cnt (Co oder GF/SF)
+Dir: Eingang Dir (Co oder GF/SF)
+Par:
+  On: Einschaltschwelle (0 ... 999999)
+  B1 B2 B3 B4
+      \ /
+      / \
+  B4 B3 B2 B1
+  00 0F 42 3F = 999999
+
+  Off: Ausschaltschwelle (0 ... 999999)
+  B1 B2 B3 B4
+      \ /
+      / \
+  B4 B3 B2 B1
+  00 06 6C BC = 421052
+  
+StartVal: Ausgangswert, ab dem entweder vorwärts oder rückwärts gezählt wird (0BA6)
+```
+
+## <a name="SF2D"></a>Asynchroner Impulsgeber
+
+RAM/Rem: 12/3
+
+Darstellungsformat:
+```
+2D 40 02 00 FF FF 02 80 02 80 00 00
+2D 40 [02 00] [FF FF] [02 80] [02 80] 00 00
+SF Pa [En   ] [INV  ] [TH   ] [TL   ] 00 00
+SF Pa [En   ] [INV  ] [Par          ] 00 00
+```
+
+```
+SF: Funktionsblock, siehe Liste Sonderfunktionen
+Pa: Funktionsblockparameter
+    Hi ---------------- Lo
+      b7 b6 b5 b4 0000
+
+    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
+    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+
+En: Eingang En (Co oder GF/SF)
+INV: Eingang INV (Co oder GF/SF)
+Par:
+  TH: Parameter [TH](#zeitdefinition) (Impulsdauer TH)
+  TL: Parameter [TL](#zeitdefinition) (Impulspausendauer TL)
+```
+
+## <a name="SF39"></a>Analogwertüberwachung
 
 RAM/Rem: 20/-
 
 Darstellungsformat:
 ```
 39 40 FD 00 92 00 C8 00 66 00 00 00 00 00 00 00 00 00 00 00
-39 40 [(FD 00) (92 00)] C8 00 66 00 00 00 00 00 00 00 00 00 00 00
-XX Xp [(En   ) (Ax   )] C8 00 66 00 00 00 00 00 00 00 00 00 00 00
+39 40 [FD 00] [92 00] [C8 00 66 00 00 00 00 00 00 00 00 00 00 00
+SF Pa [En   ] [Ax   ] [Par ... 
 ```
   
 ```
-Eingang En
-Eingang Ax
+SF: Funktionsblock, siehe Liste Sonderfunktionen
+Pa: Funktionsblockparameter
+    Hi ---------------- Lo
+       b7 b6 b5 b4 0000
 
-Parameter
-C8 = 1100 1000 = 200
-66 = 0110 0110 = 102
+    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 0 Byte REM (Def)
+    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+
+En: Eingang En (Co oder GF/SF)
+Ax: Eingang Ax (Co oder GF/SF)
+Par:
+  A: Verstärkung (Gain) (+/-10,00)
+  B: Nullpunktverschiebung (Offset) (+/-10000)
+  Delta: Differenzwert unter Aen-/Ein-/Ausschwellwert (+/-20000)
+  p: Anzahl der Nachkommastellen (0,1,2,3)
+
+  C8 = 1100 1000 = 200
+  66 = 0110 0110 = 102
 ```
 
-## Definition der Funktionsblockzeit
+## Zeitdefinition
 
 Darstellungsformat:
 ```
-    .. xx Z2 Z1 xx ..
+   .. xx Z2 Z1 xx ..
 
-    Format Beschreibung:
-      xx: irgendein Byte
-     Z1 Z2: Zeitdefinition
-         Z2 Z1
-        \ /
-        / \
-         Z1 Z2
+   Format Beschreibung:
+    xx: irgendein Byte
+    Z1 Z2: Zeitdefinition
+      Z2 Z1
+       \ /
+       / \
+      Z1 Z2
       Hi ----------------- [Z1] ----- | ---------------- [Z2] ---> Lo
-         b15 b14 | b13 b12 xxxx xxxx b3 b2 b1 b0
-         ~~~~~~~
+         b15 b14 | b13 b12 xxxx xxxx b3 b2 b1 b0
+         ~~~~~~~
       b15 b14 = 11 Stunden (h: m) [0-99: 0-59]
       b15 b14 = 10 Minuten (m: s) [0-99: 0-59]
       b15 b14 = 01 Sekunde (s: 1 / 100s) [0-99: 0-99]
       
       b13..b0 (14bit)
-         Länge der Zeit (m | s | 1 / 100s) Ganzzahl: T,
-         if (b15 b14 = 11) // Stunden (h: m)
-           T = h * 60 + m
-         if (b15 b14 = 10) // Minuten (m: s)
-           T = m * 60 + s
-         if (b15 b14 = 01) // Sekunde (s: 1 / 100s)
-           T = s * 100 + (1 / 100s)
+         Länge der Zeit (m | s | 1 / 100s) Ganzzahl: T,
+         if (b15 b14 = 11) // Stunden (h: m)
+           T = h * 60 + m
+         if (b15 b14 = 10) // Minuten (m: s)
+           T = m * 60 + s
+         if (b15 b14 = 01) // Sekunde (s: 1 / 100s)
+           T = s * 100 + (1 / 100s)
 ```
 
 Beispiel:
 ```
-    21 40 01 00 7A 80 00 00 / bei Verspätung 2: 2 (m: s)
-    21 40 01 00 7A C0 00 00 / bei Verspätung 2: 2 (h: m)
-    21 40 01 00 CA 40 00 00 / Einschaltverzögerung 2: 2 (s: 1 / 100s)
-    21 C0 01 00 FE 41 00 00 / Einschaltverzögerung 5:10 (s: 1 / 100s) Aktivierung Remanenz
-    21 00 01 00 FE 41 00 00 / Einschaltverzögerung 5:10 (s: 1 / 100s) Schutz der Aktivierungsparameter
-          ~~~~~
+    21 40 01 00 7A 80 00 00 / bei Verspätung 2: 2 (m: s)
+    21 40 01 00 7A C0 00 00 / bei Verspätung 2: 2 (h: m)
+    21 40 01 00 CA 40 00 00 / Einschaltverzögerung 2: 2 (s: 1 / 100s)
+    21 C0 01 00 FE 41 00 00 / Einschaltverzögerung 5:10 (s: 1 / 100s) Aktivierung Remanenz
+    21 00 01 00 FE 41 00 00 / Einschaltverzögerung 5:10 (s: 1 / 100s) Schutz der Aktivierungsparameter
+          ~~~~~
       0111 1010 1000 0000/2: 2 (m: s)
       0111 1010 1100 0000/2: 2 (h: m)
       1100 1010 0100 0000/2: 2 (s: 1 / 100s)
       1111 1110 0100 0001/5: 10 (s: 1 / 100s) Aktiviert den Parameterschutz
       0110 1111 1101 0111 / auf Verspätung 99:59 (h: m)
-            \ /
-            / \
+            \ /
+            / \
       10 | 00 0000 0111 1010/2: 2 (m: s)
       11 | 00 0000 0111 1010/2: 2 (h: m) 122?
       01 | 00 0000 1100 1010/2: 2 (s: 1 / 100s) 202
@@ -725,18 +802,18 @@ FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 02 04 [0B 2B 01 00 43 6E 74 3A 20 20 00 00] 00 00
 01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00
 ~~ XX ~~ YY ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ZZ ~~~~~ KK
-                
-         0B 2B 00 00 // Block02, Parameter 1
-         0B 2B 01 00 // Block02, Parameter 2
-                4C 65 6E 3A // [Len:]
-                43 6E 74 3A // [Cnt:]
-         80 50 72 69 20 81 4E 78 74 // [↑ Pri ↓ Nxt]
+                
+         0B 2B 00 00 // Block02, Parameter 1
+         0B 2B 01 00 // Block02, Parameter 2
+                4C 65 6E 3A // [Len:]
+                43 6E 74 3A // [Cnt:]
+         80 50 72 69 20 81 4E 78 74 // [↑ Pri ↓ Nxt]
 XX:
   01: Nein / Nur Text
   02: Fügen Sie den Block ein
-      02 04 [0B 2B 01 00
-        ~~~~~~ ~~~~~~~~~~~~~
-        Blockeinfügeposition Blocknummer Blockparameternummer
+      02 04 [0B 2B 01 00
+        ~~~~~~ ~~~~~~~~~~~~~
+        Blockeinfügeposition Blocknummer Blockparameternummer
   03: aktuelle Uhrzeit, belegte Breite 8
   04: aktuelles Datum, Berufsbreite 10
   05: Nachrichtenaktivierungszeit, Besetzungsbreite 8
@@ -750,10 +827,10 @@ JJ:
     und der Text an der aktuellen Position wird beim Einfügen des Blocks nach rechts verschoben 
     [Block Parameter Display Length].
   Beispiel
-    Originaltext:
-       "ABCDE"
-    Fügen Sie die aktuelle Uhrzeit nach dem Buchstaben "B" ein:
-       "AB [] CDE"
+    Originaltext:
+       "ABCDE"
+    Fügen Sie die aktuelle Uhrzeit nach dem Buchstaben "B" ein:
+       "AB [] CDE"
 
 ZZ: Text (ACSII)-Zeichen, wenn die Zeile einen Block hat, 
   repräsentieren die ersten 4 Bytes den Block.
