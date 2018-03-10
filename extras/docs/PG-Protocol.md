@@ -1,6 +1,6 @@
 # LOGO! PG Protocol Reference Guide
 
-Rev. Bn
+Rev. Bo
 
 March 2018
 
@@ -502,14 +502,13 @@ The distance between the data transfers (scan distance) depends on the cycle tim
 
 ### Query
 
-Command | Function | Data 1) | Trailer
---- | --- | --- | ---
-1 byte | 2 bytes | 1 byte | 1 byte
-Control Code | Function Code | Data byte 1) | End Delimiter
+Command | Function | Byte Count | Data 1) | Trailer
+--- | --- | --- | --- | ---
+1 byte | 2 bytes | 1 byte | 1 byte | 1 byte
+Control Code | Function Code | Number of bytes | Data byte 1) | End Delimiter
 >Figure _Start Fetch Data_ Query Message
 
-__Notes:__ 1) Is only omitted if a started request should be aborted
-
+__Notes:__ 1) Used when the _Byte Count_ is greater than zero
 
 Here is an example of a single request of fetching the monitoring data from _LOGO!_ device:
 
@@ -517,7 +516,8 @@ Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Command | `55` | Control
 Function | `13 13` | Fetch Data
-Data | `00` | Start Fetching
+Byte Count | `02` | Number of bytes = 2
+Data | `0b` `0a` | Block B002, B001
 Trailer | `aa` | End Delimiter
 >Figure Example _Start Fetch Data_ Query
 
@@ -532,7 +532,7 @@ Confirmation Code | Control Code | Function Code | Number of bytes | Padding Byt
 The _Byte Count_ value indicates the number of bytes that are followed (excluding the _Padding Byte_ and the _End Delimiter_ `AA`).
 
 __Notes:__
-_Byte Count_ value
+Minimum _Byte Count_ value
 - __0BA4__ = 40 (hex) = 64 bytes
 - __0BA5__ = 40 (hex) = 64 bytes
 - __0BA6__ = 4a (hex) = 74 bytes
@@ -871,7 +871,7 @@ Command | Description | Query | Response 1)
 `04` | Write Block Command | 6 + c | 1
 `05` | Read Block Command | 5 | 2 + c
 `12` | Stop Operating | 4 | 1
-`13` | Start Fetch Data | 5 | 70
+`13` | Start Fetch Data | 5 | 70 + c
 `14` | Stop Fetch Data | 4 | 0
 `17` | Operating Mode | 4 | 2
 `18` | Start Operating | 4 | 1
@@ -903,7 +903,7 @@ Command | Description | Query | Response
 `04` | Write Block Command | 8 + c | 1
 `05` | Read Block Command | 7 | 2 + c
 `12` | Stop Operating | 4 | 1
-`13` | Start Fetch Data | 5 | 80
+`13` | Start Fetch Data | 5 | 80 + c
 `14` | Stop Fetch Data | 4 | 0
 `15` | Exception Response | N | 2
 `17` | Operating Mode | 4 | 2
@@ -1086,15 +1086,15 @@ Write Byte | `01` `47 40` `00` | `06` | password access initialized
 Read Byte | `02` `1f 00` | `06` `03` `1f 00` `04` | read single byte at `1f 00` (= `04`)
 Read Byte | `02` `1f 01` | `06` `03` `1f 01` `00` | read single byte at `1f 01` (= `00`)
 Read Byte | `02` `48 ff` | `06` `03` `48 ff` `40` | password exist _Y_ (= `40`, _N_ = `00`)
-Read Block | `05` `05 66` `00 0a` | `06` `50 .. 64 00 00` `3f` | ASCII with 2 padding bytes (length = 8)
+Read Block | `05` `05 66` `00 0a` | `06` `50 .. 44 00 00` `3f` | ASCII with 2 padding bytes (length = 8)
 >Figure Example _Read Password_
 
 __Note:__ The password can only be read or set in _STOP_ mode.
 
 Format | Data
 --- | ---
-Hexadecimal | `50 61 73 73 77 6F 72 64 00 00`
-ASCII | `_P _a _s _s _w _o _r _d __ __`
+Hexadecimal | `50 41 53 53 57 4F 52 44 00 00`
+ASCII | `_P _A _S _S _W _O _R _D __ __`
 >Figure Example _Password_ Data decoded
 
 ### Memory Access
