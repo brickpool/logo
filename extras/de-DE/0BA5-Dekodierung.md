@@ -26,43 +26,43 @@
 
 ## Adressübersicht
 
-| Beispiel    | Adresse     | Länge |   |                                                             |
-|-------------|-------------|-------|---|-------------------------------------------------------------|
-|             | 0522        | 1     | W |                                                             |
-|             | 0552        | 1     |   | LOGO! Default nach Power-On                                 |
-| 05 53 00 05 | 0553 - 0558 | 5     |   | LOGO! Einstellung des Analogausgangs im Betriebszustand STOP|
-|             | 055E        | 1     |   |                                                             |
-|             | 055F        | 1     |   |                                                             |
-| 05 66 00 0A | 0566 - 0570 | 10    |   | LOGO! Passwortspeicherbereich                               |
-| 05 70 00 10 | 0570 - 0580 | 16    |   | LOGO! Programmname                                          |
-|             | 0580 - 05C0 |       |   | = 0 (0040H = 64)                                            |
-| 05 C0 00 40 | 05C0 - 0600 | 64    |   | Blocknamenindex                                             |
-| 06 00 02 00 | 0600 - 0800 | 512   |   | Blockname                                                   |
-| 08 00 02 80 | 0800 - 0A80 | 640   |   | Textfeld 10; 64 Bytes / jedes Textfeld                      |
-|             | 0A80 - 0C00 |       |   | = 0 (0180h = 384)                                           |
-| 0C 00 00 14 | 0C00 - 0014 | 20    |   | Verweis auf Ein-/Ausgänge, Merker (0E20 - 0EE8)             |
-| 0C 14 01 04 | 0C14 - 0D18 | 260   |   | Verweis auf Programmspeicher (130 Blöcken)                  |
-|             | 0D18 - 0E20 | null  |   | (0108h = 264)                                               |
-| 0E 20 00 28 | 0E20 - 0E48 | 40    |   | Digitalausgänge Q1 bis Q16                                  |
-| 0E 48 00 3C | 0E48 - 0E84 | 60    |   | Merker (REM ??)                                             |
-| 0E 84 00 14 | 0E84 - 0E98 | 20    |   | Analogausgang AQ1 bis AQ2                                   |
-| 0E 98 00 28 | 0E98 - 0EC0 | 40    |   | unbeschaltete Ausgänge X1 bis X16                           |
-| 0E C0 00 28 | 0EC0 - 0EE8 | 40    |   |                                                             |
-| 0E E8 07 D0 | 0EE8 - 16B8 | 2000  |   | Programmspeicherbereich                                     |
-|             | 4100        | 1     | W |                                                             |
-|             | 4400        | 1     | W | = 00, Clock-Schreibinitialisierung                          |
-|             | 4740        | 1     | W | = 00, Passwort. Die Übertragung beginnt                     |
-|             | 48FF        | 1     | R | Passwort vorhanden? ja 40h; nein 00h                        |
-|             | 1F00        | 1     |   |                                                             |
-|             | 1F01        | 1     |   |                                                             |
-|             | 1F02        | 1     |   | Revision Byte                                               |
-|             | FB00 - FB05 | 6     |   | LOGO! Uhr                                                   |
-| 01 FB 00    |             |       |   | LOGO! Uhr Parameter 1                                       |
-| ...         |             |       |   | ..                                                          |
-| 01 FB 05    |             |       |   | LOGO! Uhr Parameter 6                                       |
+| Beispiel    | Adresse     | Länge |   |                                                        |
+|-------------|-------------|-------|---|--------------------------------------------------------|
+|             | 0522        | 1     | W |                                                        |
+|             | [0552]        | 1     |   | Standardanzeige nach dem Einschalten                   |
+| 05 53 00 05 | [0553] - 0558 | 5     |   | Einstellung des Analogausgangs im Betriebszustand STOP |
+|             | 055E        | 1     |   |                                                        |
+|             | 055F        | 1     |   |                                                        |
+| 05 66 00 0A | 0566 - 0570 | 10    |   | Passwortspeicherbereich                                |
+| 05 70 00 10 | 0570 - 0580 | 16    |   | Programmname                                           |
+|             | 0580 - 05C0 |       |   | = 0 (0040H = 64)                                       |
+| 05 C0 00 40 | 05C0 - 0600 | 64    |   | Blocknamenindex                                        |
+| 06 00 02 00 | 0600 - 0800 | 512   |   | Blockname                                              |
+| 08 00 02 80 | 0800 - 0A80 | 640   |   | Textfeld 10; 64 Bytes / jedes Textfeld                 |
+|             | 0A80 - 0C00 |       |   | = 0 (0180h = 384)                                      |
+| 0C 00 00 14 | 0C00 - 0014 | 20    |   | Verweis auf Ein-/Ausgänge, Merker (0E20 - 0EE8)        |
+| 0C 14 01 04 | 0C14 - 0D18 | 260   |   | Verweis auf Programmspeicher (130 Blöcken)             |
+|             | 0D18 - 0E20 | null  |   | (0108h = 264)                                          |
+| 0E 20 00 28 | 0E20 - 0E48 | 40    |   | Digitalausgänge Q1 bis Q16                             |
+| 0E 48 00 3C | 0E48 - 0E84 | 60    |   | Merker M1 bis M24                                      |
+| 0E 84 00 14 | 0E84 - 0E98 | 20    |   | Analogausgang AQ1 bis AQ2                              |
+| 0E 98 00 28 | 0E98 - 0EC0 | 40    |   | unbeschaltete Ausgänge X1 bis X16                      |
+| 0E C0 00 28 | 0EC0 - 0EE8 | 40    |   |                                                        |
+| 0E E8 07 D0 | 0EE8 - 16B8 | 2000  |   | Programmspeicherbereich                                |
+|             | 4100        | 1     | W |                                                        |
+|             | 4400        | 1     | W | = 00, Clock-Schreibinitialisierung                     |
+|             | 4740        | 1     | W | = 00, Passwort. Die Übertragung beginnt                |
+|             | 48FF        | 1     | R | Passwort vorhanden? ja 40h; nein 00h                   |
+|             | 1F00        | 1     |   |                                                        |
+|             | 1F01        | 1     |   |                                                        |
+|             | 1F02        | 1     |   | Revision Byte                                          |
+|             | FB00 - FB05 | 6     |   | LOGO! Uhr                                              |
+| 01 FB 00    |             |       |   | LOGO! Uhr Parameter 1                                  |
+| ...         |             |       |   | ..                                                     |
+| 01 FB 05    |             |       |   | LOGO! Uhr Parameter 6                                  |
 
 __Hinweis:__
-Maximaler Bereich = [0E 20 08 98] Adr [0E20 - 16B8]
+Maximaler Bereich = 0E 20 08 98 Adr 0E20 - 16B8
 
 
 ## Textfeld
@@ -75,7 +75,7 @@ FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 // (40x)
 XOR
 ```
 
-## Standardanzeige nach dem Einschalten
+## <a name="0552"></a>Standardanzeige nach dem Einschalten
 
 Speicherbereich: 0552, 1 Byte
 
@@ -87,7 +87,7 @@ Zugriffsmethode:
 
 XX: Wert 01 = Eingabe/Ausgabe; FF = Zeit/Datum
 
-## Analogausgang im STOP-Modus
+## <a name="0553"></a>Analogausgang im STOP-Modus
 
 Speicherbereich: 0553 - 0558, Anzahl = 5
 
@@ -249,32 +249,18 @@ Dx:
   b7 = 0, dies ist eine Konstante oder Klemme
   b7 = 1, dies ist ein Block
 
-  b6 = 0, Normal
-  b6 = 1, Invertiert (nicht)
+  b6 = 0, Konnektor normal
+  b6 = 1, Konnektor negiert
 
 ```
-Hinweis: nicht verwendete Ports werden nicht angezeigt (= FF).
 
-Beispiel:
+Konnektor Beispiel:
 ```
-| Logikblöcke  | Verschiedenes (Port...)                 |
-| ------------------------------------------------------ |
-| Normal       | 0A 80 | 1000 0000 = 80 | 0000 0000 = 00 |
-| Invertierung | 0A C0 | 1100 0000 = C0 | 0100 0000 = 40 |
+| Konnektor | Verschiedenes (Port...)                 |
+| --------------------------------------------------- |
+| normal    | 0A 80 | 1000 0000 = 80 | 0000 0000 = 00 |
+| negiert   | 0A C0 | 1100 0000 = C0 | 0100 0000 = 40 |
 ```
-
-
-## Liste Grundfunktionen
-HEX | BIN       | Grundfunktion
-----|-----------|----------------------------
-01  | 0000 0001 | AND (UND)
-02  | 0000 0010 | OR (ODER)
-03  | 0000 0011 | NOT (Negation, Inverter)
-04  | 0000 0100 | NAND (UND nicht)
-05  | 0000 0101 | NOR (ODER nicht)
-06  | 0000 0110 | XOR (exklusiv ODER)
-07  | 0000 0111 | AND mit Flankenauswertung
-08  | 0000 1000 | NAND mit Flankenauswertung
 
 Beispiel
 ```
@@ -284,6 +270,8 @@ Beispiel
 80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
 1B
 ```
+
+__Hinweis:__ nicht verwendete Ports werden mit FF angezeigt.
 
 Block | HEX | TEN
 ------|-----|-----
@@ -299,6 +287,20 @@ B001  | 0A  | 10  | 0
 B009  | 12  | 18  | 8
 B011  | 14  | 20  | 10
 B014  | 17  | 23  | 13
+
+
+
+## Liste Grundfunktionen
+HEX | BIN       | Grundfunktion
+----|-----------|----------------------------
+01  | 0000 0001 | AND (UND)
+02  | 0000 0010 | OR (ODER)
+03  | 0000 0011 | NOT (Negation, Inverter)
+04  | 0000 0100 | NAND (UND nicht)
+05  | 0000 0101 | NOR (ODER nicht)
+06  | 0000 0110 | XOR (exklusiv ODER)
+07  | 0000 0111 | AND mit Flankenauswertung
+08  | 0000 1000 | NAND mit Flankenauswertung
 
 
 # Sonderfunktionen - SF
