@@ -29,19 +29,19 @@
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
 |             | 0522        | 1     | W |                                                        |
-|             | [0552](#0552)        | 1     |   | Standardanzeige nach dem Einschalten                   |
+|             | [0552](#0552)        | 1     |   | Displayinhalt nach Netz-Ein                            |
 | 05 53 00 05 | [0553](#0553) - 0558 | 5     |   | Einstellung des Analogausgangs im Betriebszustand STOP |
 |             | 055E        | 1     |   |                                                        |
 |             | 055F        | 1     |   |                                                        |
 | 05 66 00 0A | 0566 - 0570 | 10    |   | Passwortspeicherbereich                                |
-| 05 70 00 10 | 0570 - 0580 | 16    |   | Programmname                                           |
+| 05 70 00 10 | [0570](#0570) - 0580 | 16    |   | Programmname                                           |
 |             | 0580 - 05C0 |       |   | = 0 (0040H = 64)                                       |
-| 05 C0 00 40 | 05C0 - 0600 | 64    |   | Blocknamenindex                                        |
-| 06 00 02 00 | 0600 - 0800 | 512   |   | Blockname                                              |
-| 08 00 02 80 | 0800 - 0A80 | 640   |   | Textfeld 10; 64 Bytes / jedes Textfeld                 |
+| 05 C0 00 40 | [05C0](#05C0) - 0600 | 64    |   | Verweis auf Blockname                                  |
+| 06 00 02 00 | [0600](#0600) - 0800 | 512   |   | Blockname                                              |
+| 08 00 02 80 | [0800](#0800) - 0A80 | 640   |   | Textfeld 10; 64 Bytes / jedes Textfeld                 |
 |             | 0A80 - 0C00 |       |   | = 0 (0180h = 384)                                      |
-| 0C 00 00 14 | 0C00 - 0014 | 20    |   | Verweis auf Ausgänge, Merker (0E20 - 0EE8)             |
-| 0C 14 01 04 | 0C14 - 0D18 | 260   |   | Verweis auf Programmspeicher (130 Blöcke)              |
+| 0C 00 00 14 | [0C00](#0C00) - 0C14 | 20    |   | Verweis auf Ausgänge, Merker (0E20 - 0EE8)             |
+| 0C 14 01 04 | [0C14](#0C14) - 0D18 | 260   |   | Verweis auf Programmspeicher (130 Blöcke)              |
 |             | 0D18 - 0E20 | null  |   | (0108h = 264)                                          |
 | 0E 20 00 28 | [0E20](#0E20) - 0E48 | 40    |   | Digitalausgänge Q1 bis Q16                             |
 | 0E 48 00 3C | [0E48](#0E48) - 0E84 | 60    |   | Merker M1 bis M24                                      |
@@ -56,129 +56,333 @@
 |             | 1F00        | 1     |   |                                                        |
 |             | 1F01        | 1     |   |                                                        |
 |             | 1F02        | 1     |   | Revision Byte                                          |
-|             | FB00 - FB05 | 6     |   | LOGO! Uhr                                              |
-| 01 FB 00    |             |       |   | LOGO! Uhr Parameter 1                                  |
+|             | [FB00](#FB00) - FB05 | 6     |   | RTC-Uhr                                                |
+| 01 FB 00    |             |       |   | RTC-Uhr Parameter 1                                    |
 | ...         |             |       |   | ..                                                     |
-| 01 FB 05    |             |       |   | LOGO! Uhr Parameter 6                                  |
+| 01 FB 05    |             |       |   | RTC-Uhr Parameter 6                                    |
 
 __Hinweis:__
 Maximaler Bereich = 0E 20 08 98 Adr 0E20 - 16B8
 
 
-## Textfeld
-Speicherbereich: 0800 - 0A80, 640 Bytes (40 * 16) 
-
-Standarddaten:
-```
-FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 // (40x)
-   ... ...
-XOR
-```
-
-## <a name="0552"></a>Standardanzeige nach dem Einschalten
+## <a name="0552"></a>Displayinhalt nach Netz-Ein
 
 Speicherbereich: 0552, 1 Byte
 
-Zugriffsmethode:
-```
-01 05 52 [XX]
-02 05 52
-```
-
-XX: Wert 01 = Eingabe/Ausgabe; FF = Zeit/Datum
-
-## <a name="0553"></a>Analogausgang im STOP-Modus
-
-Speicherbereich: 0553 - 0558, Anzahl = 5
-
-Zugriffsmethode: `05/04 05 53 00 05`
-
-Bereich: 0.00 - 9.99
+Zugriffsmethode: Lesen und Schreiben
 
 Darstellungsformat:
 ```
-B1 B2    B3    B4    B5    B6
-B1 AQ1Va AQ1Vb AQ2Va AQ2Vb (XOR)
+send> 02 05 52 
+recv< 06
+03 05 52 00
+03 05 52 XX
 ```
 
+XX:
+  00 = Datum/Uhrzeit
+  01 = Ein-/Ausgänge
+
+
+## <a name="0553"></a>Analogausgang im STOP-Modus
+
+Speicherbereich: 0553 - 0558, Anzahl = 5 Bytes
+
+Zugriffsmethode: Lesen und Schreiben
+
+Darstellungsformat:
 ```
-IF B1 = 01
-  Alle Ausgänge haben den letzten Wert
+send> 05 05 53 00 05 
+recv< 06
+00 C4 03 D5 01 13
+00 [C4 03] [D5 01] 13
+XX [AQ1  ] [AQ2  ] XOR
+```
+
+Wertebereich: 0.00 - 9.99
+
+```
+IF XX = 01
+  Alle Ausgänge behalten den letzten Wert bei
 THEN
 {
-  AQ1 fester Ausgangswert B2 B3
-  AQ2 fester Ausgangswert B4 B5
+  AQ1 Wert im Betriebsart STOP
+  AQ2 Wert im Betriebsart STOP
 }
 ```
 
 Berechnungsmethode:
 ```
-00 C4 03 D5 01 13
-  ~ ~ ~ ~ ~ ~
-    \ / \ /
-    / \ / \
-  03 C4 01 D5 (hexadezimal)
-    964 469 (Dezimal)
- ______________
-      100
-
-   9.64 4.69
+00 [C4 03] [D5 01]
+     \ /     \ /
+     / \     / \
+    03 C4   01 D5  (HEX)
+    964     469    (Dec)
+    -------------
+    9.64    4.69
 ```
 
-Beispiel:
-```
-01 00 00 00 00 | 01
-00 50 00 28 00 | 78
-```
+## <a name="0570"></a>Programmname
 
-## Standardanzeige nach dem Einschalten
+Speicherbereich: 0570, 10 Bytes
 
-B1 = 01 Eingang / Ausgang; B1 = 00 Zeit / Datum
-
-## Programmname
+Zugriffsmethode: Lesen und Schreiben
 
 Standarddaten
 ```
 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20
 ```
 
-## RTC-Uhr
+## <a name="05C0"></a>Verweis auf Blockname
 
-Adresse | Wert
---- | ---
-FB00 | Tag
-FB01 | Monat
-FB02 | Jahr
-FB03 | Minuten
-FB04 | Stunden
-FB05 | Wochentag
+Speicherbereich: 05C0 - 0600, 64 Bytes
 
-### Schreiben
+Adressverweis:
 ```
-01 FB XX YY   // XX = [00-05], YY = Wert,
--> 06         // OK
+      Speicher 05C0            Speicher 0600
+    .---------------.        .---------------.
+05C0| Blockindex 1  |------->| 8 Bytes/ASCII |0600
+05C1|            2  |------->| 8 Zeichen     |0608
+05C2|            3  |------->| 8 Zeichen     |0610
+ :  |            :  |        | :             | :
+ :  |            :  |        | :             | :
+    |               |        |               |
+    |               |        |               |
+05FE| Blockindex 63 |------->| 8 Zeichen     |07F0
+05FF| Blockindex 64 |------->| 8 Zeichen     |07F8
+    '---------------'        '---------------'
+```
+Es können maximal 64 Blöcke einen Blocknamen erhalten.
 
-01 43 00 00   // Bestätigen
+Beispiel:
+```
+send> 05 05 C0 00 10 
+recv< 06
+0A 0C FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+06
 ```
 
-### Auslesen
+HEX | DEC | Block | Adresse
+----|-----|-------|--------
+0A  | 10  | B001  | 0600
+0C  | 12  | B003  | 0608
+FF  | 255 | -     | -
+
+## <a name="0600"></a>Blockname
+
+Speicherbereich: 0600 - 0800, 512 Bytes (8 * 64)
+
+Zugriffsmethode: Lesen und Schreiben
+
+8 Byte Länge, bei weniger als 8 Byte wird mit `00` terminiter und mit `FF` aufgefüllt.
+
+Standarddaten:
 ```
-01 44 00 00       // initialisieren
-02 FB XX          // XX: Adresse
--> 06 03 FB XX YY // YY: Wert
+FF FF FF FF FF FF FF FF
+FF FF FF FF FF FF FF FF
+FF FF ...
 ```
 
-
-## Blocknamenindex, Blockname
-
-Speicherbereich Blocknamensindex: 0A-0E = B001-B005
-
-Blockname: 8 Byte Länge, bei weniger als 8 Byte wird mit `00` aufgefüllt, gefolgt von `FF`.
-
-Beispiele
+Beispiel:
 ```
-6B 75 61 69 30 31 00 FF
-4B 55 41 49 41 42 43 44
+send> 05 06 00 00 18 
+recv< 06 
+31 32 33 34 00 FF FF FF   // 12345
+38 37 36 35 34 33 32 31   // 87654321
+41 42 43 44 45 00 FF FF   // ABCDE
+B2                        // XOR
+```
+Das Beispiel zeigt die Blöcke B001 bis B003
+
+
+## <a name="0800"></a>Textfeld
+64 Bytes / pro Textfeld
+
+Speicherbereich: 0800 - 0A80, 640 Bytes (40 * 16) 
+
+Standarddaten:
+```
+FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 // (40x)
+...
+```
+
+Darstellungsformat
+```
+-----------------------------------------------
+03 04 20 20 20 20 00 00 00 00 00 00 00 00 00 00
+02 04 0B 2B 00 00 4C 65 6E 3A 20 20 00 00 00 00
+02 04 0B 2B 01 00 43 6E 74 3A 20 20 00 00 00 00
+01 00 80 50 72 69 20 81 4E 78 74 20 20 20 00 00
+
+01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+02 06 14 2B 00 00 54 6F 6C 4C 65 6E 00 00 00 00
+02 06 17 2B 00 00 54 69 6D 65 73 20 00 00 00 00
+01 00 80 50 72 69 20 81 4E 78 74 20 20 20 00 00
+
+FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+... ...
+FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+6C
+-------------------------------------------------
+03 04 [20 20 20 20 00 00 00 00 00 00 00 00] 00 00
+02 04 [0B 2B 00 00 4C 65 6E 3A 20 20 00 00] 00 00
+02 04 [0B 2B 01 00 43 6E 74 3A 20 20 00 00] 00 00
+01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00
+XX YY ~~~~~~~~~~~~~~~~ ZZ ~~~~~~~~~~~~~~~~~
+                
+       0B 2B 00 00                // Block02, Parameter 1
+       0B 2B 01 00                // Block02, Parameter 2
+                  4C 65 6E 3A     // [Len:]
+                  43 6E 74 3A     // [Cnt:]
+       80 50 72 69 20 81 4E 78 74 // [↑Pri ↓Nxt]
+XX:
+  01: Nein / Nur Text
+  02: Fügen Sie den Block ein
+      02 04 [0B 2B 01 00
+      ~~~~~ ~~~~~~~~~~~~
+      Blockeinfügeposition Blocknummer Blockparameternummer
+  03: aktuelle Uhrzeit, Breite 8
+  04: aktuelles Datum, Breite 10
+  05: Nachrichtenaktivierungszeit, Breite 8
+  06: Nachrichtenaktivierungsdatum, Breite 10
+
+YY:
+  XX = 01/03 Die Anfangsposition des Textes
+
+  XX = 02 Blockeinfügeposition
+    Die Textausrichtung ist linksbündig,
+    und der Text an der aktuellen Position wird beim Einfügen des Blocks nach rechts verschoben 
+    [Block Parameter Display Length].
+
+  Beispiel
+    Originaltext:
+       "ABCDE"
+    Fügen Sie die aktuelle Uhrzeit nach dem Buchstaben "B" ein:
+       "AB [] CDE"
+
+ZZ: Text (ASCII)-Zeichen,
+    wenn die Zeile einen Block hat, repräsentieren die ersten 4 Bytes den Block.
+
+    80 Pfeil nach oben ↑
+    81 Pfeil nach unten ↓
+```
+
+Beispiele:
+```
+01 00 [00 00 00 00 00 00 00 00 00 00 00 00] 00 00
+02 02 [14 2B 00 00 41 20 20 5A 20 20 00 00] 00 00 // [BLOCK] A _ _ Z
+02 05 [17 2B 00 00 54 69 6D 65 73 20 00 00] 00 00
+01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00
+
+03 04 [20 20 20 20 00 00 00 00 00 00 00 00] 00 00 // die aktuelle Uhrzeit
+04 00 [20 BA 00 00 00 00 00 00 00 00 00 00] 00 00 // Das aktuelle Datum
+05 00 [00 00 00 00 00 00 00 00 20 20 20 9F] 00 00 // Nachrichtenfreigabezeit
+06 00 [00 00 00 00 00 00 00 00 00 00 20 8F] 00 00 // Meldungsaktivierungsdatum
+```
+
+## <a name="0C00"></a>Verweis auf Ausgänge, Merker
+20 Bytes fest, die jeweils (weitere) 20 Bytes im Speicherbereich für Ein-/Ausgänge und Merker verweisen. Der Verweis wird als 16 Bit-Offset-Adresse dargestellt. 
+
+Speicherbereich: 0C00 - 0C14, 20 Bytes (10 * 2) 
+
+Adressverweis:
+```
+      Speicher 0C00            Speicher 0E20
+    .----------------.       .---------------.
+0C00| 0E20 Offset 1  |------>| 20 Bytes      |0E20+0000 = 0E20
+0C02| 0E20 Offset 2  |------>| 20 Bytes      |0E20+0014 = 0E34
+    o----------------o       o---------------o
+0C04| 0E20 Offset 3  |------>| 20 Bytes      |0E20+0028 = 0E48
+ :  |             :  |       | :             | :
+ :  |             :  |       | :             | :
+    o----------------o       o---------------o
+    |                |       |               |
+    o----------------o       o---------------o
+    |                |       |               |
+    |                |       |               |
+    o----------------o       o---------------o
+0C10| 0E20 Offset 9  |------>| 20 Bytes      |0E20+00A0 = 0EC0
+0C12| 0E20 Offset 10 |------>| 20 Bytes      |0E20+00B4 = 0ED4
+    '----------------'       '---------------'
+```
+
+Bereich     | Anz | Zeiger            | Beschreibung
+------------|-----|-------------------|------------------------
+0E20 - 0E48 | 40  | 0000, 0014        | Digitaler Ausgang 1..16
+0E48 - 0E84 | 60  | 0028, 003C, 0050  | Merker 1..24
+0E84 - 0E98 | 20  | 0064              | Analogausgang 1, 2
+0E98 - 0EC0 | 40  | 0078, 008C        | offener Ausgang 1..16
+0EC0 - 0EE8 | 40  | 00A0, 00B4        | (Reserve ??)
+
+Befehl:
+```
+05 0C 00 00 14
+```
+
+Ausgabe:
+```
+          |<----------------------- 20 Bytes ----------------------->|
+HEX MSB:  00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4 00
+HEX LSB:  00 00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4
+Decimal:  00    20    40    60    80    100   120   140   160   180
+Delta:       20    20    20    20    20    20    20    20    20
+```
+
+## <a name="0C14"></a>Verweis auf Programmspeicher
+Zeiger auf die Funktionsblöcke im Programmspeicherbereich 0EE8. Jeweils 16bit Zeiger (ungleich FFFFh) zeigen auf ein Funktionsblock im Programmspeicher mit variabler Länge. 
+
+Die Größe beträgt 260 Bytes (0BA5 hat maximal 130 Blöcke und der Zeiger eines Funktionsblocks belegt 2 Bytes: 260/2 = 130).
+
+Speicherbereich: 0C14 - 0D18, 260 Bytes (130 * 2) 
+
+Adressverweis:
+```
+      Speicher 0C14            Speicher 0EE8
+    .-----------------.      .---------------.
+0C14| 0E20 Offset 1   |----->| Block n Bytes |0E20+Offset 1 = 0EE8
+0C16| 0E20 Offset 2   |----->| Block n Bytes |0E20+Offset 2
+0C18| 0E20 Offset 3   |----->| Block n Bytes |0E20+Offset 3
+ :  |             :   |      | :             | :
+ :  |             :   |      | :             | :
+    |                 |      |               |
+    |                 |      |               |
+0D14| 0E20 Offset 129 |----->| Block n Bytes |0E20+Offset 129
+0D16| 0E20 Offset 130 |----->| Block n Bytes |0E20+Offset 130
+    '-----------------'      '---------------'
+```
+   
+Befehl:
+```
+05 0C 14 01 04
+```
+
+Ausgabe mit gelöschten Programm:
+```
+FF FF FF FF FF FF FF FF FF FF FF
+```
+
+Beispiel 1: REM = 3, Ausschaltverzögerung
+```
+C8 00 FF FF FF FF FF FF FF FF FF FF
+```
+
+Der erste Funktionsblock liegt im Programmspeicher 0EE8 = 0E20 + 00C8.
+
+Beispiel 1: Programm "Wickelmaschine"
+```
+C8 00 D0 00 E8 00 F4 00 00 01 08 01 14 01 1C 01 28 01 30 01
+3C 01 54 01 60 01 6C 01 84 01 FF FF FF FF
+```
+
+```
+HEX MSB:  C8 00 D0 00 E8 00 F4 00 00 01 08 01 14 01 1C 01 28 01 30 01
+          3C 01 54 01 60 01 6C 01 84 01 FF FF
+HEX LSB:  00 C8 00 D0 00 E8 00 F4 01 00 01 08 01 14 01 1C 01 28 01 30
+          01 3C 01 54 01 60 01 6C 01 84
+Dezimal:  200   208   232   244   256   264   276   284   296   304
+          316   340   352   364   388
+Delta:       8     24    12    12    8     12    8     12    8     12
+             24    12    12    24
 ```
 
 # Konstanten und Klemmen - Co
@@ -186,7 +390,7 @@ Beispiele
 ## Liste Konstanten
 HEX   | Konstante | Beschreibung
 ------|-----------|-------------------------
-FC    | Float     | ??
+FC    | Float     | (Verwendung ??)
 FD    | Pegel hi  | Blockeingang logisch = 1
 FE    | Pegel lo  | Blockeingang logisch = 0
 FF    | -         | nicht belegt
@@ -285,7 +489,7 @@ recv< 06
 1B
 ```
 
-Klemme | Block | HEX | TEN
+Klemme | Block | HEX | DEC
 -------|-------|-----|-----
 X1     | B001  | 0A  | 10
 X2     | -     | FF  | -
@@ -293,7 +497,7 @@ X3     | B014  | 17  | 23
 X4     | B011  | 14  | 20
 X5     | B009  | 12  | 18
 
-Block | HEX | TEN | Offset (-9)
+Block | HEX | DEC | Offset (-9)
 ------|-----|-----|-------------
 B001  | 0A  | 10  | 1
 B009  | 12  | 18  | 9
@@ -341,10 +545,10 @@ Xa Xb: X = Element 1-4
 
 
 Konnektor:
-| Konnektor | HEX | BIN            |
-|-----------|-----|----------------|
-| normal    | 80  | 1000 0000 = 80 |
-| negiert   | C0  | 1100 0000 = C0 |
+Konnektor | HEX | BIN
+----------|-----|---------------
+normal    | 80  | 1000 0000 = 80
+negiert   | C0  | 1100 0000 = C0
 
 
 # Sonderfunktionen - SF
@@ -774,222 +978,6 @@ Zehn
   ~~~~~~~~~~~~~~~~~ = Ten5999: Hex176F
 ```
 
-## Textfeld
-
-RAM/Rem: 2/10
-
-```
-08 00 02 80 | 0800 - 0A80 | 640 | // (40x16Byte)
-
-64 Bytes / pro Textfeld
--------------------------------------------------
-03 04 20 20 20 20 00 00 00 00 00 00 00 00 00 00
-02 04 0B 2B 00 00 4C 65 6E 3A 20 20 00 00 00 00
-02 04 0B 2B 01 00 43 6E 74 3A 20 20 00 00 00 00
-01 00 80 50 72 69 20 81 4E 78 74 20 20 20 00 00
-
-01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-02 06 14 2B 00 00 54 6F 6C 4C 65 6E 00 00 00 00
-02 06 17 2B 00 00 54 69 6D 65 73 20 00 00 00 00
-01 00 80 50 72 69 20 81 4E 78 74 20 20 20 00 00
-FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-... ...
-FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-6C
--------------------------------------------------
-03 04 [20 20 20 20 00 00 00 00 00 00 00 00] 00 00
-02 04 [0B 2B 00 00 4C 65 6E 3A 20 20 00 00] 00 00
-02 04 [0B 2B 01 00 43 6E 74 3A 20 20 00 00] 00 00
-01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00
-~~ XX ~~ YY ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ZZ ~~~~~ KK
-                
-         0B 2B 00 00 // Block02, Parameter 1
-         0B 2B 01 00 // Block02, Parameter 2
-                4C 65 6E 3A // [Len:]
-                43 6E 74 3A // [Cnt:]
-         80 50 72 69 20 81 4E 78 74 // [↑ Pri ↓ Nxt]
-XX:
-  01: Nein / Nur Text
-  02: Fügen Sie den Block ein
-      02 04 [0B 2B 01 00
-        ~~~~~~ ~~~~~~~~~~~~~
-        Blockeinfügeposition Blocknummer Blockparameternummer
-  03: aktuelle Uhrzeit, belegte Breite 8
-  04: aktuelles Datum, Berufsbreite 10
-  05: Nachrichtenaktivierungszeit, Besetzungsbreite 8
-  06: Nachrichtenaktivierungsdatum, Belegungsbreite 10
-
-JJ:
-  XX = 01/03 Die Anfangsposition des Textes
-
-  XX = 02 Blockeinfügeposition
-    Die Textausrichtung ist linksbündig, 
-    und der Text an der aktuellen Position wird beim Einfügen des Blocks nach rechts verschoben 
-    [Block Parameter Display Length].
-  Beispiel
-    Originaltext:
-       "ABCDE"
-    Fügen Sie die aktuelle Uhrzeit nach dem Buchstaben "B" ein:
-       "AB [] CDE"
-
-ZZ: Text (ACSII)-Zeichen, wenn die Zeile einen Block hat, 
-  repräsentieren die ersten 4 Bytes den Block.
-
-80 Pfeil nach oben ↑
-81 Pfeil nach unten ↓
-```
-
-Beispiel:
-```
-03 04 20 20 20 20 00 00 00 00 00 00 00 00 00 00
-02 04 0B 2B 02 00 4C 65 6E 3A 20 20 00 00 00 00
-02 04 0B 2B 01 00 43 6E 74 3A 20 20 00 00 00 00
-01 00 80 50 72 69 20 81 4E 78 74 20 20 20 00 00
- 
-01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-02 06 14 2B 00 00 54 6F 6C 4C 65 6E 00 00 00 00
-02 06 17 2B 00 00 54 69 6D 65 73 20 00 00 00 00
-01 00 80 50 72 69 20 81 4E 78 74 20 20 20 00 00
-
-----
-
-03 04 [20 20 20 20 00 00 00 00 00 00 00 00] 00 00
-02 04 [0B 2B 02 00 4C 65 6E 3A 20 20 00 00] 00 00
-02 04 [0B 2B 01 00 43 6E 74 3A 20 20 00 00] 00 00
-01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00
- 
-01 00 [00 00 00 00 00 00 00 00 00 00 00 00] 00 00
-02 06 [14 2B 00 00 54 6F 6C 4C 65 6E 00 00] 00 00
-02 06 [17 2B 00 00 54 69 6D 65 73 20 00 00] 00 00
-01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00
-
---------------------------------------------
-01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-02 06 14 2B 00 00 54 6F 6C 4C 65 6E 00 00 00 00
-02 05 17 2B 00 00 54 69 6D 65 73 20 00 00 00 00
-01 00 80 50 72 69 20 81 4E 78 74 20 20 20 00 00
-
-01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-02 00 14 2B 00 00 54 6F 6C 4C 65 6E 00 00 00 00
-02 05 17 2B 00 00 54 69 6D 65 73 20 00 00 00 00
-01 00 80 50 72 69 20 81 4E 78 74 20 20 20 00 00
-
-01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-02 02 14 2B 00 00 41 20 20 5A 20 20 00 00 00 00
-02 05 17 2B 00 00 54 69 6D 65 73 20 00 00 00 00
-01 00 80 50 72 69 20 81 4E 78 74 20 20 20 00 00
-----
-01 00 [00 00 00 00 00 00 00 00 00 00 00 00] 00 00
-02 06 [14 2B 00 00 54 6F 6C 4C 65 6E 00 00] 00 00
-02 05 [17 2B 00 00 54 69 6D 65 73 20 00 00] 00 00
-01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00
-
-01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-02 00 [14 2B 00 00 54 6F 6C 4C 65 6E 00 00] 00 00
-02 05 [17 2B 00 00 54 69 6D 65 73 20 00 00] 00 00
-01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00
-
-01 00 [00 00 00 00 00 00 00 00 00 00 00 00] 00 00
-02 02 [14 2B 00 00 41 20 20 5A 20 20 00 00] 00 00 // [BLOCK] A _ _ Z
-02 05 [17 2B 00 00 54 69 6D 65 73 20 00 00] 00 00
-01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00
-
-03 04 [20 20 20 20 00 00 00 00 00 00 00 00] 00 00 // die aktuelle Uhrzeit
-04 00 [20 BA 00 00 00 00 00 00 00 00 00 00] 00 00 // Das aktuelle Datum
-05 00 [00 00 00 00 00 00 00 00 20 20 20 9F] 00 00 // Nachrichtenfreigabezeit
-06 00 [00 00 00 00 00 00 00 00 00 00 20 8F] 00 00 // Meldungsaktivierungsdatum
-```
-
-## Speicherbereich 0C 00
-Rolle:
-Verweis auf Ein-/Ausgänge und Merker.
-
-Länge:
-20 Bytes
-
-Die ersten 20 Bytes sind fest und verweisen auf die 0E20 - 0EE8 20-Byte-Grenzen, die jeweils als 16 Bit-Zeiger dargestellt sind.
-```
-40 = 2 * 20
-60 = 3 * 20
-20 = 1 * 20
-40 = 2 * 20
-40 = 2 * 20
-
-2+3+1+2+2 = 10*16bit Zeiger
-```
-
-Bereich     | Anz | Zeiger            | Beschreibung
-------------|-----|-------------------|------------------
-0E20 - 0E48 | 40  | 0000, 0014        | Digitaler Ausgang 16
-0E48 - 0E84 | 60  | 0028, 003C, 0050  | Merker 24
-0E84 - 0E98 | 20  | 0064              | Analogausgang 2
-0E98 - 0EC0 | 40  | 0078, 008C        | offener Ausgang 16
-0EC0 - 0EE8 | 40  | 00A0, 00B4        | 
-
-Befehl:
-```
-05 0C 00 00 14
-```
-
-Ausgabe:
-```
-          |<----------------------- 20 Bytes ----------------------->|
-HEX MSB:  00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4 00
-HEX LSB:  00 00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4
-Decimal:  00    20    40    60    80    100   120   140   160   180
-Delta:       20    20    20    20    20    20    20    20    20
-```
-
-## Speicherbereich 0C 14
-Rolle:
-Zeiger auf den Funktionsblock im Programmspeicherbereich. 
-
-Länge:
-260 Bytes. 0BA5 hat maximal 130 Blöcke und ein Funktionsblock belegt 2 Bytes: 260/2 = 130.
-
-Beschreibung: 
-Jeweils 16bit Zeiger (ungleich FFFFh) zeigt auf ein Funktionsblock im Programmspeicher. 
-   
-Befehl:
-```
-05 0C 14 01 04
-```
-
-Ausgabe mit gelöschten Programm
-```
-00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4 00
-|<----------------------- 20 Bytes ----------------------->|
-FF FF FF FF FF FF FF FF FF FF FF
-```
-
-Beispiel 1: REM = 3, Ausschaltverzögerung
-```
-00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4 00
-|<----------------------- 20 Bytes ----------------------->|
-C8 00 FF FF FF FF FF FF FF FF FF FF
-```
-
-Der erste Funktionsblock liegt im Programmspeicher 0EE8 - 0E20 = 00C8
-
-Beispiel 1: Programm "Wickelmaschine"
-```
-00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4 00
-|<----------------------- 20 Bytes ----------------------->|
-C8 00 D0 00 E8 00 F4 00 00 01 08 01 14 01 1C 01 28 01 30 01
-3C 01 54 01 60 01 6C 01 84 01 FF FF FF FF
-```
-
-```
-HEX MSB:  C8 00 D0 00 E8 00 F4 00 00 01 08 01 14 01 1C 01 28 01 30 01
-          3C 01 54 01 60 01 6C 01 84 01 FF FF
-HEX LSB:  00 C8 00 D0 00 E8 00 F4 01 00 01 08 01 14 01 1C 01 28 01 30
-          01 3C 01 54 01 60 01 6C 01 84
-Dezimal:  200   208   232   244   256   264   276   284   296   304
-          316   340   352   364   388
-Delta:       8     24    12    12    8     12    8     12    8     12
-             24    12    12    24
-```
-
 ## Zeit/Datum oder Eingabe/Ausgabe
 
 AI7-> AM6-> AQ2 / AI2-> AM6-> AQ2
@@ -1096,6 +1084,35 @@ BIOS-Version = 2.02.0
 02 20 06
 02 20 07
 -> 00 00 00 00 00 00 00 00
+```
+
+
+## <a name="FB00"></a>RTC-Uhr
+
+Speicherbereich: FB00, 6*1 Byte
+
+Adresse | Wert
+--- | ---
+FB00 | Tag
+FB01 | Monat
+FB02 | Jahr
+FB03 | Minuten
+FB04 | Stunden
+FB05 | Wochentag
+
+### Schreiben
+```
+01 FB XX YY   // XX = [00-05], YY = Wert,
+-> 06         // OK
+
+01 43 00 00   // Bestätigen
+```
+
+### Auslesen
+```
+01 44 00 00       // initialisieren
+02 FB XX          // XX: Adresse
+-> 06 03 FB XX YY // YY: Wert
 ```
 
 
