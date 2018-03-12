@@ -50,13 +50,13 @@ Bei Bitdarstellung werden die Bits innerhalb einer Binärzahl nach LSB-0 nummeri
 | 0E C0 00 28 | 0EC0 - 0EE8 | 40    |   |                                                        |
 | 0E E8 07 D0 | 0EE8 - 16B8 | 2000  |   | Programmzeilenpeicher                                  |
 |             | 4100        | 1     | W |                                                        |
-|             | [4300](#FB00)        | 1     | W | = 00, RTC schreiben komplett                           |
+|             | [4300](#FB00)        | 1     | W | = 00, RTC schreiben komplett                           |
 |             | [4400](#FB00)        | 1     | W | = 00, RTC auslesen angefordert                         |
 |             | 4740        | 1     | W | = 00, Passwort lesen/schreiben initialisiert           |
 | 01 48 FF    | [48FF](#48FF)        | 1     | R | Passwort vorhanden?                                    |
 |             | 1F00        | 1     |   |                                                        |
 |             | 1F01        | 1     |   |                                                        |
-|             | [1F02](#1F02)        | 1     |   | Revisions Byte                                         |
+|             | [1F02](#1F02)        | 1     |   | Revisions Byte                                         |
 |             | [FB00](#FB00) - FB05 | 6     |   | RTC-Uhr                                                |
 
 __Hinweis:__
@@ -369,12 +369,12 @@ Ausgabe mit gelöschten Programm:
 FF FF FF FF FF FF FF FF FF FF FF FF ...
 ```
 
-Programm bestehend aus einenm Block:
+Programm bestehend aus einem Block:
 ```
 C8 00 FF FF FF FF FF FF FF FF FF FF ...
 ```
 
-Beispielschaltprogramm aus Handbuch "Ermittlung von Speicherbedarf"
+Beispielschaltprogramm "Ermittlung von Speicherbedarf" aus dem Handbuch:
 ```
       B3
      .---.       B2
@@ -434,21 +434,21 @@ Das höherwertige Byte vom Word ist immer 00. Das niederwertige Byte vom Word (L
 ## Liste Klemmen
 LoByte HEX | Klemme/Merker | Beschreibung
 -----------|---------------|-------------------------------
-     00-17 | I1..24        | Digitaleingänge
-     30-3F | Q1..16        | Digitalausgänge
-     50-67 | M1..24        | Merker
-     80-87 | AI1..8        | Analogeingänge
-     92-97 | AM1..6        | Analoge Merker
-     A0-A3 | C1..3         | Cursortasten (▲, ▼, <, >)
-     B0-B7 | S1..8         | Schieberegisterbits
+00-17      | I1..24        | Digitaleingänge
+30-3F      | Q1..16        | Digitalausgänge
+50-67      | M1..24        | Merker
+80-87      | AI1..8        | Analogeingänge
+92-97      | AM1..6        | Analoge Merker
+A0-A3      | C1..3         | Cursortasten (▲, ▼, <, >)
+B0-B7      | S1..8         | Schieberegisterbits
 
 ## Liste Konstanten
 LoByte HEX | Konstante | Beschreibung
 -----------|-----------|--------------------------
-        FC | Float     | (Verwendung ??)
-        FD | Pegel hi  | Blockeingang logisch = 1
-        FE | Pegel lo  | Blockeingang logisch = 0
-        FF | x         | nicht benutzter Anschluss
+FC         | Float     | (Verwendung ??)
+FD         | Pegel hi  | Blockeingang logisch = 1
+FE         | Pegel lo  | Blockeingang logisch = 0
+FF         | x         | nicht benutzter Anschluss
 
 ## Format im Speicher
 Klemmen, die aufgrund eines Verknüpfungseinganges ein Speicherplatz besitzen, sind die Ausgänge Q1 bis Q16, AQ1 und AQ2, die Merker M1 bis M24 und AM1 bis AM6, sowie die 16 unbeschaltete Ausgänge X1 bis X16. 
@@ -655,14 +655,14 @@ GF Pa [Nr,B2] [--,--] [Co,I2] [--,--]         // OR
 ## Liste Grundfunktionen
 HEX | BIN       | RAM (Bytes) | Bezeichnung der Grundfunktion
 ----|-----------|-------------|------------------------------
- 01 | 0000 0001 | 12          | AND (UND)
- 02 | 0000 0010 | 12          | OR (ODER)
- 03 | 0000 0011 | 4           | NOT (Negation, Inverter)
- 04 | 0000 0100 | 12          | NAND (UND nicht)
- 05 | 0000 0101 | 12          | NOR (ODER nicht)
- 06 | 0000 0110 | 8           | XOR (exklusiv ODER)
- 07 | 0000 0111 | 12          | AND mit Flankenauswertung
- 08 | 0000 1000 | 12          | NAND mit Flankenauswertung
+01  | 0000 0001 | 12          | AND (UND)
+02  | 0000 0010 | 12          | OR (ODER)
+03  | 0000 0011 | 4           | NOT (Negation, Inverter)
+04  | 0000 0100 | 12          | NAND (UND nicht)
+05  | 0000 0101 | 12          | NOR (ODER nicht)
+06  | 0000 0110 | 8           | XOR (exklusiv ODER)
+07  | 0000 0111 | 12          | AND mit Flankenauswertung
+08  | 0000 1000 | 12          | NAND mit Flankenauswertung
 
 # Sonderfunktionen - SF
 Sonderfunktionen sind ähnlich dem Grundfunktionen im Speicher abgelegt. Neben den Verknüpfungseingängen sind beinhalten diese jedoch Zeitfunktionen, Remanenz und verschiedenste Parametriermöglichkeiten.
@@ -720,7 +720,7 @@ Pa: Funktionsblockparameter
 
 Trg: Eingang Trg (Co oder GF/SF)
 Par: Parameter [T](#zeitdefinition) (T ist die Zeit, nach der der Ausgang eingeschaltet wird)
-
+```
 Folgend das Beispiel "Ermittlung von Speicherbedarf" aus dem Handbuch.
 
 Schaltprogramm:
