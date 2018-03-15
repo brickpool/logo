@@ -1,6 +1,6 @@
 # LOGO! PG Protocol Reference Guide
 
-Rev. Bo
+Rev. Bp
 
 March 2018
 
@@ -112,9 +112,9 @@ The specification for each communication via the PG Interface:
 ### Pinout:
 - [x] RxD Receive Data; _DTE_ in direction; pin 2
 - [x] TxD Transmit Data; _DTE_ out direction; pin 3
-- [x] DTR Data Terminal Ready; _DTE_ out direction; pin 4 \*)
+- [ ] DTR Data Terminal Ready; _DTE_ out direction; pin 4 \*)
 - [x] GND Ground; pin 5
-- [ ] RTS Request to Send; _DTE_ out direction; pin 7 \*)
+- [x] RTS Request to Send; _DTE_ out direction; pin 7 \*)
 
 __Note:__ \*) DTS and/or RTS are used to power the plug electronics
 
@@ -124,7 +124,7 @@ __Note:__ \*) DTS and/or RTS are used to power the plug electronics
 - 8 data bits, least significant bit sent first
 - 1 bit for even parity
 - 1 stop bit
-- DTS (or RTS) set to high (>= 5V)
+- RTS (or DTS) set to high (>= 5V)
 
 ### Coding System:
 - 8–bit binary, hexadecimal 0–9, A–F
@@ -140,14 +140,14 @@ Query/Response | Optional
 
 The next _Figures_ shows an example of a _DTE_ query message and a _LOGO!_ normal response. Both examples show the field contents in hexadecimal, and also show how a message framed.
 
-The _DTE_ query is a data monitoring request to the _LOGO!_ device. The message requests a data block for monitoring. 
+The _DTE_ query is a monitoring request to the _LOGO!_ device. The message requests a _Fetch Data_ command for monitoring. 
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Command | `55` | Control
 Function | `13 13` | Fetch Data
-data | `00` | Start Request
-trailer | `aa` | End Delimiter
+Byte Count | `00` | Number of additional bytes
+Trailer | `aa` | End Delimiter
 >Figure _DTE_ Query message
 
 The _LOGO!_ response with an acknowledgment, indicating this is a normal response. The _Byte Count_ field specifies how many bytes are being returned.
@@ -265,7 +265,9 @@ Command | Address | Content
 Data Code | 16/32bit Address | Optional
 >Figure _Data Command_ Frame
 
-The content field is usually required. It is not available (length of zero) only for the read byte command `02`. The format depends on the command codes. 
+The content field is usually required. It is not available (length of zero) only for the read byte command `02`. The format depends on the command codes.
+
+__Note:__ _LOGO!_ version 0BA6 uses 32bit addresses, version 0BA4 and 0BA5 16bit addresses.
 
 ## Data Commands Supported by LOGO
 The listing below shows the data command codes supported by _LOGO!_. Codes are listed in hexadecimal.
@@ -290,12 +292,12 @@ The query message specifies the Byte reference to be writing. The data are addre
 Command | Address | Data
 --- | --- | ---
 1 byte | 2 bytes | 1 byte
-Data Code | 16bit Address Offset | Data Byte
+Data Code | 16/32bit Address | Data Byte
 >Figure _Write Byte_ Query Message
 
 The _Address_ field is an offset of the memory specified by the _LOGO!_ device. The _Data_ field is a numeric expression that write a byte value into the memory. 
 
-Here is an example of a request to write `00` to the memory address `1f 02`:
+Here is an example of a request for write `00` to the memory address `1f 02`:
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
@@ -327,10 +329,10 @@ The query message reads a Byte value from the specified address and send it as a
 Command | Address
 --- | ---
 1 byte | 2 bytes
-Data Code | 16bit Address Offset
+Data Code | 16/32bit Address
 >Figure _Read Byte_ Query Message
 
-Here is an example of a request to read a byte from the address `1f 02`:
+Here are two examples of a request to read a byte from the address (`00 ff`)`1f 02`:
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
@@ -338,28 +340,24 @@ Command | `02` | Read Byte
 Address | `1f 02` | 16bit Address
 >Figure Example _Read Byte_ Query
 
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Command | `02` | Read Byte
+Address | `00 ff 1f 02` | 32bit Address
+>Figure Example _Read Byte_ Query __0BA6__
+
 ### Response
 The byte value in the response message is packed into the _Data_ field. 
 
-Here are two example of a response to the query above:
-
-Field Name | Code \(hex\) | Meaning
---- | --- | ---
-Confirmation | `06` | Acknowledgment
-Command | `03` | Data Response
-Address | `1f 02` | 16bit Address
-Data | `40` | Data Byte
->Figure Example _Read Byte_ Response ____0BA4____
-
+Here is a example of a response to the query above:
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Confirmation | `06` | Acknowledgment
 Command | `03` | Data Response
 Address | `00 ff 1f 02` | 32bit Address
-Data | `43` | Data Byte
->Figure Example _Read Byte_ Response ____0BA6____
-
+Data | `40` | Data Byte
+>Figure Example _Read Byte_ Response __0BA6__
 
 ## Write Block Command `04`
 
@@ -392,7 +390,7 @@ Command | Address | Byte Count
 Data Code | 16/32bit Address | Number of bytes
 >Figure _Read Block_ Query Message
 
-The following example reads the program name from _LOGO!_ memory:
+The following example reads the program name from a _LOGO!_ memeory:
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
@@ -498,14 +496,14 @@ This function fetching the current data from the _LOGO!_ device. The _LOGO!_ dev
 
 To fetch data or start a continuously polling, the _Data_ field must be existent and must set to `00`. If a confirmation code `06` is sent by the _DTE_ to the _LOGO!_ device within 600 ms, the _LOGO!_ device sends updated data (cyclic data read). To stop a data reading the Control Code `14` (_Stop Fetch Data_) must be sent. 
 
-The distance between the data transfers (scan distance) depends on the cycle time of the _LOGO!_ device and the number of requested data (byte count). The data of the inputs and outputs as well as the flags are always read out as a block. The scan distance is about 200 ms, so valid cycle times are greater than 200 ms. For a shorter cycle time, the requesting _DTE_ system will not receive all data. 
+The distance between the data transfers (scan distance) depends on the cycle time of the _LOGO!_ device and the number of requested data (byte count). The data of the inputs and outputs as well as the flags are always read out as a block. The scan distance is about 200 ms (byte ccount = 0), so valid cycle times are greater than 200 ms. For a shorter cycle time, the requesting _DTE_ system will not receive all data. 
 
 ### Query
 
 Command | Function | Byte Count | Data 1) | Trailer
 --- | --- | --- | --- | ---
 1 byte | 2 bytes | 1 byte | 1 byte | 1 byte
-Control Code | Function Code | Number of bytes | Data byte 1) | End Delimiter
+Control Code | Function Code | Number of bytes | Data bytes 1) | End Delimiter
 >Figure _Start Fetch Data_ Query Message
 
 __Notes:__ 1) Used when the _Byte Count_ is greater than zero
@@ -516,7 +514,7 @@ Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Command | `55` | Control
 Function | `13 13` | Fetch Data
-Byte Count | `02` | Number of bytes = 2
+Byte Count | `02` | Number of additional bytes = 2
 Data | `0b` `0a` | Block B002, B001
 Trailer | `aa` | End Delimiter
 >Figure Example _Start Fetch Data_ Query
@@ -537,7 +535,7 @@ Minimum _Byte Count_ value
 - __0BA5__ = 40 (hex) = 64 bytes
 - __0BA6__ = 4a (hex) = 74 bytes
 
-The _Data_ field includes input image registers, run-time variables, etc. and the data for input, output, cursor key states, and more.
+The _Data_ field includes input image registers, run-time variables, etc. and the data for input, output, cursor key states, and the additionally requested variables.
 
 The listing below shows the position in the _Data_ field for the well known values. The positions start at one and are listed in decimal.
 
@@ -570,7 +568,7 @@ Data | `00 00 00 00 00 a8` `00 00 00` `00 00` `00 00 00` `00` `00` | Data Block 
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
 Trailer | `aa` | End Delimiter
->Figure Example _Fetch Data_ Response ____0BA4____
+>Figure Example _Fetch Data_ Response __0BA4__
 
 
 Field Name | Code \(hex\) | Meaning
@@ -585,7 +583,7 @@ Data | `00 00 00 00 00 0C` `09 00 00` `01 00` `00 00 00` `00` `00` | Data Block 
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
 Trailer | `aa` | End Delimiter
->Figure Example _Fetch Data_ Response ____0BA5____
+>Figure Example _Fetch Data_ Response __0BA5__
 
 
 Field Name | Code \(hex\) | Meaning
@@ -595,12 +593,12 @@ Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `4a` | Number of bytes 74 (dec)
 Data | `b7 c4 19 2c 00 10 84 6b 00 00 00 00 00 00 00 00` | Data Block 00-0f
-Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 `00 00` | Data Block 10-1f
+Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00` `00 00` | Data Block 10-1f
 Data | `00` `00` `00 00` `00 00 00 00` `00` `00` `00 00 00 00` `00 00`| Data Block 20-2f
 Data | `00 00 00 00 00 00 00 00 00 00` `00 00 00 00` `00 00` | Data Block 30-3f
 Data | `00 00 00 00 00 00 00 00 00 00` | Data Block 40-49
 Trailer | `aa` | End Delimiter
->Figure Example _Fetch Data_ Response ____0BA6____ 
+>Figure Example _Fetch Data_ Response __0BA6__
 
 ## Stop Fetch Data `14`
 
@@ -713,7 +711,7 @@ controller | command | request | response | description
 ## Restart `22`
 In the case of a _LOGO!_ device __0BA6__, the execution of further commands is no longer possible after an error (for example, unauthorized memory access; exception code `03`). Additional commands are always answered with an exception code (e.g. _DEVICE TIMEOUT_ `02` or _ILLEGAL ACCESS_ `03`) by the LOGO device. To restart the communication (after an exception response), the _Restart_ command `21` is used.
 
-__Notes:__  The _Restart_ command '21' is currently only confirmed for the _LOGO! device __0BA6__.
+__Notes:__  The _Restart_ command '21' is currently only confirmed for the _LOGO!_ device __0BA6__.
 
 
 # Chapter 5 - Errors and Confirmations
@@ -779,7 +777,7 @@ The next two Figures shows an example of a _DTE_ query and a exception response 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Command | `21` | Read Byte
->Figure Example _Faulty Command_ Query ____0BA4____
+>Figure Example _Faulty Command_ Query __0BA4__
 
 Here is an example of a response to the query above:
 
@@ -787,7 +785,7 @@ Field Name | Code \(hex\) | Meaning
 --- | --- | ---
 Confirmation | `15` | Exception
 Exception Code | `05` | Unknown command
->Figure Example _Exception_ Response ____0BA4____
+>Figure Example _Exception_ Response __0BA4__
 
 ## Exception Codes
 Type | Name | Meaning
@@ -816,7 +814,7 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 ----------- | --- | --- | --- | ---
 0522        | 1   | W   |     | `01 05 22 00`
 --          | --  | --  | --  | --
-0552        | 1   | W   | Display at power-on? I/O = `01`; DateTime = `FF` | `02 05 52`
+0552        | 1   | W   | Display at power-on? I/O = `01`; DateTime = `00` | `02 05 52`
 --          | --  | --  | --  | --
 0553 - 0557 | 5   |     | Analog output in mode _STOP_ | `05 05 53 00 05`
 --          | --  | --  | --  | --
@@ -825,21 +823,29 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 --          | --  | --  | --  | --
 0566 - 056F | 10  |     | Password memory area | `05 05 66 00 0A`
 0570 - 057F | 16  |     | Program Name | `05 05 70 00 10`
+--          | --  | --  | --  | --
 05C0 - 05FF | 64  |     | Block Name index | `05 05 C0 00 40`
 0600 - 07FF | 512 |     | Block Name | `05 06 00 02 00`
-0800 - 0A7F | 640 |     | Text Block 1..10 (64 bytes per Text Box) | `05 08 00 02 80`
-0C00 - 0D17 | 280 |     | Function block memory area ( = 130) | `05 0C 00 01 18`
+0800 - 0A7F | 640 |     | Text Box 1..10 (64 bytes per Text Box) | `05 08 00 02 80`
+--          | --  | --  | --  | --
+0C00 - 0D17 | 280 |     | Program memory index | `05 0C 00 01 18`
+--          | --  | --  | --  | --
 0E20 - 0E47 | 40  |     | Digital output Q1..16 | `05 0E 20 00 28`
-0E48 - 0E83 | 60  |     | Flag M1..24 | `05 0E 48 00 3C`
+0E48 - 0E83 | 60  |     | Merker M1..24 | `05 0E 48 00 3C`
 0E84 - 0E97 | 20  |     | Analog output AQ1..2 | `05 0E 84 00 14`
 0E98 - 0EBF | 40  |     | Open Connector X1..16 | `05 0E 98 00 28`
+0EC0 - 0EE7 | 40  |     |     | `05 0E C0 00 28`
 0EE8 - 16B7 | 2000 |    | Program memory area | `05 0E E8 07 D0`
 --          | --  | --  | --  | --
 4100        | 1   | W   |     | `01 41 00 00`
+--          | --  | --  | --  | --
 4300        | 1   | W   | Clock write release; Data Byte = `00` | `01 43 00 00`
+--          | --  | --  | --  | --
 4400        | 1   | W   | Clock read opening; Data Byte = `00` | `01 44 00 00`
+--          | --  | --  | --  | --
 4740        | 1   | W   | Password R/W initialization; Data Byte = `00` | `01 47 40 00`
-48FF        | 1   |     | Password set? yes = `40`; no = `00` | `02 48 FF`
+--          | --  | --  | --  | --
+48FF        | 1   | W   | Password set? yes = `40`; no = `00` | `02 48 FF`
 --          | --  | --  | --  | --
 1F00        | 1   |     |     | `02 1F 00`
 1F01        | 1   |     |     | `02 1F 01`
@@ -1100,31 +1106,34 @@ ASCII | `_P _A _S _S _W _O _R _D __ __`
 ### Memory Access
 The access is only available in mode _STOP_.
 
-Here are a few example sequences for accessing the memory:
+Here are a few example sequences for accessing the memory depending on operating mode:
 
 ```
  Password enabled
  Tx: 02 1f 02 55 17 17 aa 01 47 40 00
- Rx: 
- @STOP 06 03 1F 02 42 06 42 06 
- @RUN: 06 03 1F 02 42 06 01 
+ Rx:
+ @STOP 06 03 1F 02 42 06 42 06
+ @RUN: 06 03 1F 02 42 06 01
 
- Detect LOGO! RUN? 
- Tx: 55 17 17 AA 
- Rx: 
- @STOP 06 42 
- @RUN 06 01 
+ Detect LOGO! RUN?
+ Tx: 55 17 17 AA
+ Rx:
+ @STOP 06 42
+ @RUN 06 01
 
- Stop LOGO! RUN 
- Tx: 55 12 12 AA 
- Rx: 06 
+ Stop LOGO! RUN
+ Tx: 55 12 12 AA
+ Rx: 06
 
- Start LOGO! 
- Tx: 55 18 18 AA 
- Rx: 06 
+ Start LOGO!
+ Tx: 55 18 18 AA
+ Rx: 06
 
  Read the data
- Tx: 05 05 C0 00 40 
+ Tx: 05 05 C0 00 40
+ Rx:
+ @STOP 06 ...
+ @RUN n/a
 ```
 >Figure Example _Memory Access_
 
