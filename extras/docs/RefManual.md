@@ -1,6 +1,6 @@
 # LOGO! PG Library Reference Manual
 
-Rev. Ae
+Rev. Af
 
 March 2018
 
@@ -29,6 +29,9 @@ Refer to the following publication for details about the protocol using the PG-I
       * [Disconnect()](#disconnect)
     * [Base Data I/O functions](#base-data-functions)
       * [ReadArea()](#read-area)
+    * [Block oriented functions](#block-functions)
+      * [GetDBSize()](#get-db-size)
+      * [DBGet()](#db-get)
     * [Date/Time functions](#datetime-functions)
       * [GetPlcDateTime()](#get-plc-datetime)
       * [SetPlcDateTime()](#set-plc-datetime)
@@ -46,6 +49,7 @@ Refer to the following publication for details about the protocol using the PG-I
       * [GetProtection()](#get-protection)
     * [Properties](#properties)
       * [LastError](#last-error)
+      * [ErrorText](#error-text)
       * [RecvTimeout](#recv-timeout)
       * [Connected](#connected)
   * [Additional description](#additional-description)
@@ -107,14 +111,36 @@ This is the main function to read data from a _LOGO!_ device. With it Inputs, Ou
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
+## <a name="block-functions"></a>API - Block oriented functions
+
+### <a name="get-db-size"></a>LogoClient.GetDBSize(word DBNumber, size_t *Size)
+Returns the size of a given DB Number. This function is useful to upload an entire DB.
+
+ - `DBNumber` DB number if area = `LogoAreaDB`, must always be `1`
+ - `Size` DB Size in bytes
+
+Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
+
+### <a name="db-get"></a>LogoClient.DBGet(word DBNumber, void \*ptrData, size_t *Size)
+This is a wrapper function of ReadArea(). It simply internally calls ReadArea() with `Area` = `LogoAreaDB`, `Start` = `0` and `Amount` = GetDBSize().
+
+ - `DBNumber` DB number if area = `LogoAreaDB`, must always be `1`
+ - `ptrData` Pointer to memory area
+ - `Size` In: Buffer size available; Out: Bytes Uploaded
+
+Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
+
+__Remarks:__
+This function first gathers the DB size via GetDBSize then calls ReadArea if the Buffer size is greater than the DB size, otherwise returns an error.
+
 ## <a name="datetime-functions"></a>API - Date/Time functions
 
-### <a name="get-plc-datetime"></a>LogoClient.GetPlcDateTime(time_t \*dateTime)
+### <a name="get-plc-datetime"></a>LogoClient.GetPlcDateTime(TimeElements \*dateTime)
 Reads _LOGO!_ date and time.
 
  - `dateTime`, see below
 
-The `dateTime` argument can be a standard Unix `time_t` variable or an _C_ structure, which are defined in the Time Library:
+The `dateTime` argument is a _C_ structure, defined in the Time Library:
 ```
 typedef unsigned long time_t;
 
@@ -128,17 +154,20 @@ typedef struct {
   uint8_t Year;   // offset from 1970;
 } TimeElements;
 ```
-
-The Time library includes low-level conversion functions between system time and individual time elements.
+__Remarks:__
+The Time library includes low-level conversion functions between system time and individual time elements. The function returns 0 seconds for each call.
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
-### <a name="set-plc-datetime"></a>LogoClient.SetPlcDateTime(time_t dateTime)
+### <a name="set-plc-datetime"></a>LogoClient.SetPlcDateTime(TimeElements dateTime)
 Sets the _LOGO!_ date and time.
 
- - `dateTime` a standard Unix `time_t` variable or an element with the _C_ structure `TimeElements`
+ - `dateTime` a element with the _C_ structure `TimeElements`
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
+
+__Remarks:__
+This function is subject to the security level set.
 
 ### <a name="set-plc-system-datetime"></a>LogoClient.SetPlcSystemDateTime()
 Sets the _LOGO!_ date and time in accord to the _DTE_ system time. The internal system time is based on the standard Unix time (number of seconds since Jan 1, 1970). 
@@ -146,6 +175,9 @@ Sets the _LOGO!_ date and time in accord to the _DTE_ system time. The internal 
 __Note:__ The system time begins at zero when the sketch starts. The internal time can be synchronized to an external time source using the Time library.
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
+
+__Remarks:__
+This function is subject to the security level set.
 
 ## <a name="systeminfo-functions"></a>API - System info functions
 
@@ -203,6 +235,8 @@ Returns a `0` on success or an `Error` code (see Errors Code List [below](#error
 ## <a name="security-functions"></a>API - Security functions
 The password protects the circuit program in LOGO!. Editing values and parameters, or viewing the circuit program in LOGO!, or uploading the circuit program from LOGO! is only possible after you have entered the password. 
 
+__Note:__ Depending on the protection level, each library function is checked before the command can be executed. Regardless of the protection level, diagnostic functions and reading of the variable table are possible. 
+
 ### <a name="set-session-password"></a>LogoClient.SetSessionPassword(char \*password)
 Send the password to the _LOGO!_ to meet its security level.
 
@@ -225,7 +259,9 @@ Gets the CPU protection level info.
 The `Protection` argument is an _C_ structure defined in the library:
 ```
 typedef struct {
+  byte sch_schal;
   byte sch_par;
+  byte sch_rel;
   byte bart_sch;
   byte anl_sch;
 } TProtection;
@@ -235,17 +271,21 @@ Returns a `0` on success or an `Error` code (see Errors Code List [below](#error
 
 Field Values:
 
-Protection | Values | Description
---- | --- | ---
-`sch_par`  | 0,1     | Password level (1: passwod, 0: no password)
-`bart_sch` | 0,1,2,3 | Mode selector setting (1:RUN, 2:RUN-P, 3:STOP, 0:undefined or cannot be determined)
-`anl_sch`  | 0,1,2   | Startup display setting (1:IO, 2:DT, 0:undefined, does not exist of cannot be determined)
-
+Protection  | Values | Description
+--- | --- | --- 
+`sch_schal` | 1,2,3 | Protection level set with the mode selector (1:STOP, 2:RUN,no password, 3:RUN,password set)
+`sch_par` | 0,1 | Password level (0: no password)
+`sch_rel` | 0,1,2,3 | Valid protection level of the CPU
+`bart_sch` | 1,3 | Mode selector setting (1:RUN, 3:STOP, 0:undefined or cannot be determined)
+`anl_sch` | 0 | Startup switch setting (0:undefined, does not exist or cannot be determined)
 
 ## <a name="properties"></a>API - Properties
 
 ### <a name="last-error"></a>LogoClient.LastError
 Returns the last job result.
+
+### <a name="error-text"></a>LogoClient.ErrorText(int Error)
+Returns a textual explanation of Error.
 
 ### <a name="recv-timeout"></a>LogoClient.RecvTimeout
 Returns the timeout value.
@@ -285,6 +325,7 @@ Mnemonic | HEX | Meaning
 `errStreamDataSend` | `0x0004` | Stream error while sending the data
 `errStreamDataRecv` | `0x0005` | Stream error while receiving the data
 `errPGConnect` | `0x0006` | _LOGO!_ connection failed
+`errPGNegotiatingPDU` | `0x0007` | _LOGO!_ negotiation failed
 `errPGInvalidPDU` | `0x0008` | Malformed Telegram supplied
 
 ### Device Error codes
@@ -298,5 +339,4 @@ Mnemonic | HEX | Meaning
 `errCliDataWrite` | `0x0400` | Error during data write
 `errCliFunction` | `0x0500` | The _LOGO!_ reported an error for this function
 `errCliBufferTooSmall` | `0x0600` | The supplied buffer is too small
-`errCliNegotiatingPDU` | `0x0700` | _LOGO!_ negotiation failed
 
