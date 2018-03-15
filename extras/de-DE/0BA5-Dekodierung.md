@@ -1,29 +1,37 @@
 # LOGO! Adressdekodierung für __0BA5__
 
-Rev. Af
+Ausgabe Ag
 
-March 2018
+März 2018
 
 ## Vorwort
-Diese Anleitung ist für Personen, die mit einem Siemens (TM) LOGO! über die PG-Schnittstelle kommunizieren. Die PG-Schnittstelle verwendet ein undokumentiertes Protokoll zum Programm laden, lesen und zur Diagnose. Dieses Handbuch beschriebt, wie die Adressierung im _LOGO!_ Version __0BA5__ erstellt ist, um mit Hilfe des PG-Protokolls darauf zuzugreifen.
+Diese Anleitung ist für Personen, die mit einer Siemens (TM) LOGO! SPS über die PG-Schnittstelle kommunizieren. Die PG-Schnittstelle verwendet ein undokumentiertes Protokoll zum Programm laden, lesen und zur Diagnose. Dieses Handbuch beschreibt, wie die Adressierung in einer _LOGO!_ SPS, Version __0BA5__ erstellt ist, um z.B. mit Hilfe des PG-Protokolls darauf zuzugreifen. 
 
-Siemens und LOGO! sind eingetragene Marken der Siemens AG.
+Die hier beschriebenen Beispiele sind unverbindlich und dienen der allgemeinen Information über die Addressierung innerhalb von _LOGO!_. Die eigene Kleinsteuerung kann sich hiervon unterscheiden.
 
-## Verwendete oder vertriefende Publikationen
+Für einen ordnungsgemäßen Betrieb ist der Benutzer selbst verantwortlich. Verweisen möchte ich auf die jeweils gültigen Handbücher und Vorgaben und systembezogenen Installationsvorschriften vom Hersteller.
 
+Irrtum und Änderung vorbehalten.
+
+_Siemens_ und _LOGO!_ sind eingetragene Marken der Siemens AG.
+
+## Verwendete oder weiterführende Publikationen
 Wertvolle Informationen zum _LOGO!_ Gerät finden Sie in den folgenden Veröffentlichungen:
   * [LOGO! Handbuch Ausgabe 05/2006](http://www.google.de/search?q=A5E00380834-02), Bestellnummer 6ED1050-1AA00-0AE6
 
 Einzelheiten zum _LOGO!_-Adresslayout finden Sie in den folgenden Veröffentlichungen:
   * neiseng @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") dekodierte den Datenadressraum einer __0BA5__ (@post 42)
 
-## Contents
+## Inhalt
 
   * [Kapitel 1 - Allgemeines](#Kapitel1)
-    * Verwendete Ressourcen
+    * Speicherarchitektur
+    * Speichereinheit
     * Byte-Reihenfolge
-    * Speicherstelle
-    * [Adressübersicht](#Addresslayout)
+    * Bitdarstellung
+    * Verwendete Abkürzungen
+    * 0BA5 Ressourcen
+    * [Adressübersicht](#Adresslayout)
   * [Kapitel 2 - Parameter](#Kapitel2)
     * [Displayinhalt nach Netz-Ein](#0552)
     * [Analogausgang im STOP-Modus](#0553)
@@ -59,43 +67,64 @@ Einzelheiten zum _LOGO!_-Adresslayout finden Sie in den folgenden Veröffentlich
     * [Speicherbereich 1E00](#1E00)
     * [Speicherbereich 2000](#2000)
     * Speicherbereiche 0522, 055E-5F
-    * Anmerkungen zu 0BA6
     * Erfassbare Daten mit Befehl `55`
-
 
 ----------
 
-# <a name="chapter1"></a>Kapitel 1 - Allgemeines
+# <a name="Kapitel1"></a>Kapitel 1 - Allgemeines
 
-## Verwendete Ressourcen
-Dieses Handbuch beschriebt ausschließlich das _LOGO!_ Gerät in der Version __0BA5__.
+## Speicherarchitektur
+_LOGO!_ __0BA5__ nutzt eine 16-Bit-Adressierung. Vereinfacht dargestellt bedeutet dies, dass die Speicherarchitektur so ausgelegt ist, dass jede Speicherstelle duch einen 16 Bit-Zeiger (also 2 Byte) direkt addressiert werden kann. Die _LOGO!_ SPS __0BA5__ nutzt teilweise eine Segmentierung, sodas auch 8-Bit Zeiger (Verweise) zu Anwendung kommen, um eine Speicerstelle zu adressieren. 
 
-Ressourcenangaben:
-- Funktionsblöcke 130
-- REM 60
-- Digitaleingänge 24
-- Digitalausgänge 16
-- Merker 24
-- Analogeingänge 8
-- Textbox 10
-- Analogausgänge 2
-- Programmzeilenpeicher 2000
-- Blocknamen 64
-- Analoge Merker 6
-- Cursortasten 4
-- Schieberegister 1
-- Schieberegisterbits 8
-- Offene Klemme 16
+## Speichereinheit
+Die kleinste adressierbare Einheit (Speicherstelle) ist ein Byte. Es besteht aus 8 Bits und sein Inhalt wird hier vorwiegend mit zwei hexadezimalen Ziffern angegeben, wobei jede Ziffer für 4 Bits entsprechend einem Halbbyte steht. Das Halbbyte wird hier teilweise auch als [Nibble](#https://de.wikipedia.org/wiki/Nibble) bezeichnet. Es umfasst eine Datenmenge von 4 Bits. 
 
 ## Byte-Reihenfolge
-Die Byte-Reihenfolge im _LOGO!_ ist _Little-Endian_, sprich das kleinstwertige Byte wird an der Anfangsadresse gespeichert bzw. die kleinstwertige Komponente zuerst genannt.
+Die Byte-Reihenfolge im _LOGO!_ ist [Little-Endian](#https://de.wikipedia.org/wiki/Byte-Reihenfolge), sprich das kleinstwertige Byte wird an der Anfangsadresse gespeichert bzw. die kleinstwertige Komponente zuerst genannt.
 
-## Speicherstelle
-Die kleinste adressierbare Einheit (Speicherstelle) ist ein Byte. Es besteht aus 8 Bits und sein Inhalt wird hier vorwiegend mit zwei hexadezimalen Ziffern angegeben, wobei jede Ziffer für 4 Bits entsprechend einem Halbbyte steht. Das Halbbyte wird hier teilweise auch als Nibble bezeichnet. Es umfasst eine Datenmenge von 4 Bits. 
+## Bitdarstellung
+Bei Bitdarstellungen werden die Bits innerhalb einer Binärzahl nach [LSB-0](#https://de.wikipedia.org/wiki/Bitwertigkeit) nummeriert, d.h. gemäß ihrer absteigenden Wertigkeit (gelesen von links nach rechts) ist das Bit0 (= das Bit Index 0) das niedrigstwertige. 
 
-Bei Bitdarstellungen werden die Bits innerhalb einer Binärzahl nach LSB-0 nummeriert, d.h. gemäß ihrer absteigenden Wertigkeit (gelesen von links nach rechts) ist das Bit0 (= das Bit Index 0) das niedrigstwertige. 
+## __0BA5__ Ressourcen
+Dieses Handbuch beschreibt ausschließlich das _LOGO!_ Gerät in der Version __0BA5__.
 
-## <a name="Addresslayout"></a>Adressübersicht
+Ressourcenangaben:
+- Funktionsblöcke: 130
+- REM: 60
+- Digitaleingänge: 24
+- Digitalausgänge: 16
+- Merker: 24
+- Analogeingänge: 8
+- Textbox: 10
+- Analogausgänge: 2
+- Programmzeilenpeicher: 2000
+- Blocknamen: 64
+- Analoge Merker: 6
+- Cursortasten: 4
+- Schieberegister: 1
+- Schieberegisterbits: 8
+- Offene Klemme: 16
+
+## Verwendete Abkürzungen
+- __0BA5__: _LOGO!_ Kleinsteuerung der 6.Generation (wird in diesem Handbuch beschrieben).
+- __B001__: Block Nummer B1
+- __Cnt__ (_Count_): Zählimpulse
+- __Co__ (_Connector_): Klemme
+- __Dir__ (_Direction_): Festlegung der Richtung
+- __En__ (_Enable_): aktiviert die Funktion eines Blocks.
+- __Fre__ (_Frequency_): Auszuwertende Frequenzsignale
+- __GF__: Grundfunktionen
+- __Inv__ (_Invert_): Ausgangssignal des Blocks wird invertiert
+- __No__ (_Nocken_): Parameter der Zeitschaltuhr
+- __Par__: Parameter
+- __R__ (_Reset_): Rücksetzeingang
+- __Ral__ (_Reset all_): internen Werte werden zurückgesetzt
+- __S__ (_Set_): Eingang wird gesetzt
+- __SF__: Sonderfunktionen
+- __T__ (_Time_): Zeit-Parameter
+- __Trg__ (_Trigger_): Ablauf einer Funktion wird gestartet
+
+## <a name="Adresslayout"></a>Adressübersicht
 
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
@@ -124,18 +153,19 @@ Bei Bitdarstellungen werden die Bits innerhalb einer Binärzahl nach LSB-0 numme
 |             | [4300](#FB00)        | 1     | W | = 00, RTC schreiben komplett                           |
 |             | [4400](#FB00)        | 1     | W | = 00, RTC auslesen angefordert                         |
 |             | 4740        | 1     | W | = 00, Passwort lesen/schreiben initialisiert           |
-| 01 48 FF    | [48FF](#48FF)        | 1     | R | Passwort vorhanden?                                    |
+| 01 48 FF    | [48FF](#48FF)        | 1     | R | Passwort vorhanden?                                    |
 |             | 1F00        | 1     |   |                                                        |
 |             | 1F01        | 1     |   |                                                        |
-|             | [1F02](#1F02)        | 1     |   | Revisions Byte                                         |
-|             | [FB00](#FB00) - FB05 | 6     |   | RTC-Uhr                                                |
+| 01 1F 02    | [1F02](#1F02)        | 1     | R | Revision Byte                                          |
+| 01 1F 03    | [1F03](#1F02) - 1F09 | 6     | R | Firmware                                               |
+| 01 FB 00    | [FB00](#FB00) - FB05 | 6     |   | RTC-Uhr                                                |
 
 __Hinweis:__
-Maximaler Bereich = 0E 20 08 98 Adr 0E20 - 16B8
+Maximaler Bereich = 0E 20 08 98 Adr. 0E20 - 16B8
 
 ----------
 
-# <a name="chapter2"></a>Kapitel 2 - Parameter
+# <a name="Kapitel2"></a>Kapitel 2 - Parameter
 
 ## <a name="0552"></a>Displayinhalt nach Netz-Ein
 
@@ -148,11 +178,13 @@ Darstellungsformat:
 send> 02 05 52 
 recv< 06
 03 05 52 00
-03 05 52 XX
 ```
 
 ```
-XX:
+05 52 00
+05 52 [Val]
+
+Val:
   00 = Datum/Uhrzeit
   01 = Ein-/Ausgänge
 ```
@@ -163,38 +195,40 @@ Speicherbereich: 0553 - 0558, Anzahl = 5 Bytes
 
 Zugriffsmethode: Lesen und Schreiben
 
-Darstellungsformat:
+Abfrage:
 ```
 send> 05 05 53 00 05 
 recv< 06
-00 C4 03 D5 01 13
-00 [C4 03] [D5 01] 13
-XX [AQ1  ] [AQ2  ] XOR
+00 C4 03 D5 01
+13
 ```
 
 Wertebereich: 0.00 - 9.99
 
+Darstellungsformat:
 ```
-if (XX == 01) then
-{
-  Alle Ausgänge behalten den letzten Wert bei;
-}
-else
-{
-  AQ1 Wert im Betriebsart STOP;
-  AQ2 Wert im Betriebsart STOP;
-}
-```
+00  [C4 03] [D5 01]
+Val [AQ1  ] [AQ2  ]
 
-Berechnungsmethode:
-```
-00 [C4 03] [D5 01]
-     \ /     \ /
-     / \     / \
-    03 C4   01 D5  (HEX)
-    964     469    (Dec)
-    -------------
-    9.64    4.69
+Pa:
+  if (Val == 01) then
+  {
+    Alle Ausgänge behalten den letzten Wert bei;
+  }
+  else
+  {
+    AQ1 Wert im Betriebsart STOP;
+    AQ2 Wert im Betriebsart STOP;
+  }
+
+AQn:
+  [C4 03] [D5 01]
+    \ /     \ /
+    / \     / \
+   03 C4   01 D5  (HEX)
+   964     469    (Dec)
+   -------------
+   9.64    4.69
 ```
 
 ## <a name="0570"></a>Programmname
@@ -305,28 +339,28 @@ FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 02 04 [0B 2B 00 00 4C 65 6E 3A 20 20 00 00] 00 00
 02 04 [0B 2B 01 00 43 6E 74 3A 20 20 00 00] 00 00
 01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00
-XX YY ~~~~~~~~~~~~~~~~ ZZ ~~~~~~~~~~~~~~~~~
+Pa Po [--------------- Txt ---------------]
                 
        0B 2B 00 00                // Block02, Parameter 1
        0B 2B 01 00                // Block02, Parameter 2
                   4C 65 6E 3A     // [Len:]
                   43 6E 74 3A     // [Cnt:]
        80 50 72 69 20 81 4E 78 74 // [↑Pri ↓Nxt]
-XX:
-  01: Nein / Nur Text
+Pa:
+  01: reiner Text
   02: Fügen Sie den Block ein
-      02 04 [0B 2B 01 00
-      ~~~~~ ~~~~~~~~~~~~
+      02 04 | 0B 2B 01 00
+      ----- ^ -----------
       Blockeinfügeposition Blocknummer Blockparameternummer
   03: aktuelle Uhrzeit, Breite 8
   04: aktuelles Datum, Breite 10
   05: Nachrichtenaktivierungszeit, Breite 8
   06: Nachrichtenaktivierungsdatum, Breite 10
 
-YY:
-  XX = 01/03 Die Anfangsposition des Textes
+Po:
+  Va = 01,03 Die Anfangsposition des Textes
 
-  XX = 02 Blockeinfügeposition
+  Va = 02 Blockeinfügeposition
     Die Textausrichtung ist linksbündig,
     und der Text an der aktuellen Position wird beim Einfügen des Blocks nach rechts verschoben 
     [Block Parameter Display Length].
@@ -337,7 +371,7 @@ YY:
     Fügen Sie die aktuelle Uhrzeit nach dem Buchstaben "B" ein:
        "AB [] CDE"
 
-ZZ: Text (ASCII)-Zeichen,
+Txt: Text (ASCII)-Zeichen,
     wenn die Zeile einen Block hat, repräsentieren die ersten 4 Bytes den Block.
 
     80 Pfeil nach oben ↑
@@ -359,6 +393,21 @@ Beispiele:
 
 ## <a name="1F02"></a>Version und Firmware
 
+Zugriffsmethode: Lesen
+
+Variante | Bezeichnung | Bestellnummer
+--- | --- | ---
+Basic | _LOGO!_ 12/24RC | 6ED1052-1MD00-0BA5
+Basic | _LOGO!_ 24 \* | 6ED1052-1CC00-0BA5
+Basic | _LOGO!_ 24RC (AC) | 6ED1052-1HB00-0BA5
+Basic | _LOGO!_ 230RC (AC) | 6ED1052-1FB00-0BA5
+Pure  | _LOGO!_ 12/24 RCo \* | 6ED1052-2MD00-0BA5
+Pure  | _LOGO!_ 24o \* | 6ED1052-2CC00-0BA5
+Pure  | _LOGO!_ 24 RCo (AC) | 6ED1052-2HB00-0BA5
+Pure  | _LOGO!_ 230 RCo | 6ED1052-2FB00-0BA5
+
+\*: zusätzlich mit Analogeingängen
+
 Chip:
 ```
 .-----------------.
@@ -371,46 +420,53 @@ Chip:
 '-----------------'
 ```
 
-Read Byte | Wert
-----------|-----
-1F00      | 04
-1F01      | 00
-1F02      | 42
+Befehle:
+```
+send> 02 1F 00
+recv< 06 03 1F 00 04
+send> 02 1F 01
+recv< 06 03 1F 01 00 
+send> 02 1F 02
+recv< 06 03 1F 02 42 
+send> 02 1F 03
+recv< 06 03 1F 03 56 
+send> 02 1F 04
+recv< 06 03 1F 04 32
+send> 02 1F 05
+recv< 06 03 1F 05 30
+send> 02 1F 06
+recv< 06 03 1F 06 32
+send> 02 1F 07
+recv< 06 03 1F 07 30
+send> 02 1F 08
+recv< 06 03 1F 08 30
+```
+Auswertung:
 
-```
-42H = 0100 0010 // 01.00.00.10 ??
-04H = 0000 0100
-```
+Read Byte | HEX | BIN       | Bedeutung
+----------|-----|-----------|----------
+1F00      | 04  | 0000 0100 | ??
+1F01      | 00  | 0000 0000 | ??
+1F02      | 42  | 0100 0010 | = 0BA5
 
-Version | Bestellnummer
---- | ---
-Standard _LOGO!_ 12 / 24RC (DC) | 6ED1052-1MD00-0BA5
-_LOGO!_ 24 (DC) | 6ED1052-1CC00-0BA5
-_LOGO!_ 24RC (Wechselstrom/Gleichstrom) | 6ED1052-1HB00-0BA5
-_LOGO!_ 230RC (Wechselstrom) | 6ED1052-1FB00-0BA5
+Read Byte | HEX | DEC | ASCII
+----------|-----|-----|------
+1F03      | 56  | 86  | V
+1F04      | 32  | 50  | 2
+1F05      | 30  | 48  | 0
+1F06      | 32  | 50  | 2
+1F07      | 30  | 48  | 0
+1F08      | 30  | 48  | 0
 
-```
-02 1F 00
-02 1F 01
-02 1F 02
-02 1F 03
-02 1F 04
-02 1F 05
-02 1F 06
-02 1F 07
--> 04 00 42 56 32 30 32 30
-```
-
-```
-    1F00  1F01  1F02  | 1F03  1F04  1F05  1F06  1F07
-    04    00    42    | 56    32    30    32    30
-Dec 04    00    66    | 86    50    48    50    48
-Asc             B     | V     2     0     2     0
-```
-
-BIOS-Version = 2.02.0
+Firmware = V2.02.00
 
 ## <a name="48FF"></a>Passwort vorhanden
+
+Befehl:
+```
+send> 02 48 FF
+recv< 06 03 48 FF 00
+```
 
 Read Byte | Wert | Beschreibung
 ----------|------|-------------
@@ -422,34 +478,37 @@ Read Byte | Wert | Beschreibung
 Speicherbereich: FB00, 6*1 Byte
 
 Adresse | Wert
---- | ---
-FB00 | Tag
-FB01 | Monat
-FB02 | Jahr
-FB03 | Minuten
-FB04 | Stunden
-FB05 | Wochentag
+--------|-----------
+FB00    | Tag
+FB01    | Monat
+FB02    | Jahr
+FB03    | Minuten
+FB04    | Stunden
+FB05    | Wochentag
 
-### Schreiben
-```
-01 FB XX YY   // XX = [00-05], YY = Wert
--> 06         // OK
+### RTC auslesen
 
-01 43 00 00   // Werte in RTC uebernehmen
--> 06         // OK
+Befehlsfolge:
+```
+send> 01 44 00 00     // Werte aus RTC auslesen
+recv< 06              // OK
+send> 02 FB XX        // XX = [00-05]
+recv< 06 03 FB XX YY  // YY = Wert
 ```
 
-### Auslesen
+### RTC setzen
+
+Befehlsfolge
 ```
-01 44 00 00       // Werte aus RTC auslesen
--> 06             // OK
-02 FB XX          // XX = [00-05]
--> 06 03 FB XX YY // YY = Wert
+send> 01 FB XX YY     // XX = [00-05], YY = Wert
+recv< 06              // OK
+send> 01 43 00 00     // Werte in RTC uebernehmen
+recv< 06              // OK
 ```
 
 ----------
 
-# <a name="chapter3"></a>Kapitel 3 - Klemmenspeicher
+# <a name="Kapitel3"></a>Kapitel 3 - Klemmenspeicher
 
 ## <a name="Co"></a>Konstanten und Klemmen - Co
 
@@ -492,8 +551,8 @@ Das Format ist einheitlich und ist als vielfache von 20 Bytes = 2 Bytes `80 00` 
 Nicht benutzte Anschlüsse (freie Eingänge) im Schaltprogramm werden mit `FFFF` angezeigt. 
 
 ```
-Xa: Eingang, abhängig von b7
-Xb: BIN Hi --+--+--+--*++++ Lo
+Na: Eingang, abhängig von b7
+Nb: BIN Hi --+--+--+--*++++ Lo
            b7 b6 b5 b4 0000
 
     b7 = 0, Xa = Konstante oder Klemme
@@ -503,7 +562,7 @@ Xb: BIN Hi --+--+--+--*++++ Lo
     b4 = 0
 ```
 
-Xa Xb: X = Element 1-8
+Na Nb: N = Element 1-8
 
 Das folgende Beispiel zeigt, dass wie der Eingang von Q1 mit der Klemme I1 (0000) verbunden ist.
 
@@ -563,8 +622,7 @@ Bereich     | Anz | Zeiger            | Beschreibung
 Befehl:
 ```
 send> 05 0C 00 00 14
-recv<
-06
+recv< 06
 00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4 00
 D4
 ```
@@ -587,7 +645,7 @@ Darstellungsformat:
 80 00 Q9a Q9b ... ... Q16a Q16b FF FF
 ```
 
-Qna Qnb: n = Element 1-16
+Q<n>a Q<n>b: n = Element 1-16
 
 ## <a name="0EC0"></a>Merker - M
 Die Digitalausgänge M1 bis M24 befinden sich im Speicherbereich 0EC0 - 0E84 (3*20 Bytes).
@@ -599,7 +657,7 @@ Darstellungsformat:
 80 00 M17a M17b ... ... M24a M24b FF FF
 ```
 
-Mna Mnb: n = Element 1-24
+M<n>a M<n>b: n = Element 1-24
 
 ## <a name="0E84"></a>Analogausgänge, Analoge Merker - AQ, AM
 Die Analogen Ausgänge AQ1 und AQ2 befinden sich im Speicherbereich 0E84 - 0E98 (1*20 Bytes).
@@ -609,8 +667,8 @@ Darstellungsformat:
 80 00 AQ1a AQ1b AQ2a AQ2b AM1a AM1b ... ... AM6a AM6b  FF FF // (20 Byte)
 ```
 
-AQXa AQXb: X = Element AQ1-2<br />
-AMXa AMXb: X = Element AM1-6
+AQ<n>a AQ<n>b: n = Element AQ1-2<br />
+AM<n>a AM<n>b: n = Element AM1-6
 
 ## <a name="0E98"></a>Offene Klemmen - X
 Die Offenen Klemmen X1 bis X16 befinden sich im Speicherbereich 0E98 - 0EC0 (2*20 Bytes).
@@ -621,7 +679,7 @@ Darstellungsformat:
 80 00 X9a  X9b  ... ... X16a X16b FF FF
 ```
 
-Xna Xnb: n = Element 1-16
+X<n>a X<n>b: n = Element 1-16
 
 ----------
 
@@ -643,9 +701,9 @@ normal  | 80     | 1000 0000 = 80
 negiert | C0     | 1100 0000 = C0
 
 ### Zuordnen einer Blocknummer
-Die Erklärung erfolgt Anhand eines Beispiel. Im Beispiel kommen die Klemmen Q1 und Q2 zur Anwendung (ungleich FFFF).
+Die Erklärung erfolgt Anhand eines Beispiels. Im Beispiel kommen die Klemmen Q1 und Q2 zur Anwendung (ungleich FFFF).
 
-Die Klemmen sind wie folgt verdahtet:
+Die Klemmen sind wie folgt verdrahtet:
 - Der Eingang von Q1 ist mit dem Ausgang von Block B001 verbunden
 - Eingang Q2 mit Ausgang B005
 
@@ -709,16 +767,18 @@ Der erste Block liegt im Programmzeilenspeicher 0EE8 = 0E20 + 00C8, d.h. Der Wer
 
 Befehl:
 ```
-05 0C 14 01 04
+send> 05 0C 14 01 04
 ```
 
 Ausgabe mit gelöschten Programm:
 ```
+recv< 06
 FF FF FF FF FF FF FF FF FF FF FF FF ...
 ```
 
 Programm bestehend aus einem Block:
 ```
+recv< 06
 C8 00 FF FF FF FF FF FF FF FF FF FF ...
 ```
 
@@ -784,8 +844,8 @@ GF 00 1a 1b 2a 2b 3a 3b 4a 4b FF FF // (12 Bytes)
 GF: Funktionsblock, siehe Liste Grundfunktionen
 
 ```
-Xa: Eingang, abhängig von b7
-Xb: BIN Hi --+--+--+--*++++ Lo
+Na: Eingang, abhängig von b7
+Nb: BIN Hi --+--+--+--*++++ Lo
            b7 b6 b5 b4 0000
 
     b7 = 0, Xa = Konstante oder Klemme
@@ -796,7 +856,7 @@ Xb: BIN Hi --+--+--+--*++++ Lo
     b4 = 0
 ```
 
-Xa Xb: X = Element 1,2-4
+Na Nb: N = Element 1-4
 
 Nicht benutzte Anschlüsse im Schaltprogramm werden mit `FFFF` angezeigt.
 
@@ -824,7 +884,7 @@ Auswertung:
 ```
 02 00 [0B 80] [FF FF] [01 00] [FF FF] FF FF   // Little-Endian
 02 00 [80,0B] [FF,FF] [00,01] [FF FF] FF FF   // Hi,Lo
-GF Pa [Nr,B2] [--,--] [Co,I2] [--,--]         // OR
+GF 00 [Nr,B2] [--,--] [Co,I2] [--,--]         // OR
 ```
 
 ### Liste Grundfunktionen
@@ -840,7 +900,7 @@ HEX | BIN       | RAM (Bytes) | Bezeichnung der Grundfunktion
 08  | 0000 1000 | 12          | NAND mit Flankenauswertung
 
 ## <a name="SF"></a>Sonderfunktionen - SF
-Sonderfunktionen sind ähnlich dem Grundfunktionen im Speicher abgelegt. Neben den Verknüpfungseingängen sind beinhalten diese jedoch Zeitfunktionen, Remanenz und verschiedenste Parametriermöglichkeiten.
+Sonderfunktionen sind ähnlich wir die Grundfunktionen im Speicher abgelegt. Neben den Verknüpfungseingängen sind beinhalten diese jedoch Zeitfunktionen, Remanenz und verschiedenste Parametriermöglichkeiten.
 
 ### Format im Speicher
 Die Formatlänge ist variabel und hat 8, 12, 20 oder 24 Bytes = 2 Bytes `<SF> <Pa>` + 4 bis 20 Bytes `<Daten>` + 2 Bytes `FF FF`.
@@ -849,7 +909,7 @@ SF: Block, siehe Liste Sonderfunktionen<br />
 Pa: Parameter, siehe Blockparameter
 
 ### Liste Sonderfunktionen
-HEX | RAM (Bytes) | Rem (Bytes) | Beschreibung
+HEX | RAM (Bytes) | REM (Bytes) | Beschreibung
 ----|-------------|-------------|---------------------------------
 [21](#SF21)  | 8           | 3           | Einschaltverzögerung
 [22](#SF22)  | 12          | 3           | Ausschaltverzögerung
@@ -865,15 +925,15 @@ HEX | RAM (Bytes) | Rem (Bytes) | Beschreibung
 ## Grundwissen Sonderfunktionen
 
 ### Bezeichnung der Eingänge:
-- S (Set): Über den Eingang S kann der Ausgang auf `1` gesetzt.
-- R (Reset): Der Rücksetzeingang R schaltet Ausgänge auf `0`.
-- Trg (Trigger): Über diesen Eingang wird der Ablauf einer Funktion gestart.
-- Cnt (Count): Über diesen Eingang werden Zählimpulse aufgenommen.
-- Fre (Frequency): Auszuwertende Frequenzsignale werden an den Eingang mit dieser Bezeichnung angelegt.
-- Dir (Direction): Über diesen Eingang legen Sie die Richtung fest.
-- En (Enable): Dieser Eingang aktiviert die Funktion eines Blocks. Liegt der Eingang auf `0`, werden andere Signale vom Block ignoriert.
-- Inv (Invert): Das Ausgangssignal des Blocks wird invertiert, wenn dieser Eingang angesteuert wird.
-- Ral (Reset all): Alle internen Werte werden zurückgesetzt.
+- __S__ (_Set_): Über den Eingang S kann der Ausgang auf `1` gesetzt.
+- __R__ (_Reset_): Der Rücksetzeingang R schaltet Ausgänge auf `0`.
+- __Trg__ (_Trigger_): Über diesen Eingang wird der Ablauf einer Funktion gestartet.
+- __Cnt__ (_Count_): Über diesen Eingang werden Zählimpulse aufgenommen.
+- __Fre__ (_Frequency_): Auszuwertende Frequenzsignale werden an den Eingang mit dieser Bezeichnung angelegt.
+- __Dir__ (_Direction_): Über diesen Eingang legen Sie die Richtung fest.
+- __En__ (_Enable_): Dieser Eingang aktiviert die Funktion eines Blocks. Liegt der Eingang auf `0`, werden andere Signale vom Block ignoriert.
+- __Inv__ (_Invert_): Das Ausgangssignal des Blocks wird invertiert, wenn dieser Eingang angesteuert wird.
+- __Ral__ (_Reset all_): Alle internen Werte werden zurückgesetzt.
 
 ### Zeitverhalten
 Bei einigen Sonderfunktionen kann ein Zeitwert T parametriert werden. Beim Zeitparameter ist zu beachten, dass sich der Werte nach der programmierten Zeitbasis richtet.
@@ -894,7 +954,7 @@ Ta Tb: Zeitwert
   Ta Tb
    \ /
    / \
-  Tb Ta
+  Tb,Ta
 
     |       Tb (byte)       |       Ta (byte)       |
   Hi --+--*--+--+--+--+--+--|--+--+--+--+--+--+--+-- Lo
@@ -936,7 +996,7 @@ Beispiel:
 
 ## <a name="SF21"></a>Einschaltverzögerung
 
-RAM/Rem: 8/3
+RAM/REM: 8/3
 
 Darstellungsformat:
 ```
@@ -951,11 +1011,11 @@ Pa: Funktionsblockparameter
     Hi --+--+--+--*++++ Lo
        b7 b6 b5 b4 0000
 
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
-    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+    b7: Remanenz; 1 = aktiv, 0 = nein
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Def)
 
-Trg: Eingang Trg ([Co](#Co) oder [GF](#GF)/[SF](#SF))
-Par: Parameter [T](#zeitverhalten) (T ist die Zeit, nach der der Ausgang eingeschaltet wird)
+Trg: Eingang Trg (Co oder GF/SF)
+Par: Parameter T (T ist die Zeit, nach der der Ausgang eingeschaltet wird)
 ```
 Folgend das Beispiel "Ermittlung von Speicherbedarf" aus dem Handbuch.
 
@@ -992,7 +1052,7 @@ Weitere Beispiele:
 
 ## <a name="SF22"></a>Ausschaltverzögerung
 
-RAM/Rem: 12/3
+RAM/REM: 12/3
 
 Darstellungsformat:
 ```
@@ -1007,12 +1067,12 @@ Pa: Funktionsblockparameter
     Hi --+--+--+--*++++ Lo
        b7 b6 b5 b4 0000
 
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
-    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+    b7: Remanenz; 1 = aktiv, 0 = nein
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Def)
 
-Trg: Eingang Trg ([Co](#Co) oder [GF](#GF)/[SF](#SF))
-R: Eingang R ([Co](#Co) oder [GF](#GF)/[SF](#SF))
-Par: Parameter [T](#zeitverhalten) (Der Ausgang schaltet aus, wenn die Verzögerungszeit T abläuft)
+Trg: Eingang Trg (Co oder GF/SF)
+R: Eingang R (Co oder GF/SF)
+Par: Parameter T (Der Ausgang schaltet aus, wenn die Verzögerungszeit T abläuft)
 ```
 
 Beispiel:
@@ -1022,7 +1082,7 @@ Beispiel:
 
 ## <a name="SF23"></a>Stromstoßrelais
 
-RAM/Rem: 12/1
+RAM/REM: 12/1
 
 Darstellungsformat:
 ```
@@ -1037,12 +1097,12 @@ Pa: Funktionsblockparameter
     Hi --+--+--+--*++++ Lo
        b7 b6 b5 b4 0000
 
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 1 Byte REM
-    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+    b7: Remanenz; 1 = aktiv, 0 = nein
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Def)
 
-Trg: Eingang Trg ([Co](#Co) oder [GF](#GF)/[SF](#SF))
-S: Eingabe S ([Co](#Co) oder [GF](#GF)/[SF](#SF))
-R: Eingang R ([Co](#Co) oder [GF](#GF)/[SF](#SF))
+Trg: Eingang Trg (Co oder GF/SF)
+S: Eingabe S (Co oder GF/SF)
+R: Eingang R (Co oder GF/SF)
 Par:
   RS (Vorrang Eingang R) oder
   SR (Vorrang Eingang S)
@@ -1050,7 +1110,7 @@ Par:
 
 ## <a name="SF24"></a>Wochenschaltuhr
 
-RAM/Rem: 20/-
+RAM/REM: 20/-
 
 Darstellungsformat:
 ```
@@ -1066,8 +1126,8 @@ Pa: Funktionsblockparameter
     Hi --+--+--+--*++++ Lo
        b7 b6 b5 b4 0000
 
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 0 Byte REM (Def)
-    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+    b7: Remanenz; 1 = aktiv, 0 = nein; *) REM (Def)
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Def)
 
 No1: Nockenparameter 1
 No2: Nockenparameter 2
@@ -1078,8 +1138,9 @@ No3: Nockenparameter 3
         OnL OnH
           \ /
           / \
-        OnH OnL
-        T = 60 * h + m
+        OnH,OnL = t
+        h = t / 60;
+        m = t % 60;
   
         Beispiel:
         F2 = 1111 0010 = 242 (Dec) = 60 × 4 + 2 = 242   // On = 04:02h
@@ -1089,8 +1150,9 @@ No3: Nockenparameter 3
         OffL OffH
            \ /
            / \
-        OffH OffL
-        T = 60 * h + m
+        OffH,OffL = t
+        h = t / 60;
+        m = t % 60;
   
         Beispiel:
         A0 = 1010 0000 = 160 (Dec) = 60 * 2 + 40 = 160  // Off = 02:40h
@@ -1148,7 +1210,7 @@ No2: D=MTW ----, On=05:10, Off=--:--
 
 ## <a name="SF25"></a>Selbsthalterelais
 
-RAM/Rem: 8/1
+RAM/REM: 8/1
 
 Darstellungsformat:
 ```
@@ -1163,16 +1225,16 @@ Pa: Funktionsblockparameter
     Hi --+--+--+--*++++ Lo
        b7 b6 b5 b4 0000
 
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 1 Byte REM
-    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+    b7: Remanenz; 1 = aktiv, 0 = nein
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Def)
 
-S: Eingabe S ([Co](#Co) oder [GF](#GF)/[SF](#SF))
-R: Eingang R ([Co](#Co) oder [GF](#GF)/[SF](#SF))
+S: Eingabe S (Co oder GF/SF)
+R: Eingang R (Co oder GF/SF)
 ```
 
 ## <a name="SF27"></a>Speichernde Einschaltverzögerung
 
-RAM/Rem: 12/3
+RAM/REM: 12/3
 
 Darstellungsformat:
 ```
@@ -1187,12 +1249,12 @@ Pa: Funktionsblockparameter
     Hi --+--+--+--*++++ Lo
        b7 b6 b5 b4 0000
 
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
-    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+    b7: Remanenz; 1 = aktiv, 0 = nein
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Def)
 
-Trg: Eingang Trg ([Co](#Co) oder [GF](#GF)/[SF](#SF))
-R: Eingang R ([Co](#Co) oder [GF](#GF)/[SF](#SF))
-Par: Parameter [T](#zeitverhalten) (T ist die Zeit, nach der der Ausgang eingeschaltet wird)
+Trg: Eingang Trg (Co oder GF/SF)
+R: Eingang R (Co oder GF/SF)
+Par: Parameter T (T ist die Zeit, nach der der Ausgang eingeschaltet wird)
 ```
 
 Beispiel:
@@ -1203,7 +1265,7 @@ Remanenz aktiv, Parameterschutz aktiv, Trg = I3, R = -, 05:10 (h:m)
 
 ## <a name="SF2B"></a>Vor-/Rückwärtszähler
 
-RAM/Rem: 24/5
+RAM/REM: 24/5
 
 Darstellungsformat:
 ```
@@ -1221,12 +1283,12 @@ Pa: Funktionsblockparameter
     Hi --+--+--+--*++++ Lo
        b7 b6 b5 b4 0000
 
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
-    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+    b7: Remanenz; 1 = aktiv, 0 = nein
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Def)
 
-R: Eingang R ([Co](#Co) oder [GF](#GF)/[SF](#SF))
-Cnt: Eingang Cnt ([Co](#Co) oder [GF](#GF)/[SF](#SF))
-Dir: Eingang Dir ([Co](#Co) oder [GF](#GF)/[SF](#SF))
+R: Eingang R (Co oder GF/SF)
+Cnt: Eingang Cnt (Co oder GF/SF)
+Dir: Eingang Dir (Co oder GF/SF)
 Par:
   On: Einschaltschwelle (0 ... 999999)
   B1 B2 B3 B4
@@ -1247,7 +1309,7 @@ StartVal: Ausgangswert, ab dem entweder vorwärts oder rückwärts gezählt wird
 
 ## <a name="SF2D"></a>Asynchroner Impulsgeber
 
-RAM/Rem: 12/3
+RAM/REM: 12/3
 
 Darstellungsformat:
 ```
@@ -1263,11 +1325,11 @@ Pa: Funktionsblockparameter
     Hi --+--+--+--*++++ Lo
        b7 b6 b5 b4 0000
 
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 3 Bytes REM
-    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+    b7: Remanenz; 1 = aktiv, 0 = nein
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Def)
 
-En: Eingang En ([Co](#Co) oder [GF](#GF)/[SF](#SF))
-INV: Eingang INV ([Co](#Co) oder [GF](#GF)/[SF](#SF))
+En: Eingang En (Co oder GF/SF)
+INV: Eingang INV (Co oder GF/SF)
 Par:
   TH: Parameter [TH](#zeitverhalten) (Impulsdauer TH)
   TL: Parameter [TL](#zeitverhalten) (Impulspausendauer TL)
@@ -1275,7 +1337,7 @@ Par:
 
 ## <a name="SF39"></a>Analogwertüberwachung
 
-RAM/Rem: 20/-
+RAM/REM: 20/-
 
 Darstellungsformat:
 ```
@@ -1283,18 +1345,18 @@ Darstellungsformat:
 39 40 [FD 00] [92 00] [C8 00 66 00 00 00 00 00 00 00 00 00 00 00
 SF Pa [En   ] [Ax   ] [Par ... 
 ```
-  
+
 ```
 SF: Funktionsblock, siehe Liste Sonderfunktionen
 Pa: Funktionsblockparameter
     Hi --+--+--+--*++++ Lo
        b7 b6 b5 b4 0000
 
-    b7: Remanenz, 1 = Aktiv; 0 = Nein; * Remanenz nutzt 0 Byte REM (Def)
-    b6: Parameterschutz, 0 = aktiv, 1 = Nein (Def)
+    b7: Remanenz; 1 = aktiv, 0 = nein; * REM (Def)
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Def)
 
-En: Eingang En ([Co](#Co) oder [GF](#GF)/[SF](#SF))
-Ax: Eingang Ax ([Co](#Co) oder [GF](#GF)/[SF](#SF))
+En: Eingang En (Co oder GF/SF)
+Ax: Eingang Ax (Co oder GF/SF)
 Par:
   A: Verstärkung (Gain) (+/-10,00)
   B: Nullpunktverschiebung (Offset) (+/-10000)
@@ -1307,11 +1369,12 @@ Par:
 
 ----------
 
-# <a name="chapter5"></a>Kapitel 5 - Sonstiges
+# <a name="Kapitel5"></a>Kapitel 5 - Sonstiges
 
 ## <a name="1E00"></a>Speicherbereich 1E00
 
 ```
+send >
 02 1E 00
 02 1E 01
 02 1E 02
@@ -1320,12 +1383,13 @@ Par:
 02 1E 05
 02 1E 06
 02 1E 07
--> 00 00 00 00 00 00 00 00
+recv< 00 00 00 00 00 00 00 00
 ```
 
 ## <a name="2000"></a>Speicherbereich 2000
 
 ```
+send >
 02 20 00
 02 20 01
 02 20 02
@@ -1334,7 +1398,7 @@ Par:
 02 20 05
 02 20 06
 02 20 07
--> 00 00 00 00 00 00 00 00
+recv< 00 00 00 00 00 00 00 00
 ```
 
 ## Speicherbereiche 0522, 055E-5F
@@ -1362,18 +1426,10 @@ AI7-> AM6-> AQ2 / AI2-> AM6-> AQ2
 09 = 0000 1001
 ```
 
-## Anmerkungen zu 0BA6
-
-| Beispiel    | Adresse     | Länge |   |                                      |
-|-------------|-------------|-------|---|--------------------------------------|
-| 0C 00 01 A4 | 0C00 - 0DA4 | 420   |   | Anzahl der Blöcke 200 / REM 250      |
-| 0E E8 0E D8 | 0EE8 - 1DC0 | 3800  |   | Programmzeilenpeicher 1DC0h = 7616   |
-
-
 ## Erfassbare Daten mit Befehl `55`
-Die Tabelle zeigt die erfassbaren Parameter inkl. Datentyp, die über den Befehl `55` abgefragt werden können. Die Angabe VB, VW oder VD (Byte, Wort oder Doppelwort) gibt gleichzeitig die Anzahl der Bytes vor, die der Parameter benötigt. 
+Die Tabelle zeigt die erfassbaren Variablen und Parameter inkl. zugehörigen Datentyp, die über den Befehl `55` abgefragt werden können. Die Angabe VB, VW oder VD (Byte =1, Wort = 2 oder Doppelwort = 4) gibt gleichzeitig die Anzahl der Bytes vor, die der Datentyp benötigt. 
 
-Blockbeschreibung                 | Parameter, Datentyp                               | Syntax                | Beispiel
+Blockbeschreibung                 | Variable/Parameter:Datentyp(en)                   | VM-Syntax             | Beispiel
 ----------------------------------|---------------------------------------------------|-----------------------|-----------
 Einschaltverzögerung              | Ta:VW,VB; T:VW,VB                                 | T[a]<vm>,<n>          | `Ta100,6`
 Ausschaltverzögerung              | Ta:VW,VB; T:VW,VB                                 | T[a]<vm>,<n>          | `T110,3`
@@ -1393,7 +1449,7 @@ Rampensteuerung                   | L1:V_; L2:V_; AQ:VW; A:V_; B:V_; p:VB;      
 PI-Regler                         | -                                                 | -                     | -
 
 ### Mögliche Anwendung
-Über den Blocknamen könnten bis zu 64 Parameter einem Variablenspeicher ähnlich __0BA7__ zugeordnet werden. Die obige Tabelle zeigt neben den erfassbaren Parametern auch die zugehörige Syntax für einen Anwendung mit einem Variablenspeicher. 
+Über den Blocknamen könnten bis zu 64 Parameter einem Variablenspeicher ähnlich __0BA7__ zugeordnet werden. Die obige Tabelle zeigt neben den erfassbaren Variablen und Block-Parametern auch die zugehörige Syntax für eine mögliche Anwendung mit einem Variablenspeicher. 
 
 Im Folgenden die VM-Adressierung mit zugehörigem Datentyp nach __0BA7__:
 ```
