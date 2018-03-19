@@ -1,6 +1,6 @@
 # LOGO! PG Protocol Reference Guide
 
-Rev. Bp
+Rev. Bq
 
 March 2018
 
@@ -390,7 +390,7 @@ Command | Address | Byte Count
 Data Code | 16/32bit Address | Number of bytes
 >Figure _Read Block_ Query Message
 
-The following example reads the program name from a _LOGO!_ memeory:
+The following example reads the program name from _LOGO!_ memory:
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
@@ -496,7 +496,7 @@ This function fetching the current data from the _LOGO!_ device. The _LOGO!_ dev
 
 To fetch data or start a continuously polling, the _Data_ field must be existent and must set to `00`. If a confirmation code `06` is sent by the _DTE_ to the _LOGO!_ device within 600 ms, the _LOGO!_ device sends updated data (cyclic data read). To stop a data reading the Control Code `14` (_Stop Fetch Data_) must be sent. 
 
-The distance between the data transfers (scan distance) depends on the cycle time of the _LOGO!_ device and the number of requested data (byte count). The data of the inputs and outputs as well as the flags are always read out as a block. The scan distance is about 200 ms (byte ccount = 0), so valid cycle times are greater than 200 ms. For a shorter cycle time, the requesting _DTE_ system will not receive all data. 
+The distance between the data transfers (scan distance) depends on the cycle time of the _LOGO!_ device and the number of requested data (byte count). The data of the inputs and outputs as well as the flags are always read out as a block. The scan distance is about 200 ms (byte count = 0), so valid cycle times are greater than 200 ms. For a shorter cycle time, the requesting _DTE_ system will not receive all data. 
 
 ### Query
 
