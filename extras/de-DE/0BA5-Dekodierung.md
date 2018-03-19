@@ -1,6 +1,6 @@
 # LOGO! Adressdekodierung für __0BA5__
 
-Ausgabe Ah
+Ausgabe Ai
 
 März 2018
 
@@ -38,7 +38,7 @@ Einzelheiten zum _LOGO!_-Adresslayout finden Sie in den folgenden Veröffentlich
     * [Textfeld](#0800)
     * [Version und Firmware](#1F02)
     * [Passwort vorhanden](#48FF)
-    * [RTC-Uhr](#FB00)
+    * [Echtzeituhr](#FB00)
   * [Kapitel 3 - Klemmenspeicher](#Kapitel3)
     * [Konstanten und Klemmen - Co](#Co)
     * [Verweis auf Ausgänge, Merker](#0C00)
@@ -173,6 +173,8 @@ Bei Bitdarstellungen werden die Bits innerhalb einer Binärzahl nach [LSB-0](#ht
 | 05 70 00 10 | [0570](#0570) - 0580 | 16    |   | Programmname                                           |
 
 ### Textbausteine
+| Beispiel    | Adresse     | Länge |   |                                                        |
+|-------------|-------------|-------|---|--------------------------------------------------------|
 |             | 0580 - 05C0 | 64    |   | = 0 (64 = 0040h)                                       |
 | 05 C0 00 40 | [05C0](#05C0) - 0600 | 64    |   | Verweis auf Blockname                                  |
 | 06 00 02 00 | [0600](#0600) - 0800 | 512   |   | Blocknamen 8 Zeichen                                   |
@@ -196,7 +198,7 @@ Bei Bitdarstellungen werden die Bits innerhalb einer Binärzahl nach [LSB-0](#ht
 | 0E C0 00 28 | 0EC0 - 0EE8 | 40    |   |                                                        |
 | 0E E8 07 D0 | [0EE8](#0EE8) - 16B8 | 2000  |   | Programmzeilenpeicher                                  |
 
-### Firmware
+### Firmware (Parameter)
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
 |             | 1F00        | 1     |   |                                                        |
@@ -217,7 +219,7 @@ Bei Bitdarstellungen werden die Bits innerhalb einer Binärzahl nach [LSB-0](#ht
 |             | 4740        | 1     | W | = 00, Passwort lesen/schreiben initialisiert           |
 | 01 48 FF    | [48FF](#48FF)        | 1     | R | Passwort vorhanden?                                    |
 
-### Echtzeituhr
+### Echtzeituhr (Parameter)
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
 | 01 FB 00    | [FB00](#FB00) - FB05 | 6     |   | Echtzeituhr                                            |
