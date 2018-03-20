@@ -1,6 +1,6 @@
 # LOGO! PG Protocol Reference Guide
 
-Rev. Br
+Rev. Bs
 
 March 2018
 
@@ -591,6 +591,21 @@ Field Name | Code \(hex\) | Meaning
 Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
+Byte Count | `44` | Number of bytes 68 (dec)
+Data | `f4 5f 11 2a` `04` `04 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `00 00 00 00 00 00` `00 00 00` `00 00` `00 00 00` `01` `00` | Data Block 10-1f
+Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
+Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
+Data | `01 00 22 80` | Data Block 40-43
+Trailer | `aa` | End Delimiter
+>Figure Example _Fetch Data_ Response __0BA5__ with 4 addional bytes
+
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Confirmation | `06` | Acknowledgment
+Command | `55` | Control
+Function | `11 11` | Data Response
 Byte Count | `4a` | Number of bytes 74 (dec)
 Data | `b7 c4 19 2c 00 10 84 6b 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00` `00 00` | Data Block 10-1f
@@ -599,6 +614,7 @@ Data | `00 00 00 00 00 00 00 00 00 00` `00 00 00 00` `00 00` | Data Block 30-3f
 Data | `00 00 00 00 00 00 00 00 00 00` | Data Block 40-49
 Trailer | `aa` | End Delimiter
 >Figure Example _Fetch Data_ Response __0BA6__
+
 
 ## Stop Fetch Data `14`
 
@@ -993,14 +1009,14 @@ Example for the 1st major version of a firmware, in the 3rd minor version with t
 Command | Query | Response | Description
 --- | --- | --- | ---
 Operation Mode | `55` `17 17` `aa` | `06` `42` | operation mode _STOP_ (`42`, _RUN_ = `01`)
-Read Byte | `02` `1f 02` | `06` `03` `00 ff 1f 02` `43` | connection established to `43` (_LOGO!_ __0BA6__)
-Read Byte | `02` `fb 00` | `06` `03` `00 ff 1f 03` `56` | major release 1st character = `V` (ASCII)
-Read Byte | `02` `fb 00` | `06` `03` `00 ff 1f 04` `30` | major release 1st character = `0` (ASCII)
-Read Byte | `02` `fb 01` | `06` `03` `00 ff 1f 05` `31` | major release 2nd character = `1` (ASCII)
-Read Byte | `02` `fb 02` | `06` `03` `00 ff 1f 06` `30` | minor release 1st character = `0` (ASCII)
-Read Byte | `02` `fb 03` | `06` `03` `00 ff 1f 07` `33` | minor release 2nd character = `3` (ASCII)
-Read Byte | `02` `fb 04` | `06` `03` `00 ff 1f 08` `33` | patch release 1st character = `3` (ASCII)
-Read Byte | `02` `fb 05` | `06` `03` `00 ff 1f 09` `32` | patch release 2nd character = `2` (ASCII)
+Read Byte | `02` `00 ff 1f 02` | `06` `03` `00 ff 1f 02` `43` | connection established to `43` (_LOGO!_ __0BA6__)
+Read Byte | `02` `00 ff 1f 03` | `06` `03` `00 ff 1f 03` `56` | major release 1st character = `V` (ASCII)
+Read Byte | `02` `00 ff 1f 04` | `06` `03` `00 ff 1f 04` `30` | major release 1st character = `0` (ASCII)
+Read Byte | `02` `00 ff 1f 05` | `06` `03` `00 ff 1f 05` `31` | major release 2nd character = `1` (ASCII)
+Read Byte | `02` `00 ff 1f 06` | `06` `03` `00 ff 1f 06` `30` | minor release 1st character = `0` (ASCII)
+Read Byte | `02` `00 ff 1f 07` | `06` `03` `00 ff 1f 07` `33` | minor release 2nd character = `3` (ASCII)
+Read Byte | `02` `00 ff 1f 08` | `06` `03` `00 ff 1f 08` `33` | patch release 1st character = `3` (ASCII)
+Read Byte | `02` `00 ff 1f 09` | `06` `03` `00 ff 1f 09` `32` | patch release 2nd character = `2` (ASCII)
 >Figure Example _Read Firmware_ __0BA6__
 
 __Note:__ The firmware can only be read in _STOP_ mode.
