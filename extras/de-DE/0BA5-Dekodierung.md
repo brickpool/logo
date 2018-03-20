@@ -1,6 +1,6 @@
 # LOGO! Adressdekodierung für __0BA5__
 
-Ausgabe Ai
+Ausgabe Aj
 
 März 2018
 
@@ -66,7 +66,7 @@ Einzelheiten zum _LOGO!_-Adresslayout finden Sie in den folgenden Veröffentlich
     * Speicherbereiche 0522, 055E-5F
     * Erfassbare Daten mit Befehl `55`
   * [Anhang](#Anhang)
-    * 0BA5 Ressourcen
+    * [0BA5 Ressourcen](#Ressourcen)
     * Verwendete Abkürzungen
 
 ----------
@@ -112,7 +112,7 @@ Die Programmbefehle werden aus dem Speicher ausgelesen und Zeile für Zeile ausg
 Die Steuereinheit wird über die Busverbindung mit den anderen Systembereichen wie Rechnwerk, Zeiten, Zähler usw. verbunden. Unmittelbar nach Anlegen der Netzspannung werden die nicht remanenten Zähler, Zeiten und Merker sowie die Prozessabbilder der Eingänge und Ausgänge zurückgesetzt.
 
 ### Rechenwerk
-Der Begriff wird häufig synonym mit arithmetisch-logische Einheit (ALU) gebraucht, genau genommen stellt eine ALU jedoch lediglich die zentrale Komponente eines Rechenwerks dar, das zusätzlich aus einer Reihe von Hilfs- und Statusregistern besteht. Die ALU selbst enthält hingegen keine Registerzellen und stellt somit ein reines Schaltnetz dar.
+Der Begriff wird häufig synonym mit arithmetisch-logische Einheit (ALU) gebraucht, genau genommen stellt eine ALU jedoch lediglich die zentrale Komponente eines Rechenwerks dar, das zusätzlich aus einer Reihe von Hilfs- und rttusregistern besteht. Die ALU selbst enthält hingegen keine Registerzellen und stellt somit ein reines Schaltnetz dar.
 
 Die ALU verknüpft zwei Binärwerte (Akku1 und Akku 2) mit gleicher Stellenzahl miteinander und stellt das Ergenis der Rechenoperation in Akku 1 zur verfügung. Es können sowohl Bit, Byte oder Wortoperationen durchgeführt werden. 
 
@@ -148,16 +148,16 @@ Beim Arbeitsspeicher (engl. Random Access Memory, kurz RAM) handelt es sich um e
 Im Systemspeicher werden die Zustände der Eingänge und Ausgänge über das Prozessabbild (PE und PA), die Zeiten, Zähler, Merker und der Datenstack gespeichert. 
 
 ### Adressierung
-_LOGO!_ __0BA5__ nutzt eine 16-Bit-Adressierung. Vereinfacht dargestellt bedeutet dies, dass die Speicherarchitektur so ausgelegt ist, dass jede Speicherstelle duch einen 16 Bit-Zeiger (also 2 Byte) direkt addressiert werden kann. Die _LOGO!_ SPS __0BA5__ nutzt teilweise eine Segmentierung, sodas auch 8-Bit Zeiger (Verweise) zu Anwendung kommen, um eine Speicerstelle zu adressieren. 
+_LOGO!_ __0BA5__ nutzt eine 16-Bit-Adressierung. Vereinfacht dargestellt bedeutet dies, dass die Speicherarchitektur so ausgelegt ist, dass jede Speicherstelle duch einen 16Bit-Zeiger (also 2 Byte) direkt addressiert werden kann. Die _LOGO!_ Kleinsteuerung __0BA5__ nutzt teilweise eine Segmentierung, sodas auch 8Bit-Zeiger (Verweise) zu Anwendung kommen, um eine Speicherstelle zu adressieren. 
 
 ### Speichereinheit
-Die kleinste adressierbare Einheit (Speicherstelle) ist ein Byte. Es besteht aus 8 Bits und sein Inhalt wird hier vorwiegend mit zwei hexadezimalen Ziffern angegeben, wobei jede Ziffer für 4 Bits entsprechend einem Halbbyte steht. Das Halbbyte wird hier teilweise auch als [Nibble](#https://de.wikipedia.org/wiki/Nibble) bezeichnet. Es umfasst eine Datenmenge von 4 Bits. 
+Die kleinste adressierbare Einheit (Speicherstelle) ist ein Byte. Es besteht aus 8 Bits und sein Inhalt wird hier vorwiegend mit zwei hexadezimalen Ziffern angegeben, wobei jede Ziffer für 4 Bits entsprechend einem Halbbyte steht. Das Halbbyte wird hier teilweise auch als [Nibble](#http://de.wikipedia.org/wiki/Nibble) bezeichnet. Es umfasst eine Datenmenge von 4 Bits. 
 
 ### Byte-Reihenfolge
-Die Byte-Reihenfolge im _LOGO!_ ist [Little-Endian](#https://de.wikipedia.org/wiki/Byte-Reihenfolge), sprich das kleinstwertige Byte wird an der Anfangsadresse gespeichert bzw. die kleinstwertige Komponente zuerst genannt.
+Die Byte-Reihenfolge im _LOGO!_ ist [Little-Endian](#http://de.wikipedia.org/wiki/Byte-Reihenfolge), sprich das kleinstwertige Byte wird an der Anfangsadresse gespeichert bzw. die kleinstwertige Komponente zuerst genannt.
 
 ### Bitdarstellung
-Bei Bitdarstellungen werden die Bits innerhalb einer Binärzahl nach [LSB-0](#https://de.wikipedia.org/wiki/Bitwertigkeit) nummeriert, d.h. gemäß ihrer absteigenden Wertigkeit (gelesen von links nach rechts) ist das Bit0 (= das Bit Index 0) das niedrigstwertige. 
+Bei Bitdarstellungen werden die Bits innerhalb einer Binärzahl nach [LSB-0](#http://de.wikipedia.org/wiki/Bitwertigkeit) nummeriert, d.h. gemäß ihrer absteigenden Wertigkeit (gelesen von links nach rechts) ist das Bit0 (= das Bit Index 0) das niedrigstwertige. 
 
 ## <a name="Adresslayout"></a>Adressübersicht
 
@@ -171,11 +171,11 @@ Bei Bitdarstellungen werden die Bits innerhalb einer Binärzahl nach [LSB-0](#ht
 |             | 055F        | 1     |   |                                                        |
 | 05 66 00 0A | 0566 - 0570 | 10    |   | Passwortspeicherbereich                                |
 | 05 70 00 10 | [0570](#0570) - 0580 | 16    |   | Programmname                                           |
+|             | 0580 - 05C0 | 64    |   | = 0 (64 = 0040h)                                       |
 
 ### Textbausteine
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
-|             | 0580 - 05C0 | 64    |   | = 0 (64 = 0040h)                                       |
 | 05 C0 00 40 | [05C0](#05C0) - 0600 | 64    |   | Verweis auf Blockname                                  |
 | 06 00 02 00 | [0600](#0600) - 0800 | 512   |   | Blocknamen 8 Zeichen                                   |
 | 08 00 02 80 | [0800](#0800) - 0A80 | 640   |   | 10 Meldetexte; jeweils 64 Bytes pro Textfeld           |
@@ -198,31 +198,31 @@ Bei Bitdarstellungen werden die Bits innerhalb einer Binärzahl nach [LSB-0](#ht
 | 0E C0 00 28 | 0EC0 - 0EE8 | 40    |   |                                                        |
 | 0E E8 07 D0 | [0EE8](#0EE8) - 16B8 | 2000  |   | Programmzeilenpeicher                                  |
 
-### Firmware (Parameter)
+### Firmware
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
 |             | 1F00        | 1     |   |                                                        |
 |             | 1F01        | 1     |   |                                                        |
-| 01 1F 02    | [1F02](#1F02)        | 1     | R | Ident Nummmer                                          |
-| 01 1F 03    | [1F03](#1F02) - 1F09 | 6     | R | Revision der Firmware                                  |
+| 02 1F 02    | [1F02](#1F02)        | 1     | R | Ident Nummmer                                          |
+| 02 1F 03    | [1F03](#1F02) - 1F09 | 6     | R | Revision der Firmware                                  |
 
-### Echtzeituhr (Systemfunktion)
+### Systemfunktion Echtzeituhr
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
 |             | 4100        | 1     | W |                                                        |
-|             | [4300](#FB00)        | 1     | W | = 00, Werte in Echtzeituhr übernehmen                  |
-|             | [4400](#FB00)        | 1     | W | = 00, Werte aus Echtzeituhr laden                      |
+| 01 43 00 00 | [4300](#FB00)        | 1     | W | = 00, Werte in Echtzeituhr übernehmen                  |
+| 01 44 00 00 | [4400](#FB00)        | 1     | W | = 00, Werte aus Echtzeituhr laden                      |
 
-### Passwort (Systemfunktion)
+### Systemfunktion Passwort
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
-|             | 4740        | 1     | W | = 00, Passwort lesen/schreiben initialisiert           |
-| 01 48 FF    | [48FF](#48FF)        | 1     | R | Passwort vorhanden?                                    |
+| 01 47 40 00 | 4740        | 1     | W | = 00, Passwort lesen/setzen initialisieren             |
+| 02 48 FF    | [48FF](#48FF)        | 1     | R | Passwort vorhanden?                                    |
 
-### Echtzeituhr (Parameter)
+### Parameter Echtzeituhr
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
-| 01 FB 00    | [FB00](#FB00) - FB05 | 6     |   | Echtzeituhr                                            |
+| 02 FB 00    | [FB00](#FB00) - FB05 | 6     |   | Echtzeituhr                                            |
 
 
 __Hinweis:__
@@ -257,10 +257,10 @@ Val:
   01 = Ein-/Ausgänge
 ```
 
-## <a name="0553"></a>Analogausgang im STOP-Modus
-Analogausgänge können nach einem Wechsel von RUN in STOP auf vordefinierte Ausgangswerte oder auf die Werte, die vor dem Wechsel in den Betriebszustand STOP vorhanden waren, gesetzt werden.
+## <a name="0553"></a>Analogausgang im Betriebszustand _STOP_
+Analogausgänge können nach einem Wechsel von _RUN_ in _STOP_ auf vordefinierte Ausgangswerte oder auf die Werte, die vor dem Wechsel in den Betriebszustand _STOP_ vorhanden waren, gesetzt werden.
 
-Das Verhalten der Analogausgänge im Zustand STOP ist Teil der Parametereigenschaften (vergl. S7 Systemdatenbaustein) und wird beim Übertragen des Schaltprogramms ebenfalls übertragen und auf der _LOGO!_ gespeichert.
+Das Verhalten der Analogausgänge im Zustand _STOP_ ist Teil der Parametereigenschaften (vergl. S7 Systemdatenbaustein) und wird beim Übertragen des Schaltprogramms ebenfalls übertragen und auf der _LOGO!_ gespeichert.
 
 Speicherbereich: 0553 - 0558, Anzahl = 5 Bytes
 
@@ -282,7 +282,7 @@ Darstellungsformat:
 Val [AQ1  ] [AQ2  ]
 
 Pa:
-  if (Val == 01) then
+  if (Val == 01)
   {
     Alle Ausgänge behalten den letzten Wert bei;
   }
@@ -378,9 +378,9 @@ B2                        // XOR
 Das Beispiel zeigt die Blöcke B001 bis B003
 
 ## <a name="0800"></a>Textfeld
-64 Bytes / pro Textfeld
+Ein Meldetext belegt 64 Bytes: jeweils 4 Zeilen a 12 Bytes für <Daten/Zeichen> zzgl. 2 Bytes <Header-Daten> und 2 Bytes <00 00>.
 
-Speicherbereich: 0800 - 0A80, 640 Bytes (40 * 16) 
+Speicherbereich: 0800 - 0A80, 640 Bytes (10*4*16)
 
 vergl. S7 Datenbaustein
 
@@ -392,21 +392,10 @@ FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 // (40x)
 
 Darstellungsformat:
 ```
------------------------------------------------
 03 04 20 20 20 20 00 00 00 00 00 00 00 00 00 00
 02 04 0B 2B 00 00 4C 65 6E 3A 20 20 00 00 00 00
 02 04 0B 2B 01 00 43 6E 74 3A 20 20 00 00 00 00
 01 00 80 50 72 69 20 81 4E 78 74 20 20 20 00 00
-
-01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-02 06 14 2B 00 00 54 6F 6C 4C 65 6E 00 00 00 00
-02 06 17 2B 00 00 54 69 6D 65 73 20 00 00 00 00
-01 00 80 50 72 69 20 81 4E 78 74 20 20 20 00 00
-
-FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-... ...
-FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-6C
 -------------------------------------------------
 03 04 [20 20 20 20 00 00 00 00 00 00 00 00] 00 00
 02 04 [0B 2B 00 00 4C 65 6E 3A 20 20 00 00] 00 00
@@ -414,53 +403,57 @@ FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00
 Pa Po [--------------- Txt ---------------]
                 
-       0B 2B 00 00                // Block02, Parameter 1
-       0B 2B 01 00                // Block02, Parameter 2
-                  4C 65 6E 3A     // [Len:]
-                  43 6E 74 3A     // [Cnt:]
-       80 50 72 69 20 81 4E 78 74 // [↑Pri ↓Nxt]
-Pa:
+Pa: Parameter
   01: reiner Text
-  02: Fügen Sie den Block ein
-      02 04 | 0B 2B 01 00
-      ----- ^ -----------
-      Blockeinfügeposition Blocknummer Blockparameternummer
+  02: Blockparameter
+      02 04 [0B 2B 01 00 ...
+         +-  +- +- '-+-'   
+         |   |  |    '-- Parameter 2
+         |   |  '------- ASCII Zeichen "+"
+         |   '---------- Blocknummer B002
+         '-------------- Startposition 4
   03: aktuelle Uhrzeit, Breite 8
   04: aktuelles Datum, Breite 10
   05: Nachrichtenaktivierungszeit, Breite 8
   06: Nachrichtenaktivierungsdatum, Breite 10
 
-Po:
-  Va = 01,03 Die Anfangsposition des Textes
+Po: Position
+  Bei Pa=01   : Anfangsposition des Textes (linksbündig)
+  Bei Pa=02   : Position Blockparameter (linksbündig)
+  Bei Pa=03-06: Anfangsposition Zeit oder Datum (linksbündig)
 
-  Va = 02 Blockeinfügeposition
-    Die Textausrichtung ist linksbündig,
-    und der Text an der aktuellen Position wird beim Einfügen des Blocks nach rechts verschoben 
-    [Block Parameter Display Length].
+Txt: Text
+    maximal 12 ASCII-Zeichen
+    
+    Sonderzeichen:
+      80: Pfeil nach oben ▲
+      81: Pfeil nach unten ▼
 
-  Beispiel
-    Originaltext:
-       "ABCDE"
-    Fügen Sie die aktuelle Uhrzeit nach dem Buchstaben "B" ein:
-       "AB [] CDE"
+    Hinweis: wenn die Zeile einen Block hat, repräsentieren die ersten 2 Bytes den Block
+    und die nächsten 2 Bytes den Parameter.
+```
 
-Txt: Text (ASCII)-Zeichen,
-    wenn die Zeile einen Block hat, repräsentieren die ersten 4 Bytes den Block.
-
-    80 Pfeil nach oben ↑
-    81 Pfeil nach unten ↓
+Auswertung:
+```
+03 04 [20 20 20 20 00 00 00 00 00 00 00 00] 00 00
+02 04 [0B 2B 00 00 4C 65 6E 3A 20 20 00 00] 00 00
+       0B 2B 00 00                // Block B002, Parameter 1
+       0B 2B 01 00                // Block B002, Parameter 2
+                   4C 65 6E 3A    // Text "Len:"
+                   43 6E 74 3A    // Text "Cnt:"
+       80 50 72 69 20 81 4E 78 74 // Text "▲Pri ▼Nxt"
 ```
 
 Beispiele:
 ```
-01 00 [00 00 00 00 00 00 00 00 00 00 00 00] 00 00
-02 02 [14 2B 00 00 41 20 20 5A 20 20 00 00] 00 00 // [BLOCK] A _ _ Z
-02 05 [17 2B 00 00 54 69 6D 65 73 20 00 00] 00 00
-01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00
+01 00 [00 00 00 00 00 00 00 00 00 00 00 00] 00 00 // 
+02 02 [14 2B 00 00 41 20 20 5A 20 20 00 00] 00 00 // Block B011; "+"; Parameter 1; "A__Z"
+02 05 [17 2B 00 00 54 69 6D 65 73 20 00 00] 00 00 // Block B014; "+"; Parameter 1; "Times"
+01 00 [80 50 72 69 20 81 4E 78 74 20 20 20] 00 00 // Text "▲Pri ▼Nxt"
 
-03 04 [20 20 20 20 00 00 00 00 00 00 00 00] 00 00 // die aktuelle Uhrzeit
-04 00 [20 BA 00 00 00 00 00 00 00 00 00 00] 00 00 // Das aktuelle Datum
-05 00 [00 00 00 00 00 00 00 00 20 20 20 9F] 00 00 // Nachrichtenfreigabezeit
+03 04 [20 20 20 20 00 00 00 00 00 00 00 00] 00 00 // aktuelle Uhrzeit
+04 00 [20 BA 00 00 00 00 00 00 00 00 00 00] 00 00 // aktuelles Datum
+05 00 [00 00 00 00 00 00 00 00 20 20 20 9F] 00 00 // Nachrichtenaktivierungszeit
 06 00 [00 00 00 00 00 00 00 00 00 00 20 8F] 00 00 // Meldungsaktivierungsdatum
 ```
 
@@ -517,10 +510,10 @@ recv< 06 03 1F 08 30
 Auswertung:
 
 Read Byte | HEX | BIN       | Bedeutung
-----------|-----|-----------|----------
+----------|-----|-----------|-------------
 1F00      | 04  | 0000 0100 | ??
 1F01      | 00  | 0000 0000 | ??
-1F02      | 42  | 0100 0010 | = 0BA5
+1F02      | 42  | 0100 0010 | Ident = 0BA5
 
 Read Byte | HEX | DEC | ASCII
 ----------|-----|-----|------
@@ -534,7 +527,7 @@ Read Byte | HEX | DEC | ASCII
 Firmware = V2.02.00
 
 ## <a name="48FF"></a>Passwort vorhanden
-_LOGO!_ __0BA5__bietet einen Passwortschutz, um den Zugriff auf das Schlatprogramm einzuschränken. Durch das Einrichten eines Passworts kann nur nach Eingabe eine Passwortes auf das Schaltprogramm und bestimmte Parameter zugegriffen werden. Ohne Passwort ist der uneingeschränkte Zugriff auf die _LOGO!_ Ressourcen möglich.
+_LOGO!_ __0BA5__ bietet einen Passwortschutz, um den Zugriff auf das Schlatprogramm einzuschränken. Durch das Einrichten eines Passworts kann nur nach Eingabe eine Passwortes auf das Schaltprogramm und bestimmte Parameter zugegriffen werden. Ohne Passwort ist der uneingeschränkte Zugriff auf die _LOGO!_ Ressourcen möglich.
 
 Das Passwort hat eine Länge von 10 Zeichen. Groß- und Kleinschreibung spielt beim Passwort keine Rolle, da das Passwort in Großbuchstaben abgespeichert wird. Das Passwort ist ein Parameter (vergl. S7 Systemdatenbaustein) und wird beim Übertragen des Schaltprogramms auf
 die _LOGO!_ ebenfalls übertragen und auf der _LOGO!_ gespeichert. 
@@ -1025,15 +1018,15 @@ HEX | RAM (Bytes) | REM (Bytes) | Beschreibung
 - __Ral__ (_Reset all_): Alle internen Werte werden zurückgesetzt.
 
 ### Zeitverhalten
-Bei bestimmten Sonderfunktionen kann eine Zeit T parametriert werden. _LOGO!_ verfügt über Zeiten, die in unterschiedlichen Auflösungen (Inkrementen der Zeitbasis) zählen. Jede Zeit wird als Speichertyp __TW__ gespeichertmit folgenden zwei Angaben:
+Bei bestimmten Sonderfunktionen kann eine Zeit parametriert werden. _LOGO!_ verfügt über Zeiten, die in unterschiedlichen Auflösungen (Inkrementen der Zeitbasis) zählen. Jede Zeit wird als Speichertyp _TW_ gespeichert mit folgenden zwei Angaben:
 - Zeitwert: Diese ganze Zahl (14 Bit) ohne Vorzeichen speichert den Wert der Zeit.
 - Zeitbasis: Bit 16 und 15 legen die Zeitbasis fest, die mit dem voreingestellten Zeitwert eingegeben wird.
 
-Zeitbasis | Inkrement | LOGO Darstellung
---- | --- | ---
-s | 10 ms | (s:1/100)
-m | Sekunden | (m:s)
-h | Minuten | (h:m)
+Darstellung | Zeitbasis | Inkrement | Wert
+--- | --- | --- | ---
+(s:1/100) | s | 10 ms | 1
+(m:s) | m | Sekunden | 2
+(h:m) | h | Minuten | 3
 
 Darstellungsformat:
 ```
@@ -1051,20 +1044,22 @@ Ta Tb: Zeit
   Hi --+--*--+--+--+--+--+--|--+--+--+--+--+--+--+-- Lo
      bF bE|bD ..       .. b8|b7 ..          .. b1 b0
 
-  bF,bE = 0,0 ??
+  bF,bE = 0,0 Zeitbasis (h:m), Wertebereich (0-23:0-59)
   bF,bE = 1,1 Zeitbasis (h:m), Wertebereich (0-99:0-59)
   bF,bE = 1,0 Zeitbasis (m:s), Wertebereich (0-99:0-59)
   bF,bE = 0,1 Zeitbasis (s:1/100s), Wertebereich (0-99:0-99)
 
-  byte b = TW >> 14;  // bF..bE (2bit)
-  word v = TW & 7FFF; // bD..b0 (14bit)
+  byte b = TW >> 14;  // bF..bE (2bit) -> Zeitbasis (VB)
+  word v = TW & 7FFF; // bD..b0 (14bit) -> Zeitwert (VW)
   if (b == 3)
-  { // Zeitbasis Stunden; Inkrement Minuten; (h:m)
+  {
+    // Zeitbasis Stunden; Inkrement Minuten; (h:m)
     h = v / 60;
     m = v % 60;
   }
   else if (b == 2)
-  { // Zeitbasis Minuten; Inkrement Sekunden; (m:s)
+  {
+    // Zeitbasis Minuten; Inkrement Sekunden; (m:s)
     m = v / 60;
     s = v % 60;
   }
@@ -1086,25 +1081,34 @@ Beispiel:
 ```
 
 ### Zähler
-_LOGO!_verfügt über drei Arten von Zählern, die an einem Zähleingang die steigenden Flanken zählen:
-1. Zähler zählt vorwärts
-2. Zähler zählt rückwärts
-3. Zähler zählt sowohl vorwärts als auch rückwärts.
+_LOGO!_ __0BA5__ verfügt nur über eine Art von Zähler, welcher an einem Zähleingang die steigenden Flanken zählt. Der Zähler zählt sowohl vorwärts als auch rückwärts. Der Zählerwert ist eine 32Bit Ganzzahl vom Datentyp _ZD_ und wird ohne Vorzeichen gespeichert. Der gültige Wertebereich des Zählers liegt zwischen 0...999999.
 
-Jeder Zähler verfügt über die folgenden zwei Angaben:
-- Zählwert: Diese ganze Zahl (14 Bit) ohne Vorzeichen speichert den Wert des Zählers.
-- Zählerbits: Diese Bits ...
+Darstellungsformat:
+```
+.. xx 00 06 6C BC xx ..
+.. xx Za Zb Zc Zd xx ..
+.. xx [ZD       ] xx ..
 
-## <a name="SF21"></a>Einschaltverzögerung SE
-Mit der Zeitfunktion SE realisiert man eine Einschaltverzögerung. Liegt am Eingang Trg einer Einschaltverzögerung das Signal 0, hat auch der Ausgang Q das Signal 0. Die Zeitfunktion wird erst gestartet, wenn das Signal am Eingang Trg von 0 auf 1 wechselt, somit eine positive Flanke vorliegt. 
+xx:    irgendein Byte
+Za-Zd: Zählerwert
 
-Wenn die Zeitfunktion gestartet wird, beginnt die über den Parameter T eingestellte Zeit Ta abzulaufen. Während dieser Zeit führt der Ausgang weiterhin das Signal 0. 
+  Za Zb Zc Zd
+      \ /
+      / \
+  Zd Zc Zb Za
+  00 06 6C BC = 421052
+```
+Maximaler Zählerwert F423F:
+```
+  Za Zb Zc Zd
+      \ /
+      / \
+  Zd Zc Zb Za
+  00 0F 42 3F = 999999
+```
 
-Ist die eingestellte Zeit abgelaufen (Ta >= T), wechselt der Ausgang des Einschaltverzögerung Q von 0 auf 1. Das Signal 1 am Ausgang bleibt solange erhalten, solange am Eingang Trg ebenfalls das Signal 1 anliegt. 
-
-Während die Zeit Ta abläuft, kann die Restlaufzeit mittels des Parameters T und der Variable Ta errechnet werden. Wechselt das Signal am Eingang Trg von 1 auf 0, nachdem die Zeit abgelaufen ist, wechselt auch der Ausgang Q von 1 auf 0. 
-
-Wechselt das Signal am Eingang Trg von 1 auf 0, wenn die Zeit noch nicht abgelaufen ist (Ta < T), dann wird die Zeit gestoppt und die Restlaufzeit kann über den Parameter T und die Variable Ta errechnet werden. Bei einem erneuten Wechsel des Signals von 0 auf 1 am Eingang Trg, beginnt die paremtrierte Zeit T abzulaufen und nicht nur die Restlaufzeit. 
+## <a name="SF21"></a>Einschaltverzögerung
+Mit der Funktion _Einschaltverzögerung_ wird das Setzen des Ausgangs _Q_ um die programmierte Zeitdauer _T_ verzögert. Die Zeit _Ta_ startet (_Ta_ ist die in _LOGO!_ aktuelle Zeit vom Typ Word), wenn das Eingangssignal _Trg_ von `0` auf `1` wechselt (positive Signalflanke). Wenn die Zeitdauer abgelaufen ist (Ta > T), liefert der Ausgang _Q_ den Signalzustand `1`. Der Ausgang _Q_ bleibt so lange gesetzt, wie der Triggereingang die `1` führt. Wenn der Signalzustand am Triggereingang von `1` auf `0` wechselt, wird der Ausgang _Q_ zurückgesetzt. Die Zeitfunktion wird wieder gestartet, wenn eine neue positive Signalflanke am Starteingang erfasst wird. 
 
 ### Programmspeicher auslesen
 RAM/REM: 8/3
@@ -1162,6 +1166,7 @@ Weitere Beispiele:
 ```
 
 ## <a name="SF22"></a>Ausschaltverzögerung
+Mit der Funcktion _Ausschaltverzögerung_ wird das Zurücksetzen des Ausgangs _Q_ um die parametrierte Zeitdauer _T_ verzögert. Der Ausgang _Q_ wird mit positiver Signalflanke gesetzt (Eingang _Trg_ wechselt von `0` auf `1`). Wenn der Signalzustand am Eingang _Trg_ wieder auf `0` wechselt (negative Signalflanke), läuft die parametrierte Zeitdauer _T_ ab. Der Ausgang _Q_ bleibt gesetzt, solange die Zeitdauer _Ta_ läuft (Ta < T). Nach dem Ablauf der Zeitdauer _T_ (T > Ta) wird der Ausgang _Q_ zurückgesetzt. Falls der Signalzustand am Eingang _Trg_ auf `1` wechselt, bevor die Zeitdauer _T_ abgelaufen ist, wird die Zeit zurückgesetzt. Der Signalzustand am Ausgang _Q_ bleibt weiterhin auf `1` gesetzt. 
 
 RAM/REM: 12/3
 
@@ -1192,6 +1197,9 @@ Beispiel:
 ```
 
 ## <a name="SF23"></a>Stromstoßrelais
+Bei der Funktion _Stromstoßrelais_ wechselt der Ausgang _Q_ bei jedem elektrischen Impuls am Eingang _Trg_ sein Signalzustand. Ist der Ausgang _Q_ zurückgesetzt (`0`) so wird er gesetzt (`1`) ist der Ausgang _Q_ gesetzt (`1`) wird dieser zurückgesetzt (`0`).
+
+Der Ausgang _Q_ kann mittels der Eingänge _S_ und _R_ vorbelegt werden. Wenn der Signalzustand am Eingang _S_ `1` und am Eingang _R_ `0` ist, wird der Ausgang _Q_ auf `1` gesetzt. Wenn der Signalzustand am Eingang _S_ `0` und am Eingang _R_ `1` ist, wird der Ausgang _Q_ auf `0` zurückgesetzt. Der Eingang _R_ dominiert den Eingang _S_.
 
 RAM/REM: 12/1
 
@@ -1220,6 +1228,9 @@ Par:
 ```
 
 ## <a name="SF24"></a>Wochenschaltuhr
+Der Ausgang _Q_ wird über drei parametrierbares Ein- und Ausschaltzeiten (Einstellnocken _No1_, _No2_, _No3_) gesteuert. Der Wertebereich für die Schaltzeitpunkte (Ein- oder Ausschaltzeit) liegt zwischen `00:00` und `23:59` Uhr. In Summe können 6 Schaltzeitpunkte vom Datentyp _TW_ angegeben sein. Die Auswahl der Wochentagen erfolgt durch Aktivierung der zugeordneten Tage, wobei jeder Tag einen Speicher-Bit innerhalb eines Bytes zugeordnet ist. Wenn das zugehörige Bit auf 1 gesetzt ist, ist der Tag festgelegt. 
+
+__Hinweis:__ Da die _LOGO!_ Kleinsteuerung Typ 24/24o keine Uhr besitzt, ist die Wochenschaltuhr bei dieser Variante nicht nutzbar. 
 
 RAM/REM: 20/-
 
@@ -1237,19 +1248,20 @@ Pa: Funktionsblockparameter
     Hi --+--+--+--*++++ Lo
        b7 b6 b5 b4 0000
 
-    b7: Remanenz; 1 = aktiv, 0 = nein; *) REM (Def)
+    b7: Remanenz; 1 = aktiv, 0 = nein; * REM (Def)
     b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Def)
 
 No1: Nockenparameter 1
 No2: Nockenparameter 2
 No3: Nockenparameter 3
 
-  OnX:  Einschaltzeitpunkt hh:mm (0-23:0-59)
+  OnX:  Einschaltzeitpunkt hh:mm (0-23:0-59); min. 0000, max. 059F
         FF FF = deaktiviert
         OnL OnH
           \ /
           / \
-        OnH,OnL = t
+        OnH,OnL = TW
+        word t = TW & 0x07FF; // Zeitwert in Minuten
         h = t / 60;
         m = t % 60;
   
@@ -1261,7 +1273,8 @@ No3: Nockenparameter 3
         OffL OffH
            \ /
            / \
-        OffH,OffL = t
+        OffH,OffL = TW
+        word t = TW & 0x07FF; // Zeitwert in Minuten
         h = t / 60;
         m = t % 60;
   
@@ -1320,6 +1333,7 @@ No2: D=MTW ----, On=05:10, Off=--:--
 ```
 
 ## <a name="SF25"></a>Selbsthalterelais
+Mit der Funktion _Selbsthalterelais_ wird der Ausgang _Q_ abhängig vom Signalzustand an den Eingängen _S_ und _R_ gesetzt oder zurückrücksetzt. Wenn der Signalzustand am Eingang _S_ `1` und am Eingang _R_ `0` ist, wird der Ausgang _Q_ auf `1` gesetzt. Wenn der Signalzustand am Eingang _S_ `0` und am Eingang _R_ `1` ist, wird der Ausgang _Q_ auf `0` zurückgesetzt. Der Eingang _R_ dominiert den Eingang _S_. Bei einem Signalzustand `1` an beiden Eingängen _S_ und _R_ wird der Signalzustand des Ausganges _Q_ auf `0` gesetzt. 
 
 RAM/REM: 8/1
 
@@ -1375,6 +1389,7 @@ Beispiel:
 Remanenz aktiv, Parameterschutz aktiv, Trg = I3, R = -, 05:10 (h:m)
 
 ## <a name="SF2B"></a>Vor-/Rückwärtszähler
+Der Zähler erfasst binäre Impulse am Eingang _Cnt_ und zählt den internen Zähler _Z_ vom Datentyp _ZD_ hoch oder runter. Über den Eingang _Dir_ (`0`:Z=Z+1, `1`:Z=Z-1) wird zwischen Vorwärts- und Rückwärtszählen umgeschaltet. Der interne Zähler _Z_ kann durch den Rücksetzeingang _R_ auf den Wert `0` zurückgesetzt werden. Über den Parameter _On_ oder _Off_ wird die Schaltschwelle für den Ausgang _Q_ definiert. Sofern der Zähler _Z_ die obere Schaltschwelle (Z > On) erreicht bzw. überschreitet wird der Ausgang _Q_ auf `1` und bei erreichen bzw. unterschreiten der unteren Schaltschwell (Z < Off) wird Q auf `0` gesetzt. Der Wertebereich für _On_, _Off_ und _Z_ ist von 0 bis 999999.
 
 RAM/REM: 24/5
 
@@ -1414,11 +1429,10 @@ Par:
       / \
   B4 B3 B2 B1
   00 06 6C BC = 421052
-  
-StartVal: Ausgangswert, ab dem entweder vorwärts oder rückwärts gezählt wird (0BA6)
 ```
 
 ## <a name="SF2D"></a>Asynchroner Impulsgeber
+Mit der Funktion _Asynchroner Impulsgeber_ können wird der Ausgang _Q_ für eine vorprogrammierte Zeitdauer _TH_ gesetzt und für eine vorprogrammierte Zeitdauer _TL_ zurückgesetzt. Die Funktion startet, wenn das Signal am Eingang _En_ von `0` auf `1` (positive Flanke) wechselt. Mit dem Start läuft die programmierte Zeitdauer _TH_ bzw. _TL_ ab. Der Ausgang _Q_ wird für die Zeitdauer _TH_ gesetzt und für _TL_ zurückgesetzt. Über den Eingang _Inv_ lässt sich der Ausgang _Q_ des Impulsgeber invertieren. Die aktuelle Zeit _Ta_ vom Datentyp _TW_ bennent die Zeitdauer des letzten Flankenwechsels (wechsel von `1` auf `0` bzw. von `0` auf `1`) von Ausgang _Q_. 
 
 RAM/REM: 12/3
 
@@ -1442,8 +1456,8 @@ Pa: Funktionsblockparameter
 En: Eingang En (Co oder GF/SF)
 INV: Eingang INV (Co oder GF/SF)
 Par:
-  TH: Parameter [TH](#zeitverhalten) (Impulsdauer TH)
-  TL: Parameter [TL](#zeitverhalten) (Impulspausendauer TL)
+  TH: Parameter TH (Impulsdauer), siehe Zeitverhalten
+  TL: Parameter TL (Impulspausendauer), siehe Zeitverhalten
 ```
 
 ## <a name="SF39"></a>Analogwertüberwachung
@@ -1598,7 +1612,7 @@ MSB                                                             LSB
 
 # Anhang
 
-## __0BA5__ Ressourcen
+## <a name="Ressourcen"></a>__0BA5__ Ressourcen
 Das Handbuch beschreibt ausschließlich das _LOGO!_ Gerät in der Version __0BA5__. Die folgend genannten Ressourcen dienen der Vergleichbarkeit und sind aus LOGO!Soft Comfort ausgelesen:
 - Funktionsblöcke: 130
 - REM: 60
