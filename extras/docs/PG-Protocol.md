@@ -1,6 +1,6 @@
 # LOGO! PG Protocol Reference Guide
 
-Rev. Bq
+Rev. Br
 
 March 2018
 
@@ -849,7 +849,7 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 --          | --  | --  | --  | --
 1F00        | 1   |     |     | `02 1F 00`
 1F01        | 1   |     |     | `02 1F 01`
-1F02        | 1   | R   | Revision Byte | `02 1F 02`
+1F02        | 1   | R   | Ident Number | `02 1F 02`
 1F03        | 1   |     | Version character = `V`| `02 1F 03`
 1F04 - 1F09 | 6   |     | Firmware | `02 1F 04` `..`
 --          | --  | --  | --  | --
@@ -963,14 +963,14 @@ The time allotted for servicing the PG interface at the end of the controller cy
 ## Application Examples
 The following examples show some simple command blocks and the resulting output values.
 
-### Read Revision
+### Read Ident Number
 Read the revision byte from the _LOGO!_ address `1f 02`:
 
 Command | Query | Response | Description
 --- | --- | --- | ---
 Read Byte | `02` `1f 02` | `06` `03` `1f 02` `40` | connection established to `40` (_LOGO!_ __0BA4__)
 Read Byte | `02` `1f 02` | `06` `03` `00 ff 1f 02` `43` | connection established to `43` (_LOGO!_ __0BA6__)
->Figure Example _Read Revision_
+>Figure Example _Read Ident Number_
 
 ### Read Firmware
 Commands for reading the Firmware (only available for __0BA5__ and __0BA6__). The access is only available in mode _STOP_. 
@@ -978,7 +978,7 @@ Commands for reading the Firmware (only available for __0BA5__ and __0BA6__). Th
 The Firmware can be read out on the _LOGO!_ device as follows:
 
 1. Device _Operating Mode_
-2. _Read Byte_ at address `[00 ff] 1f 02` for reading the _Revision_ byte.
+2. _Read Byte_ at address `[00 ff] 1f 02` for reading the _Ident Number_.
 2. _Read Byte_ at address `[00 ff] 1f 03` for reading the version character = `V`.
 4. _Read Byte_(s)
  + _Major release_ 1st character at address `[00 ff] 1f 04`
@@ -1086,7 +1086,7 @@ Example to _Read Password_ using the _LOGO!_ __0BA5__ device:
 
 Command | Query | Response | Description
 --- | --- | --- | ---
-Revision Byte | `02` `1f 02` | `06` `03` `1f 02` `42` | connection established to `42` (_LOGO!_ __0BA5__)
+Ident Number | `02` `1f 02` | `06` `03` `1f 02` `42` | connection established to `42` (_LOGO!_ __0BA5__)
 Operation Mode | `55` `17 17` `aa` | `06` `42` | operation mode _STOP_ (`42`, _RUN_ = `01`)
 Write Byte | `01` `47 40` `00` | `06` | password access initialized
 Read Byte | `02` `1f 00` | `06` `03` `1f 00` `04` | read single byte at `1f 00` (= `04`)
