@@ -1,6 +1,6 @@
 # LOGO! PG Protocol Reference Guide
 
-Rev. Bs
+Rev. Bt
 
 March 2018
 
@@ -543,6 +543,7 @@ _N_ indicates that it is not supported.
 
 Register | __0BA4__ | __0BA5__ | __0BA6__ | Description
 --- | --- | --- | --- | ---
+B | 6 | 6 | 6 | Block output
 I | 23 | 23 | 31 | input
 F | N | N | 34 | function keys
 O | 26 | 26 | 35 | output
@@ -563,7 +564,7 @@ Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `40` | Number of bytes 64 (dec)
 Padding | `00` | Padding Byte
-Data | `7f 66 11 2a 00 80 01 10 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `7f 66 11 2a` `00` `80 01 10 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 a8` `00 00 00` `00 00` `00 00 00` `00` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
@@ -578,7 +579,7 @@ Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `40` | Number of bytes 64 (dec)
 Padding | `00` | Padding Byte
-Data | `35 08 11 2a 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `35 08 11 2a` `00` `00 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 0C` `09 00 00` `01 00` `00 00 00` `00` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
@@ -592,6 +593,7 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `44` | Number of bytes 68 (dec)
+Padding | `00` | Padding Byte
 Data | `f4 5f 11 2a` `04` `04 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 00` `00 00 00` `00 00` `00 00 00` `01` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
@@ -607,7 +609,7 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `4a` | Number of bytes 74 (dec)
-Data | `b7 c4 19 2c 00 10 84 6b 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `b7 c4 19 2c` `00` `10 84 6b 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00` `00 00` | Data Block 10-1f
 Data | `00` `00` `00 00` `00 00 00 00` `00` `00` `00 00 00 00` `00 00`| Data Block 20-2f
 Data | `00 00 00 00 00 00 00 00 00 00` `00 00 00 00` `00 00` | Data Block 30-3f
@@ -830,7 +832,7 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 ----------- | --- | --- | --- | ---
 0522        | 1   | W   |     | `01 05 22 00`
 --          | --  | --  | --  | --
-0552        | 1   | W   | Display at power-on? I/O = `01`; DateTime = `00` | `02 05 52`
+0552        | 1   | W   | Display at power-on? I/O = `01`; DateTime = `FF` | `02 05 52`
 --          | --  | --  | --  | --
 0553 - 0557 | 5   |     | Analog output in mode _STOP_ | `05 05 53 00 05`
 --          | --  | --  | --  | --
@@ -855,9 +857,9 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 --          | --  | --  | --  | --
 4100        | 1   | W   |     | `01 41 00 00`
 --          | --  | --  | --  | --
-4300        | 1   | W   | Clock write release; Data Byte = `00` | `01 43 00 00`
+4300        | 1   | W   | Write RTC (DT = `00`, SW = `01`) | `01 43 00 00`
 --          | --  | --  | --  | --
-4400        | 1   | W   | Clock read opening; Data Byte = `00` | `01 44 00 00`
+4400        | 1   | W   | Load RTC (DT = `00`, SW = `01`) | `01 44 00 00`
 --          | --  | --  | --  | --
 4740        | 1   | W   | Password R/W initialization; Data Byte = `00` | `01 47 40 00`
 --          | --  | --  | --  | --
@@ -1085,39 +1087,19 @@ Write Byte | `01` `43 00` `00` | `06` | clock writing completed
 
 __Note:__ The clock can only be set in _STOP_ mode.
 
-### Read Password
-The password is stored at address `05 66`. The maximum password length is 10 decimal. The access to the password storage is only allowed in operating mode _STOP_.
+### Password set?
+The password can only be read or set in _STOP_ mode.
 
-The password in the _LOGO!_ device can be read out as follows.
-
-1. Device _Operating Mode_
-2. _Write Byte_ `00` to Address `[00 ff] 47 40` for initialize reading
-3. _Read Byte_
- + byte at address `[00 ff] 1f 00`
- + byte at address `[00 ff] 1f 01`
- + _Password Exist_ at address `[00 ff] 48 ff`
-4. _Read Block_ with length of 10 bytes at address `[00 ff] 05 66` to get the password
-
-Example to _Read Password_ using the _LOGO!_ __0BA5__ device:
+The Example shows if a _Password_ is set:
 
 Command | Query | Response | Description
 --- | --- | --- | ---
 Ident Number | `02` `1f 02` | `06` `03` `1f 02` `42` | connection established to `42` (_LOGO!_ __0BA5__)
 Operation Mode | `55` `17 17` `aa` | `06` `42` | operation mode _STOP_ (`42`, _RUN_ = `01`)
-Write Byte | `01` `47 40` `00` | `06` | password access initialized
-Read Byte | `02` `1f 00` | `06` `03` `1f 00` `04` | read single byte at `1f 00` (= `04`)
-Read Byte | `02` `1f 01` | `06` `03` `1f 01` `00` | read single byte at `1f 01` (= `00`)
 Read Byte | `02` `48 ff` | `06` `03` `48 ff` `40` | password exist _Y_ (= `40`, _N_ = `00`)
-Read Block | `05` `05 66` `00 0a` | `06` `50 .. 44 00 00` `3f` | ASCII with 2 padding bytes (length = 8)
->Figure Example _Read Password_
+>Figure Example _Read Password_ __0BA5__
 
-__Note:__ The password can only be read or set in _STOP_ mode.
-
-Format | Data
---- | ---
-Hexadecimal | `50 41 53 53 57 4F 52 44 00 00`
-ASCII | `_P _A _S _S _W _O _R _D __ __`
->Figure Example _Password_ Data decoded
+__Note:__ The commands order for reading and setting the password will not be described here. A program with password would not be protected otherwise. 
 
 ### Memory Access
 The access is only available in mode _STOP_.
@@ -1125,8 +1107,8 @@ The access is only available in mode _STOP_.
 Here are a few example sequences for accessing the memory depending on operating mode:
 
 ```
- Password enabled
- Tx: 02 1f 02 55 17 17 aa 01 47 40 00
+ Set RTC
+ Tx: 02 1f 02 55 17 17 aa 01 44 00 00
  Rx:
  @STOP 06 03 1F 02 42 06 42 06
  @RUN: 06 03 1F 02 42 06 01
