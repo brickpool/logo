@@ -1,11 +1,11 @@
 # LOGO! Adressdekodierung für __0BA5__
 
-Ausgabe Aj
+Ausgabe Ak
 
 März 2018
 
 ## Vorwort
-Diese Anleitung ist für Personen, die mit einer Siemens (TM) LOGO! SPS über die PG-Schnittstelle kommunizieren. Die PG-Schnittstelle verwendet ein undokumentiertes Protokoll zum Programm laden, lesen und zur Diagnose. Dieses Handbuch beschreibt, wie die Adressierung in einer _LOGO!_ SPS, Version __0BA5__ erstellt ist, um z.B. mit Hilfe des PG-Protokolls darauf zuzugreifen. 
+Diese Anleitung ist für Personen, die mit einer Siemens (TM) LOGO! SPS über die PG-Schnittstelle kommunizieren. Die PG-Schnittstelle verwendet ein undokumentiertes Protokoll zum Programm laden, lesen und zur Diagnose. Dieses Handbuch beschreibt, wie die Adressierung in einer _LOGO!_ Kleinsteuerung, Version __0BA5__ erstellt ist, um z.B. mit Hilfe des PG-Protokolls darauf zuzugreifen. 
 
 Die hier beschriebenen Beispiele sind unverbindlich und dienen der allgemeinen Information über die Addressierung innerhalb von _LOGO!_. Die eigene Kleinsteuerung kann sich hiervon unterscheiden.
 
@@ -26,8 +26,8 @@ Einzelheiten zum _LOGO!_-Adresslayout finden Sie in den folgenden Veröffentlich
 ## Inhalt
 
   * [Kapitel 1 - Architektur](#Kapitel1)
-    * Systemarchitektur
-    * Speicherarchitektur
+    * [Systemarchitektur](#systemarchitektur)
+    * [Speicherarchitektur](#speicherarchitektur)
     * [Adressübersicht](#Adresslayout)
   * [Kapitel 2 - Parameterspeicher](#Kapitel2)
     * [Displayinhalt nach Netz-Ein](#0552)
@@ -36,7 +36,7 @@ Einzelheiten zum _LOGO!_-Adresslayout finden Sie in den folgenden Veröffentlich
     * [Verweis auf Blocknamen](#05C0)
     * [Blockname](#0600)
     * [Textfeld](#0800)
-    * [Version und Firmware](#1F02)
+    * [Ident und Firmware Version](#1F02)
     * [Passwort vorhanden](#48FF)
     * [Echtzeituhr](#FB00)
   * [Kapitel 3 - Klemmenspeicher](#Kapitel3)
@@ -46,11 +46,11 @@ Einzelheiten zum _LOGO!_-Adresslayout finden Sie in den folgenden Veröffentlich
     * [Merker - M](#0EC0)
     * [Analogausgänge, Analoge Merker - AQ, AM](#0E84)
   * [Kapitel 4 - Programmzeilenspeicher](#0EE8)
-    * Blöcke und Blocknummern
+    * [Blöcke und Blocknummern](#Blockbeschreibung)
     * [Verweis auf Blöcke](#0C14)
     * [Grundfunktionen - GF](#GF)
     * [Sonderfunktionen - SF](#SF)
-    * Grundwissen Sonderfunktionen
+    * [Grundwissen Sonderfunktionen](#Grundwissen-SF)
     * [Einschaltverzögerung](#SF21)
     * [Ausschaltverzögerung](#SF22)
     * [Stromstoßrelais](#SF23)
@@ -63,18 +63,18 @@ Einzelheiten zum _LOGO!_-Adresslayout finden Sie in den folgenden Veröffentlich
   * [Kapitel 5 - Sonstiger Speicher](#Kapitel5)
     * [Speicherbereich 1E00](#1E00)
     * [Speicherbereich 2000](#2000)
-    * Speicherbereiche 0522, 055E-5F
-    * Erfassbare Daten mit Befehl `55`
+    * [Speicherbereiche 0522, 055E-5F](#0522)
+    * [Erfassbare Daten](#erfassbare-daten)
   * [Anhang](#Anhang)
     * [0BA5 Ressourcen](#Ressourcen)
-    * Verwendete Abkürzungen
+    * [Verwendete Abkürzungen](#Abk)
 
 ----------
 
 # <a name="Kapitel1"></a>Kapitel 1 - Architektur
 
 ## Systemarchitektur
-Das _LOGO!_ Basismodul ist das Herzstück. In dem Basismodul wird das Schaltprogramm sequentiell und zyklisch abgearbeitet, sowie alle logischen Funktionen ausgeführt. Die Basismodul besitzt eine Verbindungsschnittstelle zum Programmiergerät (PC/PG), zu den installierten Ein-/Ausgängen (I/Q) und kommuniziert über eine BUS-Verbindung mit angeschlossenen Erweiterungsmodulen. 
+Das _LOGO!_ Basismodul ist das Herzstück. In dem Basismodul wird das Schaltprogramm sequentiell und zyklisch abgearbeitet, sowie alle logischen Funktionen ausgeführt. Die Basismodul besitzt eine Verbindungsschnittstelle zum Programmiergerät (PC/PG), zu den installierten Ein-/Ausgängen (_I_/_Q_) und kommuniziert über eine BUS-Verbindung mit angeschlossenen Erweiterungsmodulen. 
 
 Innerhalb des Basismoduls sind verschiedene Systembereiche untergebracht, damit die verschieden Vorgänge ablaufen können. Im folgenden Bild ist der Aufbau schematisch dargestellt.
 ```
@@ -107,14 +107,14 @@ Zu den Systembereichen eines Basismoduls gehören:
 ### Steuereinheit
 Die Steuereinheit wird verwendet, um den gesamten Ablauf innerhalb des Basismoduls zu koordinieren. Dazu gehören u.a. die Koordination der internen Vorgänge und der Datentransport.
 
-Die Programmbefehle werden aus dem Speicher ausgelesen und Zeile für Zeile ausgeführt. Die Verarbeitung erfolgt in vier Stufen. Zuerst wird der Befehl gelesen, dann wird der Befehl entschlüsselt. Als nächstes werden die Zustände der Eingangsoperanden ausgelesen und in das Prozessabbild der Eingänge PE geschrieben, und schließlich wird der Befehl ausgeführt, wobei weitere Werte wie Zeiten, Zählern und Flags berücksichtigt werden. Als letzter Schritt wird ein Befehlszähler aktualisiert und der Zyklus beginnt erneut. Das Ergebnis der Programmbearbeitung wird in das Prozessabbild der Ausgänge PA geschrieben, die wiederum die Ausgänge neu setzen.
+Die Programmbefehle werden aus dem Speicher ausgelesen und Zeile für Zeile ausgeführt. Die Verarbeitung erfolgt in vier Stufen. Zuerst wird der Befehl gelesen, dann wird der Befehl entschlüsselt. Als nächstes werden die Zustände der Eingangsoperanden ausgelesen und in das Prozessabbild der Eingänge _PE_ geschrieben, und schließlich wird der Befehl ausgeführt, wobei weitere Werte wie Zeiten, Zählern und Flags berücksichtigt werden. Als letzter Schritt wird ein Befehlszähler aktualisiert und der Zyklus beginnt erneut. Das Ergebnis der Programmbearbeitung wird in das Prozessabbild der Ausgänge _PA_ geschrieben, die wiederum die Ausgänge neu setzen.
 
 Die Steuereinheit wird über die Busverbindung mit den anderen Systembereichen wie Rechnwerk, Zeiten, Zähler usw. verbunden. Unmittelbar nach Anlegen der Netzspannung werden die nicht remanenten Zähler, Zeiten und Merker sowie die Prozessabbilder der Eingänge und Ausgänge zurückgesetzt.
 
 ### Rechenwerk
-Der Begriff wird häufig synonym mit arithmetisch-logische Einheit (ALU) gebraucht, genau genommen stellt eine ALU jedoch lediglich die zentrale Komponente eines Rechenwerks dar, das zusätzlich aus einer Reihe von Hilfs- und rttusregistern besteht. Die ALU selbst enthält hingegen keine Registerzellen und stellt somit ein reines Schaltnetz dar.
+Der Begriff wird häufig synonym mit arithmetisch-logische Einheit (ALU) gebraucht, genau genommen stellt eine _ALU_ jedoch lediglich die zentrale Komponente eines Rechenwerks dar, das zusätzlich aus einer Reihe von Hilfs- und rttusregistern besteht. Die _ALU_ selbst enthält hingegen keine Registerzellen und stellt somit ein reines Schaltnetz dar.
 
-Die ALU verknüpft zwei Binärwerte (Akku1 und Akku 2) mit gleicher Stellenzahl miteinander und stellt das Ergenis der Rechenoperation in Akku 1 zur verfügung. Es können sowohl Bit, Byte oder Wortoperationen durchgeführt werden. 
+Die _ALU_ verknüpft zwei Binärwerte (Akku1 und Akku 2) mit gleicher Stellenzahl miteinander und stellt das Ergenis der Rechenoperation in Akku 1 zur verfügung. Es können sowohl Bit, Byte oder Wortoperationen durchgeführt werden. 
 
 ### Zeiten, Zähler und Merker
 Für diese Systembereiche sind eigene Speicherbereiche vorhanden, in denen die Steuereinheit die Daten entsprechend den Datentypen ablegt. Merker sind interne Ausgänge, in die Zwischenergebnisse gespeichert werden. Auf sie kann lesend und schreibend zugegriffen werden. Merker sind flüchtig, die bei Spannungsausfall ihre Daten verlieren.
@@ -126,7 +126,7 @@ Die Zustände der Eingänge und Ausgänge werden in den Speicherbereichen PE und
 Die LOGO! Kleinsteuerung besitzt eine PG-Schnittstelle, um die Verbindung zum Programmiergerät/PC herzustellen. Über die Schnittstelle kann kann das Programm in das Basismodul übertragen werden. Sie dient leider nicht zum Anschluss von Erweiterungsbaugruppen oder Bedien- und Beobachtungsgeräten wie bei einer Standard SPS. 
 
 ### Bussystem
-Das Bussystem kann unterteilt werden in ein Rückwandbus und Peripheriebus. Der Rückwandbus ist ein interner Bus der optimiert ist für die interne Kommunikation im Basismodul. Der Peripheriebus wird auch als P-Bus bezeichnet. Hierüber läuft der Datenverkehr zwischen dem Basismudul und den Erweiterungsmodulen. An der rechten Seite vom Basismodul befindet dich die Schnittstelle für den P-Bus. Über Busverbinder werden die Erweiterungsmodule an den P-Bus vom Basismmoudul verbunden. 
+Das Bussystem kann unterteilt werden in ein Rückwandbus und Peripheriebus. Der Rückwandbus ist ein interner Bus der optimiert ist für die interne Kommunikation im Basismodul. Der Peripheriebus wird auch als _P-Bus_ bezeichnet. Hierüber läuft der Datenverkehr zwischen dem Basismudul und den Erweiterungsmodulen. An der rechten Seite vom Basismodul befindet dich die Schnittstelle für den _P-Bus_. Über Busverbinder werden die Erweiterungsmodule an den P-Bus vom Basismmoudul verbunden. 
 
 ## Speicherarchitektur
 Der Speicherbereich innerhalb eines Basismoduls ist in mehrere Bereiche aufgeteilt, wobei jeder Speicherbereich eigene Aufgaben erfüllt. Vereinfacht gesagt besteht der Speicher im Basismodul aus dem Systemspeicher, dem Ladespeicher und dem Arbeitsspeicher.
@@ -145,7 +145,7 @@ Der Festwertspeicher ist ein Nur-Lese-Speicher (engl. Read Only Memory, kurz ROM
 Beim Arbeitsspeicher (engl. Random Access Memory, kurz RAM) handelt es sich um einen flüchtiger Speicher, d.h. der Inhalt geht nach einem Spannungsausfall verloren. Er ist als ein Schreib-/Lesespeicher konzipiert. Vom Ladespeicher werden die ablaufrelevanten Teile des Programms in den Arbeitsspeicher geladen. Dazu zählen insbesondere der Klemmenspeicher und Programmzeilenspeicher (vergl. S7 Programmbausteine) sowie die Speicherbereiche für Passwort, Programmname, Textboxen und Blocknamen (vergl. S7 Datenbausteine). 
 
 ### Systemspeicher 
-Im Systemspeicher werden die Zustände der Eingänge und Ausgänge über das Prozessabbild (PE und PA), die Zeiten, Zähler, Merker und der Datenstack gespeichert. 
+Im Systemspeicher werden die Zustände der Eingänge und Ausgänge über das Prozessabbild (_PE_ und _PA_), die Zeiten, Zähler, Merker und der Datenstack gespeichert. 
 
 ### Adressierung
 _LOGO!_ __0BA5__ nutzt eine 16-Bit-Adressierung. Vereinfacht dargestellt bedeutet dies, dass die Speicherarchitektur so ausgelegt ist, dass jede Speicherstelle duch einen 16Bit-Zeiger (also 2 Byte) direkt addressiert werden kann. Die _LOGO!_ Kleinsteuerung __0BA5__ nutzt teilweise eine Segmentierung, sodas auch 8Bit-Zeiger (Verweise) zu Anwendung kommen, um eine Speicherstelle zu adressieren. 
@@ -206,12 +206,12 @@ Bei Bitdarstellungen werden die Bits innerhalb einer Binärzahl nach [LSB-0](#ht
 | 02 1F 02    | [1F02](#1F02)        | 1     | R | Ident Nummmer                                          |
 | 02 1F 03    | [1F03](#1F02) - 1F09 | 6     | R | Revision der Firmware                                  |
 
-### Systemfunktion Echtzeituhr
+### Systemfunktion Echtzeituhr, S/W
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
 |             | 4100        | 1     | W |                                                        |
-| 01 43 00 00 | [4300](#FB00)        | 1     | W | = 00, Werte in Echtzeituhr übernehmen                  |
-| 01 44 00 00 | [4400](#FB00)        | 1     | W | = 00, Werte aus Echtzeituhr laden                      |
+| 01 43 00 00 | [4300](#4400)        | 1     | W | Werte speichern: RTC=00, S/W=01                        |
+| 01 44 00 00 | [4400](#4400)        | 1     | W | Werte laden: RTC=00, S/W=01                            |
 
 ### Systemfunktion Passwort
 | Beispiel    | Adresse     | Länge |   |                                                        |
@@ -222,7 +222,7 @@ Bei Bitdarstellungen werden die Bits innerhalb einer Binärzahl nach [LSB-0](#ht
 ### Parameter Echtzeituhr
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
-| 02 FB 00    | [FB00](#FB00) - FB05 | 6     |   | Echtzeituhr                                            |
+| 02 FB 00    | [FB00](#4400) - FB05 | 6     |   | Echtzeituhr, Sommer-/Winterzeitumstellung              |
 
 
 __Hinweis:__
@@ -253,8 +253,9 @@ recv< 06
 05 52 [Val]
 
 Val:
-  00 = Datum/Uhrzeit
+  00 = Text
   01 = Ein-/Ausgänge
+  FF = Datum/Uhrzeit
 ```
 
 ## <a name="0553"></a>Analogausgang im Betriebszustand _STOP_
@@ -457,13 +458,13 @@ Beispiele:
 06 00 [00 00 00 00 00 00 00 00 00 00 20 8F] 00 00 // Meldungsaktivierungsdatum
 ```
 
-## <a name="1F02"></a>Version und Firmware
+## <a name="1F02"></a>Ident und Firmware Version
 
 Zugriffsmethode: Lesen
 
 Variante | Bezeichnung | Bestellnummer
 --- | --- | ---
-Basic | _LOGO!_ 12/24RC | 6ED1052-1MD00-0BA5
+Basic | _LOGO!_ 12/24RC \* | 6ED1052-1MD00-0BA5
 Basic | _LOGO!_ 24 \* | 6ED1052-1CC00-0BA5
 Basic | _LOGO!_ 24RC (AC) | 6ED1052-1HB00-0BA5
 Basic | _LOGO!_ 230RC (AC) | 6ED1052-1FB00-0BA5
@@ -488,10 +489,6 @@ Chip:
 
 Befehle:
 ```
-send> 02 1F 00
-recv< 06 03 1F 00 04
-send> 02 1F 01
-recv< 06 03 1F 01 00 
 send> 02 1F 02
 recv< 06 03 1F 02 42 
 send> 02 1F 03
@@ -505,14 +502,12 @@ recv< 06 03 1F 06 32
 send> 02 1F 07
 recv< 06 03 1F 07 30
 send> 02 1F 08
-recv< 06 03 1F 08 30
+recv< 06 03 1F 08 32
 ```
 Auswertung:
 
 Read Byte | HEX | BIN       | Bedeutung
 ----------|-----|-----------|-------------
-1F00      | 04  | 0000 0100 | ??
-1F01      | 00  | 0000 0000 | ??
 1F02      | 42  | 0100 0010 | Ident = 0BA5
 
 Read Byte | HEX | DEC | ASCII
@@ -522,15 +517,16 @@ Read Byte | HEX | DEC | ASCII
 1F05      | 30  | 48  | 0
 1F06      | 32  | 50  | 2
 1F07      | 30  | 48  | 0
-1F08      | 30  | 48  | 0
+1F08      | 32  | 50  | 2
 
-Firmware = V2.02.00
+Firmware = V2.02.02
 
 ## <a name="48FF"></a>Passwort vorhanden
-_LOGO!_ __0BA5__ bietet einen Passwortschutz, um den Zugriff auf das Schlatprogramm einzuschränken. Durch das Einrichten eines Passworts kann nur nach Eingabe eine Passwortes auf das Schaltprogramm und bestimmte Parameter zugegriffen werden. Ohne Passwort ist der uneingeschränkte Zugriff auf die _LOGO!_ Ressourcen möglich.
+_LOGO!_ __0BA5__ bietet einen Passwortschutz, um den Zugriff auf das Schaltprogramm einzuschränken. Durch das Einrichten eines Passworts kann nur nach Eingabe eine Passwortes auf das Schaltprogramm und bestimmte Parameter zugegriffen werden. Ohne Passwort ist der uneingeschränkte Zugriff auf die _LOGO!_ Ressourcen möglich.
 
-Das Passwort hat eine Länge von 10 Zeichen. Groß- und Kleinschreibung spielt beim Passwort keine Rolle, da das Passwort in Großbuchstaben abgespeichert wird. Das Passwort ist ein Parameter (vergl. S7 Systemdatenbaustein) und wird beim Übertragen des Schaltprogramms auf
-die _LOGO!_ ebenfalls übertragen und auf der _LOGO!_ gespeichert. 
+Das Passwort hat eine Länge von 10 Zeichen. Groß- und Kleinschreibung spielt beim Passwort keine Rolle, da das Passwort in Großbuchstaben abgespeichert wird. Das Passwort ist ein Parameter (vergl. S7 Systemdatenbaustein) und wird beim Übertragen des Schaltprogramms auf die _LOGO!_ ebenfalls übertragen und dort gespeichert. 
+
+### Passwort gesetzt?
 
 Befehl:
 ```
@@ -543,29 +539,37 @@ Read Byte | Wert | Beschreibung
 48FF      | 40   | ja
 48FF      | 00   | nein
 
-## <a name="FB00"></a>Echtzeituhr
-Alle Datums- und Zeitwerte sind im BCD-Format codieren. Die Echtzeituhr startet nach längerem Stromausfall oder nach Speicherverlust mit folgendem Datum und folgender Zeit:
-- Datum: 01-Jan-2000
+### Passwort R/W
+Ein Schaltprogramm mit Passwort sollte geschützt bleiben. Das Knacken eines Passwortes ist nicht Zielsetzung dieser Beschreibung, daher sind die Systemfunktionen und Befehlsfolgen für das Auslesen und Setzen des Passwortes hier nicht beschrieben. 
+
+## <a name="4400"></a>Echtzeituhr, S/W
+Alle Datums- und Zeitwerte sind Bytewerte. Die Echtzeituhr (RTC) startet nach längerem Stromausfall oder nach Speicherverlust mit folgendem Datum und folgender Zeit:
+- Datum: 01-Jan-2003
 - Zeit: 00:00:00
 - Wochentag: Sonntag
 
 __Hinweis:__ _LOGO!_ prüft nicht, ob der Wochentag mit dem Datum übereinstimmt.
 
+Im LOGO! kann eine automatische Sommer-/Winterzeitumstellung (S/W) aktivieren werden. Zusätzlich kann der Beginn und das Ende der Sommerzeit parametrisiert werden. Entweder über vordefinierte Profile (EU, UK, US, AUS, AUS-TAS, NZ) und manuell. Die Profile haben einen Zeitunterscheid von 60 Minuten. Bei der manuellen Eingabe kann eine minutengenaue Angabe von bis zu 180 Minuten hinterlegt werden. 
+
+### Übergabespeicher
+Die jeweilige Systemfunktion (SFC) für die Echtzeituhr und Sommer/Winterzeitumstellug wird über einen Schreibbefehl unter Angabe eines Parameters (1 Byte) auf eine vordefinierte Adresse (PC->LOGO: `4300`, LOGO->PC: `4400`) aufgerufen. Die Werte der Echtzeituhr bzw. die S/W-Parameter werden in einem dafür reservierten Speicherbereich zwischen dem Programmiergerät (PG/PC) und den internen _LOGO!_ Ressourcen ausgetauscht (sog. Übergabespeicher).
+
 Speicherbereich: FB00, 6*1 Byte
 
-Adresse | Wert
---------|-----------
-FB00    | Tag
-FB01    | Monat
-FB02    | Jahr
-FB03    | Minuten
-FB04    | Stunden
-FB05    | Wochentag \*)
+Adresse | RTC-Wert      | S/W-Wert
+--------|---------------|---------
+FB00    | Tag           | ?
+FB01    | Monat         | ?
+FB02    | Jahr          | ?
+FB03    | Minuten       | ?
+FB04    | Stunden       | ?
+FB05    | Wochentag \*) | ?
 
 \*) 1=Sonntag, 7=Samstag
 
-### Echtzeituhr auslesen
-Die Schreibbefehl _Echtzeituhr lesen_ liest die aktuelle Uhrzeit und das aktuelle Datum aus der Hardware-Uhr und lädt beide in einen 6-Byte-Zeitpuffer mit Beginn an Adresse FB00.
+### Echtzeituhr auslesen (LOGO->PC)
+Die Systemfunktion _Echtzeituhr lesen_ (Byte `00` an  Adresse `4400` schreiben) liest die aktuelle Uhrzeit und das aktuelle Datum aus der Hardware-Uhr und lädt die Werte in einen 6-Byte-Übergabespeicher, welcher an Adresse `FB00` beginnt.
 
 Befehlsfolge:
 ```
@@ -575,8 +579,10 @@ send> 02 FB XX        // XX = [00-05]
 recv< 06 03 FB XX YY  // YY = Wert
 ```
 
-### Echtzeituhr setzen
-Der Befehl Echtzeituhr setzen schreibt die aktuelle Uhrzeit und das aktuelle Datum der Hardware-Uhr in den 6-Byte-Zeitpuffer mit Beginn an die Adresse FB00.
+__Hinweis:__ Der Befehl ist nicht erfolgreich, sofern _LOGO!_ nicht mit einer Echtzeituhr ausgestattet ist (6ED1052-xCC00-0BA5).
+
+### Echtzeituhr setzen (PC->LOGO)
+Die Systemfunktion _Echtzeituhr setzen_ (Byte `00` an  Adresse `4300` schreiben) schreibt die aktuelle Uhrzeit und das aktuelle Datum der Hardware-Uhr in den 6-Byte-Übergabespeicher (Adresse `FB00..FB05`).
 
 Befehlsfolge
 ```
@@ -586,19 +592,34 @@ send> 01 43 00 00     // Werte in Echtzeituhr uebernehmen
 recv< 06              // OK
 ```
 
+__Hinweis:__ Der Befehl ist nicht erfolgreich, sofern _LOGO!_ nicht mit einer Echtzeituhr ausgestattet ist (6ED1052-xCC00-0BA5).
+
+### Sommer-/Winterzeitumstellung auslesen (LOGO->PC)
+Die Systemfunktion _S/W-Umstellung lesen_  (Byte `01` an  Adresse `4400` schreiben) liest die Werte für die Sommer-/Winterzeitumstellung aus der Hardware-Uhr und lädt diese in den Übergabespeicher (Adresse `FB00..FB05`).
+
+Befehlsfolge:
+```
+send> 01 44 00 01     // Parameter S/W-Umstellung laden
+recv< 06              // OK
+send> 02 FB XX        // XX = [00-05]
+recv< 06 03 FB XX YY  // YY = Wert
+```
+
+__Hinweis:__ Der Befehl ist nicht erfolgreich, sofern _LOGO!_ nicht mit einer Echtzeituhr ausgestattet ist (6ED1052-xCC00-0BA5).
+
 ----------
 
 # <a name="Kapitel3"></a>Kapitel 3 - Klemmenspeicher
 
 ## <a name="Co"></a>Konstanten und Klemmen - Co
-Als Klemme werden alle Anschlüsse und Zustände bezeichnet (engl. Connectors = Co). Hierzu zählen Digitaleingänge, Analogeingänge, Digitalausgänge, Analogausgänge, Merker (inkl. Anlaufmerker), Analoge Merker, Schieberegisterbits, Cursortasten, Pegel und die Offenen Klemmen.
+Als Klemme werden alle Anschlüsse und Zustände bezeichnet (engl. Connectors = _Co_). Hierzu zählen Digitaleingänge, Analogeingänge, Digitalausgänge, Analogausgänge, Merker (inkl. Anlaufmerker), Analoge Merker, Schieberegisterbits, Cursortasten, Pegel und die Offenen Klemmen.
 
 Klemmen sind Bestandteil des Schaltprogramms (vergl. S7 Programmbaustein) und somit Teil des Hauptprogramm (vergl. S7 Organisationsbaustein OB1). 
 
 ### Darstellung am Verknüpfungseingang
-Sie sind nicht im Programmzeilenpeicher 0EE8 abgelegt, sondern werden mit einem festen 16bit Wert (Datentyp Word) und einem Wertebereich 0000..00FE am Eingang eines Blocks, Merkers oder einer Ausgangsklemme dargestellt. 
+Sie sind nicht im Programmzeilenpeicher `0EE8` abgelegt, sondern werden mit einem festen 16bit Wert (Datentyp Word) und einem Wertebereich `0000..00FE` am Eingang eines Blocks, Merkers oder einer Ausgangsklemme dargestellt. 
 
-Das höherwertige Byte vom Word ist immer 00. Das niederwertige Byte vom Word (LoByte) zeigt den Klemmentyp bzw. nennt die Konstante (siehe Listen folgend).
+Das höherwertige Byte vom Word ist immer `00`. Das niederwertige Byte vom Word (LoByte) zeigt den Klemmentyp bzw. nennt die Konstante (siehe Listen folgend).
 
 ### Liste Klemmen
 LoByte HEX | Klemme/Merker | Beschreibung
@@ -620,9 +641,9 @@ FE         | Pegel lo  | Blockeingang logisch = 0
 FF         | x         | nicht benutzter Anschluss
 
 ### Format im Speicher
-Klemmen, die aufgrund eines Verknüpfungseinganges ein Speicherplatz besitzen, sind die Ausgänge Q1 bis Q16, AQ1 und AQ2, die Merker M1 bis M24 und AM1 bis AM6, sowie die 16 unbeschaltete Ausgänge X1 bis X16. 
+Klemmen, die aufgrund eines Verknüpfungseinganges ein Speicherplatz besitzen, sind die Ausgänge _Q1_ bis _Q16_, _AQ1_ und _AQ2_, die Merker _M1_ bis _M24_ und _AM1_ bis _AM6_, sowie die 16 unbeschaltete Ausgänge _X1_ bis _X16_. 
 
-Die Verdrahtung auf den Eingang einer Ausgangsklemme oder eines Merkes werden im Speicherbereich ab 0E20 - 0EC0, 200 Bytes (10*20 Bytes) abgelegt.
+Die Verdrahtung auf den Eingang einer Ausgangsklemme oder eines Merkes werden im Speicherbereich `0E20..0EC0` mit 200 Bytes (10*20 Bytes) abgelegt.
 
 Das Format ist einheitlich und ist als vielfache von 20 Bytes = 2 Bytes `80 00` + 16 Bytes `<Eingänge>` + 2 Bytes `FF FF` abgelegt.
 ```
@@ -633,8 +654,8 @@ Nicht benutzte Anschlüsse (freie Eingänge) im Schaltprogramm werden mit `FFFF`
 
 ```
 Na: Eingang, abhängig von b7
-Nb: BIN Hi --+--+--+--*++++ Lo
-           b7 b6 b5 b4 0000
+Nb: BIN MSB --+--+--+--*++++ LSB
+            b7 b6 b5 b4 0000
 
     b7 = 0, Xa = Konstante oder Klemme
     b7 = 1, Xa = Blocknummer
@@ -645,7 +666,7 @@ Nb: BIN Hi --+--+--+--*++++ Lo
 
 Na Nb: N = Element 1-8
 
-Das folgende Beispiel zeigt, dass wie der Eingang von Q1 mit der Klemme I1 (0000) verbunden ist.
+Das folgende Beispiel zeigt, dass wie der Eingang von _Q1_ mit der Klemme _I1_ (`0000h`) verbunden ist.
 
 Schaltprogramm:
 ```
@@ -664,12 +685,12 @@ recv< 06
 00 
 ```
 
-Das Beispiel zeigt auch, dass die anderen Ausgänge Q2-16 im Schaltprogramm nicht verwendet werden (= FFFF).
+Das Beispiel zeigt auch, dass die anderen Ausgänge _Q2_-_Q16_ im Schaltprogramm nicht verwendet werden (= `FFFFh`).
 
 ## <a name="0C00"></a>Verweis auf Ausgänge, Merker
 20 Bytes fest, die jeweils (weitere) 20 Bytes im Speicherbereich für Ein-/Ausgänge und Merker verweisen. Der Verweis wird als 16 Bit-Offset-Adresse dargestellt. 
 
-Speicherbereich: 0C00 - 0C14, 20 Bytes (10 * 2)
+Speicherbereich: `0C00..0C14`, 20 Bytes (10 * 2)
 
 Adressverweis:
 ```
@@ -693,11 +714,11 @@ Adressverweis:
 ```
 
 Bereich     | Anz | Zeiger            | Beschreibung
-------------|-----|-------------------|------------------------
-0E20 - 0E48 | 40  | 0000, 0014        | Digitaler Ausgang 1..16
-0E48 - 0E84 | 60  | 0028, 003C, 0050  | Merker 1..24
-0E84 - 0E98 | 20  | 0064              | Analogausgang 1, 2
-0E98 - 0EC0 | 40  | 0078, 008C        | offener Ausgang 1..16
+------------|-----|-------------------|------------------------------------
+0E20 - 0E48 | 40  | 0000, 0014        | Digitaler Ausgang 1-16
+0E48 - 0E84 | 60  | 0028, 003C, 0050  | Merker 1-24
+0E84 - 0E98 | 20  | 0064              | Analogausgang 1,2, Analogmerker 1-6
+0E98 - 0EC0 | 40  | 0078, 008C        | offener Ausgang 1-16
 0EC0 - 0EE8 | 40  | 00A0, 00B4        | (Reserve ??)
 
 Befehl:
@@ -711,14 +732,14 @@ D4
 Auswertung:
 ```
              |<----------------------- 20 Bytes ---------------------->|
-HEX (Lo-Hi): 00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4 00
-HEX (Hi-Lo): 00 00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4
+HEX (Lo Hi): 00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4 00
+HEX (Hi,Lo): 00,00 00,14 00,28 00,3C 00,50 00,64 00,78 00,8C 00,A0 00,B4
 Dezimal:     00    20    40    60    80    100   120   140   160   180
 Speicherbedarf: 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20
 ```
 
 ## <a name="0E20"></a>Digitalausgänge - Q
-Die Digitalausgänge Q1 bis Q16 befinden sich im Speicherbereich 0E20 - 0EC0 (2*20 Bytes).
+Die Digitalausgänge _Q1_ bis _Q16_ befinden sich im Speicherbereich `0E20..0EC0` (2*20 Bytes).
 
 Darstellungsformat:
 ```
@@ -729,7 +750,7 @@ Darstellungsformat:
 Q<n>a Q<n>b: n = Element 1-16
 
 ## <a name="0EC0"></a>Merker - M
-Die Digitalausgänge M1 bis M24 befinden sich im Speicherbereich 0EC0 - 0E84 (3*20 Bytes).
+Die Digitalausgänge _M1_ bis _M24_ befinden sich im Speicherbereich `0EC0..0E84` (3*20 Bytes).
 
 Darstellungsformat:
 ```
@@ -741,7 +762,7 @@ Darstellungsformat:
 M<n>a M<n>b: n = Element 1-24
 
 ## <a name="0E84"></a>Analogausgänge, Analoge Merker - AQ, AM
-Die Analogen Ausgänge AQ1 und AQ2 befinden sich im Speicherbereich 0E84 - 0E98 (1*20 Bytes).
+Die Analogen Ausgänge _AQ1_ und _AQ2_ befinden sich im Speicherbereich `0E84..0E98` (1*20 Bytes).
 
 Darstellungsformat:
 ```
@@ -752,7 +773,7 @@ AQ<n>a AQ<n>b: n = Element AQ1-2<br />
 AM<n>a AM<n>b: n = Element AM1-6
 
 ## <a name="0E98"></a>Offene Klemmen - X
-Die Offenen Klemmen X1 bis X16 befinden sich im Speicherbereich 0E98 - 0EC0 (2*20 Bytes).
+Die Offenen Klemmen _X1_ bis _X16_ befinden sich im Speicherbereich `0E98..0EC0` (2*20 Bytes).
 
 Darstellungsformat:
 ```
@@ -762,20 +783,188 @@ Darstellungsformat:
 
 X<n>a X<n>b: n = Element 1-16
 
+### Digitale Klemmen im Modus _RUN_
+Der Signalzustand für die Digitalen Eingänge _I1-24_, Ausgänge _Q1-16_ und Merker _M1-24_ kann mittels des Online-Test Befehls `55 13 13` abgefragt werden. Der Signalzustand wird dabei als 1Bit-Wert im Datenbereich von Byte 23 bis Byte 30 dargestellt (24*I + 16*Q + 24*M = 24 + 16 + 24Bits = 8 Bytes). 
+
+Beispielschaltprogramm:
+```
+               .---.B001
+    .----------| & |
+    |       .--|   |-- Q1
+    |       |  '---' 
+I1--o   I2--o
+    |       |  .---.B130
+    |       '--|>=1|
+    '----------|   |-- Q2
+               '---' 
+```
+
+Befehl:
+```
+send> 55 13 13 00 AA 
+recv< 06 
+recv< 55 11 11 40 00
+6D 0A 11 2A
+00
+80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 52
+03 00 00 03 00 00 00 00
+00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00
+AA 
+```
+
+Darstellungsformat:
+```
+55 11 11 40 00 ......  03  00  00   03 00   00  00  00  00 ...
+55 11 11 40 00 xxxxxx [03  00  00] [03 00] [00  00  00] xx ...
+               D1-D22 [D23 D24 D25 D26 D27 D28 D29 D30]
+                      [I1-24     ] [Q1-16] [M1-24     ]
+
+xx: irgendwelche Bytes
+Dn: Datenbyte an Stelle n
+
+D23: BIN MSB --+--+--+--*--+--+--+-- LSB
+             b7 b6 b5 b4 b3 b2 b1 b0
+
+    b7 = Signalzustand I8
+    b6 = Signalzustand I7
+    b5 = Signalzustand I6
+    b4 = Signalzustand I5
+    b3 = Signalzustand I4
+    b2 = Signalzustand I3
+    b1 = Signalzustand I2
+    b0 = Signalzustand I1
+
+D24-25: BIN MSB --+--+--+--*--+--+--+-- LSB
+                b7 b6 b5 b4 b3 b2 b1 b0
+
+    b7 = Signalzustand I16, I24, ...
+    b6 = Signalzustand I15, I23, ...
+    b5 = Signalzustand I14, I22, ...
+    b4 = Signalzustand I13, I21, ...
+    b3 = Signalzustand I12, I20, ...
+    b2 = Signalzustand I11, I19, ...
+    b1 = Signalzustand I10, I18, ...
+    b0 = Signalzustand I09, I17, ...
+
+D26-27: BIN MSB --+--+--+--*--+--+--+-- LSB
+                b7 b6 b5 b4 b3 b2 b1 b0
+
+    b7 = Signalzustand Q8, Q16
+    b6 = Signalzustand Q7, Q15
+    b5 = Signalzustand Q6, Q14
+    b4 = Signalzustand Q5, Q13
+    b3 = Signalzustand Q4, Q12
+    b2 = Signalzustand Q3, Q11
+    b1 = Signalzustand Q2, Q10
+    b0 = Signalzustand Q1, Q09
+
+D28-30: BIN MSB --+--+--+--*--+--+--+-- LSB
+                b7 b6 b5 b4 b3 b2 b1 b0
+
+    b7 = Signalzustand M8, M16, M24
+    b6 = Signalzustand M7, M15, M23
+    b5 = Signalzustand M6, M14, M22
+    b4 = Signalzustand M5, M13, M21
+    b3 = Signalzustand M4, M12, M20
+    b2 = Signalzustand M3, M11, M19
+    b1 = Signalzustand M2, M10, M18
+    b0 = Signalzustand M1, M09, M17
+```
+
+Auswertung:
+```
+xx [03  00  00] [03 00] [00  00  00] xx ...
+   [D23 D24 D25 D26 D27 D28 D29 D30]
+
+Datenbyte 23:    03      = 0000 0011 // I1 = 1; I2 = 1; I3-8 = 0
+Datenbyte 24-25: 00      = 0000 0000 // I9-I24 = 0
+Datenbyte 26:    03      = 0000 0011 // Q1 = 1; Q2 = 1; Q3-8 = 0
+Datenbyte 28-30: 00      = 0000 0000 // M1-M24 = 0
+```
+
+### Analoge Klemmen im Modus _RUN_
+Der Wert für die Anlogen Eingänge _AI1-8_, Ausgänge _AQ1-2_ und Merker _AM1-6_ kann mittels des Online-Test Befehls `55 13 13` abgefragt werden. Der Signalzustand wird dabei als 16Bit-Wert im Datenbereich von Byte 31 bis Byte 63 dargestellt (8*AI + 2*AQ + 6*AM = 8*16 + 2*16 + 6*16Bits = 32 Bytes). 
+
+Der Wertebereich ist von -32768 bis +32767, wobei 0-10V auf interne Werte von 0 bis 1000 abgebildet werden.
+
+Befehl:
+```
+send> 55 13 13 00 AA 
+recv< 06 
+recv< 55 11 11 40 00
+6D 0A 11 2A
+00
+80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 52
+03 00 00 03 00 00 00 00
+00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00
+AA 
+```
+
+Darstellungsformat:
+```
+55 11 11 40 00  xxxxxx
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 xx
+
+55 11 11 40 00 [D1-D30]
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[AI1] [AI2] [AI3] [AI4] [AI5] [AI6] [AI7] [AI8]
+00 00 00 00
+[AQ1] [AQ2]
+00 00 00 00 00 00 00 00 00 00 00 00 xx
+[AM1] [AM2] [AM3] [AM4] [AM5] [AM6]
+
+
+xx: irgendwelche Bytes
+Dn: Datenbyte an Stelle n
+
+AXn:
+  X = I,Q oder M (AIn, AQn oder AMn)
+  n = 1..8
+
+  Beispiel:
+    X=I und n=8: AI8
+  
+  AXa AXb
+     \ /
+     / \
+  AXb,AXa = AX
+
+  AX ist ein 16bit Interger Wert
+  
+    |       AXb (byte)      |       AXa (byte)      |
+ MSB --*--+--+--+--+--+--+--|--+--+--+--+--+--+--+-- LSB
+     bF|bE ..          .. b8|b7 ..          .. b1 b0
+
+  bF: Vorzeichenbit
+    bF=1:negativ; bE..b9:Zahlenwert
+    bF=0:positiv; bE..b9:Zahlenwert
+
+  Beispiel: 
+  int16_t i = AX;  // signed int
+```
+
 ----------
 
 # <a name="0EE8"></a>Kapitel 4 - Programmzeilenspeicher
 Der Programmzeilenspeicher ist Teil des Schaltprogramm (vergl. S7 Programmbaustein) und wird zur Arbeitung des Hauptprogramm (vergl. S7 Organisationsbaustein OB1) in den Arbeitsspeicher geladen. Der zugehörige Code ist Teil der Firmware und daher nicht adressierbar. 
 
-## Blöcke und Blocknummern
+## <a name="Blockbeschreibung"></a>Blöcke und Blocknummern
 Ein Block ist eine Funktion, die eine Ausgangsinformationen Aufgrund einer Informationen an den Eingängen setzt. Die Firmware bestimmt die nutzbaren Funktionen, die für unterschiedliche Aufgaben eingesetzt werden können (vergl. S7 Systemfunktionen). 
 
 ### Darstellung am Verknüpfungseingang
-Alle Blöcke sind im Programmzeilenpeicher 0EE8 abgelegt und werden mit einem 16bit Wert (Datentyp Word) im Wertebereich 8000..C08C am Eingang eines Blocks, Merkers oder einer Ausgangsklemme dargestellt. 
+Alle Blöcke sind im Programmzeilenpeicher `0EE8` abgelegt und werden mit einem 16bit Wert (Datentyp Word) im Wertebereich `8000..C08C` am Eingang eines Blocks, Merkers oder einer Ausgangsklemme dargestellt. 
 
-Bei einem Block ist das Most Significant Bit (MSB = `1`) vom Word immer gesetzt. Das niederwertige Byte vom Word (LoByte) benennt die Blocknummer im Wertebereich 0A..8C, entsprechend B001 bis B130.
+Bei einem Block ist das Most Significant Bit (MSB = `1`) vom Word immer gesetzt. Das niederwertige Byte vom Word (LoByte) benennt die Blocknummer im Wertebereich `0A..8C`, entsprechend _B001_ bis _B130_.
 
-Bestimmte Eingänge von Grund- und Sonderfunktionen können einzeln negieren, d.h. liegt an dem bestimmten Eingang eine `1` an, so verwendet das Schaltprogramm eine `0`. Liegt eine `0` an, so wird eine `1` verwendet. Diese Information ist im Bit7 vom HiByte gespeichert:
+Bestimmte Eingänge von Grund- und Sonderfunktionen können einzeln negieren, d.h. liegt an dem bestimmten Eingang eine `1` an, so verwendet das Schaltprogramm eine `0`. Liegt eine `0` an, so wird eine `1` verwendet. Diese Information ist im Bit 7 vom HiByte gespeichert:
 
 Eingang | HiByte | BIN
 --------|--------|---------------
@@ -783,11 +972,11 @@ normal  | 80     | 1000 0000 = 80
 negiert | C0     | 1100 0000 = C0
 
 ### Zuordnen einer Blocknummer
-Die Erklärung erfolgt Anhand eines Beispiels. Im Beispiel kommen die Klemmen Q1 und Q2 zur Anwendung (ungleich FFFF).
+Die Erklärung erfolgt Anhand eines Beispiels. Im Beispiel kommen die Klemmen _Q1_ und _Q2_ zur Anwendung (ungleich `FFFFh`).
 
 Die Klemmen sind wie folgt verdrahtet:
-- Der Eingang von Q1 ist mit dem Ausgang von Block B001 verbunden
-- Eingang Q2 mit Ausgang B005
+- Der Eingang von _Q1_ ist mit dem Ausgang von Block _B001_ verbunden
+- Eingang _Q2_ mit Ausgang _B005_
 
 So sieht das zugehörige Schaltprogramm aus:
 ```
@@ -822,11 +1011,11 @@ B001  | 0A  | 10  | 1
 B005  | 0E  | 14  | 5
 
 ## <a name="0C14"></a>Verweis auf Blöcke
-Zeiger auf die Blöcke im Programmzeilenpeicher 0EE8. Jeweils ein 16bit-Zeiger (ungleich FFFF, hex) zeigt auf ein Block. Ein Block ist eine Funktion, die Eingangsinformationen in Ausgangsinformationen umsetzt. Die Länge eine Blocks im Programmzeilenspeicher ist variabel.
+Zeiger auf die Blöcke im Programmzeilenpeicher `0EE8`. Jeweils ein 16bit-Zeiger (ungleich `FFFFh`) zeigt auf ein Block. Ein Block ist eine Funktion, die Eingangsinformationen in Ausgangsinformationen umsetzt. Die Länge eine Blocks im Programmzeilenspeicher ist variabel.
 
-Die Größe beträgt 260 Bytes (0BA5 hat maximal 130 Blöcke und der Zeiger eines Funktionsblocks belegt 2 Bytes: 260/2 = 130).
+Die Größe beträgt 260 Bytes (__0BA5__ hat maximal 130 Blöcke und der Zeiger eines Funktionsblocks belegt 2 Bytes: 260/2 = 130).
 
-Speicherbereich: 0C14 - 0D18, 260 Bytes (130 * 2).
+Speicherbereich: `0C14..0D18`, 260 Bytes (130 * 2).
 
 Adressverweis:
 ```
@@ -843,9 +1032,9 @@ Adressverweis:
 0D16| 0E20 Offset 130 |----->| Block n Bytes |0E20+Offset 130
     '-----------------'      '---------------'
 ```
-Zeigerarithmetik: unter Verwendung des ausgelesen Wertes ist es möglich, einen Zeiger auf 0E20 um den gelesen Offset-Anteil zu erhöhnen und damit den Block im Speicherbereich anzusprechen. 
+Zeigerarithmetik: unter Verwendung des ausgelesen Wertes ist es möglich, einen Zeiger auf `0E20` um den gelesen Offset-Anteil zu erhöhnen und damit den Block im Speicherbereich anzusprechen. 
 
-Der erste Block liegt im Programmzeilenspeicher 0EE8 = 0E20 + 00C8, d.h. Der Wert an Adresse 0C14 (Offset 1) ist entweder 00C8 oder FFFF, wenn kein Programm vorhanden ist.
+Der erste Block liegt im Programmzeilenspeicher `0EE8` = `0E20` + `00C8`, d.h. Der Wert an Adresse `0C14` (Offset 1) ist entweder `00C8` oder `FFFF`, wenn kein Programm vorhanden ist.
 
 Befehl:
 ```
@@ -913,6 +1102,88 @@ Dezimal:     200   212   224   244   252   264
 Speicherbedarf: 12 -- 12 -- 20 --- 8 -- 12 --
 ```
 
+### Darstellung im Modus _RUN_
+Das Signalergebnis am Ausgang eines Blockes kann mittels des Online-Test Befehls `55 13 13` abgefragt werden. Das Signalergebnis wird dabei als 1Bit-Wert im Datenbereich von Byte 6 bis Byte 22 dargestellt (130 Blöcke = 128+2 Bits = 16 Bytes + 2 Bits). 
+
+Beispielschaltprogramm:
+```
+               .---.B001
+    .----------| & |
+    |       .--|   |-- Q1
+    |       |  '---' 
+I1--o   I2--o
+    |       |  .---.B130
+    |       '--|>=1|
+    '----------|   |-- Q2
+               '---' 
+```
+
+Befehl:
+```
+send> 55 13 13 00 AA 
+recv< 06 
+recv< 55 11 11 40 00
+6D 0A 11 2A
+00
+80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 52
+03 00 00 03 00 00 00 00
+00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00
+AA 
+```
+
+Darstellungsformat:
+```
+55 11 11 40 00 .....  80 00 00 00 00 00 00 00 00 00 00 00 00 00 00  00  52 03 ...
+55 11 11 40 00 xxxxx [80 00 00 00 00 00 00 00 00 00 00 00 00 00 00  00  52] x ...
+               D1-D5 [D6 D7 ...                                ... D16 D22]
+
+x: irgendein Byte
+Dn: Datenbyte an Stelle n
+
+D6: BIN MSB --+--+--+--*--+--+--+-- LSB
+            b7 b6 b5 b4 b3 b2 b1 b0
+
+    b7 = Signalergebnis Block B008
+    b6 = Signalergebnis Block B007
+    b5 = Signalergebnis Block B006
+    b4 = Signalergebnis Block B005
+    b3 = Signalergebnis Block B004
+    b2 = Signalergebnis Block B003
+    b1 = Signalergebnis Block B002
+    b0 = Signalergebnis Block B001
+
+D7-21: BIN MSB --+--+--+--*--+--+--+-- LSB
+               b7 b6 b5 b4 b3 b2 b1 b0
+
+    b7 = Signalergebnis Block B016, B024, ...
+    b6 = Signalergebnis Block B015, B023, ...
+    b5 = Signalergebnis Block B014, B022, ...
+    b4 = Signalergebnis Block B013, B021, ...
+    b3 = Signalergebnis Block B012, B020, ...
+    b2 = Signalergebnis Block B011, B019, ...
+    b1 = Signalergebnis Block B010, B018, ...
+    b0 = Signalergebnis Block B009, B017, ...
+
+D22: BIN MSB ++++*++---+-- LSB
+             xxxx xx b1 b0
+    b7-b3: x = irgendein Bit
+    b1 = Signalergebnis Block B130
+    b0 = Signalergebnis Block B129
+```
+
+Auswertung:
+```
+xx [80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 52] xx
+    D6 --------------------------------------------D22
+
+Datenbyte 6:     80      = 1000 0000 // B001: Q = 1; B002-B008: Q = 0
+Datenbyte 7-21:  00      = 0000 0000 // B009-B128: Q = 0
+Datenbyte 22:    52 & 03 = xxxx xx10 // B129: Q = 0; B130: Q = 1
+```
+
 ## <a name="GF"></a>Grundfunktionen - GF
 Grundfunktionen sind einfache Grundverknüpfungsglieder der boolschen Algebra.
 
@@ -927,8 +1198,8 @@ GF: Funktionsblock, siehe Liste Grundfunktionen
 
 ```
 Na: Eingang, abhängig von b7
-Nb: BIN Hi --+--+--+--*++++ Lo
-           b7 b6 b5 b4 0000
+Nb: BIN MSB --+--+--+--*++++ LSB
+            b7 b6 b5 b4 0000
 
     b7 = 0, Xa = Konstante oder Klemme
     b7 = 1, Xa = Blocknummer
@@ -1004,7 +1275,7 @@ HEX | RAM (Bytes) | REM (Bytes) | Beschreibung
 [31](#SF31)  | 12          | 3           | Treppenlichtschalter
 [39](#SF39)  | 20          | -           | Analogwertüberwachung
 
-## Grundwissen Sonderfunktionen
+## <a name="Grundwissen-SF"></a>Grundwissen Sonderfunktionen
 
 ### Bezeichnung der Eingänge:
 - __S__ (_Set_): Über den Eingang S kann der Ausgang auf `1` gesetzt.
@@ -1041,7 +1312,7 @@ Ta Tb: Zeit
   Tb,Ta = TW
 
     |       Tb (byte)       |       Ta (byte)       |
-  Hi --+--*--+--+--+--+--+--|--+--+--+--+--+--+--+-- Lo
+ MSB --+--*--+--+--+--+--+--|--+--+--+--+--+--+--+-- LSB
      bF bE|bD ..       .. b8|b7 ..          .. b1 b0
 
   bF,bE = 0,0 Zeitbasis (h:m), Wertebereich (0-23:0-59)
@@ -1123,7 +1394,7 @@ SF Pa [Trg  ] [Par  ] 00 00 FF FF FF FF
 ```
 SF: Funktionsblock, siehe Liste Sonderfunktionen
 Pa: Funktionsblockparameter
-    Hi --+--+--+--*++++ Lo
+   MSB --+--+--+--*++++ LSB
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
@@ -1180,7 +1451,7 @@ SF Pa [Trg  ] [R    ] [Par  ] 00 00 00 00
 ```
 SF: Funktionsblock, siehe Liste Sonderfunktionen
 Pa: Funktionsblockparameter
-    Hi --+--+--+--*++++ Lo
+   MSB --+--+--+--*++++ LSB
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
@@ -1213,7 +1484,7 @@ SF Pa [Trg  ] [S    ] [R    ] 00 00 00 00
 ```
 SF: Funktionsblock, siehe Liste Sonderfunktionen
 Pa: Funktionsblockparameter
-    Hi --+--+--+--*++++ Lo
+   MSB --+--+--+--*++++ LSB
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
@@ -1245,7 +1516,7 @@ SF Pa [No1          ] [No2          ] [No3          ] [Wo-Tage ]
 ```
 SF: Funktionsblock, siehe Liste Sonderfunktionen
 Pa: Funktionsblockparameter
-    Hi --+--+--+--*++++ Lo
+   MSB --+--+--+--*++++ LSB
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein; * REM (Def)
@@ -1285,7 +1556,7 @@ Dx: Wochentage
     Dx = 00 (Def)
     Dx = täglich (D=MTWTFSS) = 7F
 
-    Hi ----------------------- Lo
+   MSB --+--+--+--*--+--+--+-- LSB
        b7 b6 b5 b4 b3 b2 b1 b0
        -  S  F  T  W  T  M  S
 
@@ -1347,7 +1618,7 @@ SF Pa [S    ] [R    ] 00 00
 ```
 SF: Funktionsblock, siehe Liste Sonderfunktionen
 Pa: Funktionsblockparameter
-    Hi --+--+--+--*++++ Lo
+   MSB --+--+--+--*++++ LSB
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
@@ -1371,7 +1642,7 @@ SF Pa [Trg  ] [R    ] [Par  ] 00 00 00 00
 ```
 SF: Funktionsblock, siehe Liste Sonderfunktionen
 Pa: Funktionsblockparameter
-    Hi --+--+--+--*++++ Lo
+   MSB --+--+--+--*++++ LSB
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
@@ -1389,7 +1660,7 @@ Beispiel:
 Remanenz aktiv, Parameterschutz aktiv, Trg = I3, R = -, 05:10 (h:m)
 
 ## <a name="SF2B"></a>Vor-/Rückwärtszähler
-Der Zähler erfasst binäre Impulse am Eingang _Cnt_ und zählt den internen Zähler _Z_ vom Datentyp _ZD_ hoch oder runter. Über den Eingang _Dir_ (`0`:Z=Z+1, `1`:Z=Z-1) wird zwischen Vorwärts- und Rückwärtszählen umgeschaltet. Der interne Zähler _Z_ kann durch den Rücksetzeingang _R_ auf den Wert `0` zurückgesetzt werden. Über den Parameter _On_ oder _Off_ wird die Schaltschwelle für den Ausgang _Q_ definiert. Sofern der Zähler _Z_ die obere Schaltschwelle (Z > On) erreicht bzw. überschreitet wird der Ausgang _Q_ auf `1` und bei erreichen bzw. unterschreiten der unteren Schaltschwell (Z < Off) wird Q auf `0` gesetzt. Der Wertebereich für _On_, _Off_ und _Z_ ist von 0 bis 999999.
+Der Zähler erfasst binäre Impulse am Eingang _Cnt_ und zählt den internen Zähler _Z_ vom Datentyp _ZD_ hoch oder runter. Über den Eingang _Dir_ (`0`:Z=Z+1, `1`:Z=Z-1) wird zwischen Vorwärts- und Rückwärtszählen umgeschaltet. Der interne Zähler _Z_ kann durch den Rücksetzeingang _R_ auf den Wert `0` zurückgesetzt werden. Über den Parameter _On_ oder _Off_ wird die Schaltschwelle für den Ausgang _Q_ definiert. Sofern der Zähler _Z_ die obere Schaltschwelle (Z > On) erreicht bzw. überschreitet wird der Ausgang _Q_ auf `1` und bei erreichen bzw. unterschreiten der unteren Schaltschwell (Z < Off) wird _Q_ auf `0` gesetzt. Der Wertebereich für _On_, _Off_ und _Z_ ist von 0 bis 999999.
 
 RAM/REM: 24/5
 
@@ -1406,7 +1677,7 @@ SF Pa [R    ] [Cnt  ] [Dir  ] [Par                      ] 00 00 00 00 00 00 00 0
 ```
 SF: Funktionsblock, siehe Liste Sonderfunktionen
 Pa: Funktionsblockparameter
-    Hi --+--+--+--*++++ Lo
+   MSB --+--+--+--*++++ LSB
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
@@ -1447,7 +1718,7 @@ SF Pa [En   ] [INV  ] [Par          ] 00 00
 ```
 SF: Funktionsblock, siehe Liste Sonderfunktionen
 Pa: Funktionsblockparameter
-    Hi --+--+--+--*++++ Lo
+   MSB --+--+--+--*++++ LSB
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
@@ -1474,7 +1745,7 @@ SF Pa [En   ] [Ax   ] [Par ...
 ```
 SF: Funktionsblock, siehe Liste Sonderfunktionen
 Pa: Funktionsblockparameter
-    Hi --+--+--+--*++++ Lo
+   MSB --+--+--+--*++++ LSB
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein; * REM (Def)
@@ -1526,7 +1797,7 @@ send>
 recv< 00 00 00 00 00 00 00 00
 ```
 
-## Speicherbereiche 0522, 055E-5F
+## <a name="0522"></a>Speicherbereiche 0522, 055E-5F
 
 AI7-> AM6-> AQ2 / AI2-> AM6-> AQ2
 
@@ -1551,30 +1822,31 @@ AI7-> AM6-> AQ2 / AI2-> AM6-> AQ2
 09 = 0000 1001
 ```
 
-## Erfassbare Daten mit Befehl `55`
-Die Tabelle zeigt die erfassbaren Variablen und Parameter inkl. zugehörigen Datentyp, die über den Befehl `55` abgefragt werden können. Die Angabe VB, VW oder VD (Byte =1, Wort = 2 oder Doppelwort = 4) gibt gleichzeitig die Anzahl der Bytes vor, die der Datentyp benötigt. 
+## Erfassbare Daten
+Die Tabelle zeigt die erfassbaren Variablen und Parameter inkl. zugehörigen Datentyp, die über den Befehl `55` oder `05` abgefragt werden können. Die Angabe _VB_, _VW_ oder _VD_ (Byte = 1, Wort = 2 oder Doppelwort = 4) gibt gleichzeitig die Anzahl der Bytes vor, die der Datentyp benötigt. 
 
-Blockbeschreibung                 | Variable/Parameter:Datentyp(en)                   | VM-Syntax             | Beispiel
-----------------------------------|---------------------------------------------------|-----------------------|-----------
-Einschaltverzögerung              | Ta:VW,VB; T:VW,VB                                 | T[a]<vm>,<n>          | `Ta100,6`
-Ausschaltverzögerung              | Ta:VW,VB; T:VW,VB                                 | T[a]<vm>,<n>          | `T110,3`
-Ein-/Ausschaltverzögerung         | Ta:VW,VB; TH:VW,VB; TL:VW,VB                      | T(aHL)<vm>,<n>        | `TH120,6`
-Speichernde Einschaltverzögerung  | Ta:VW,VB; T:VW,VB                                 | T[a]<vm>,<n>          | `Ta130,3`
-Wischrelais (Impulsausgabe)       | Ta:VW,VB; T:VW,VB                                 | T[a]<vm>,<n>          | `Ta140,6`
-Flankengetriggertes Wischrelais   | Ta:VW,VB; TH:VW,VB; TL:VW,VB; N:VB                | (T[aHL],N)<vm>,<n>    | `N150,1`
-Asynchroner Impulsgeber           | TH:VW,VB; TL:VW,VB                                | T(H,L)<vm>,<n>        | `TH160,6`
-Zufallsgenerator                  | TH:VW,VB; TL:VW,VB                                | T(H,L)<vm>,<n>        | `TH170,3`
-Treppenlichtschalter              | Ta:VW,VB; T:VW,VB; T!:VW,VB; T!L:VW,VB            | T[a,![L]]<vm>,<n>     | `T!L180,3`
-Komfortschalter                   | Ta:VW,VB; T:VW,VB; TL:VW,VB; T!:VW,VB; T!L:VW,VB  | T[a,L,![L]]<vm>,<n>   | `Ta190,15`
-Vor-/Rückwärtszähler              | Cn:VD; On:VD; Off:VD                              | (Cn,On,Off)<vm>,<n>   | `Cn200,12`
-Betriebsstundenzähler             | OT:VD; MN:VW; MI:VW                               | (OT,MN,MT)<vm>,<n>    | `OT210,8`
-Analogkomperator                  | A:V_; B:V_; On:VW; Off:VW; p:VB                   | (AB,On,Off,p)<vm>,<n> | -
-Analoger Multiplexer              | V1:VW; V2:VW; V3:VW; V4;VW; p:VB; AQ:VW           | (V(1-4),p,AQ)<vm>,<n> | `V1230,2`
-Rampensteuerung                   | L1:V_; L2:V_; AQ:VW; A:V_; B:V_; p:VB;            | -                     | -
-PI-Regler                         | -                                                 | -                     | -
+Blockbeschreibung                 | Aktualwerte oder Parameter              | Datentyp
+----------------------------------|-----------------------------------------|-----------
+Einschaltverzögerung              | T, Ta                                   | 2*VW
+Ausschaltverzögerung              | T, Ta                                   | 2*VW
+Ein-/Ausschaltverzögerung         | Ta, TH, TL                              | 3*VW
+Speichernde Einschaltverzögerung  | T, Ta                                   | 2*VW
+Wischrelais (Impulsausgabe)       | T, Ta                                   | 2*VW
+Flankengetriggertes Wischrelais   | Ta, TH, T                               | 3*VW
+Asynchroner Impulsgeber           | Ta, TH, TL                              | 3*VW
+Zufallsgenerator                  | TH, TL                                  | 2*VW
+Treppenlichtschalter              | Ta, T, T!, T!L                          | 4*VW
+Komfortschalter                   | Ta, T, TL, T!, T!L                      | 5*VW
+Wochenschaltuhr                   | 3* On/Off/Tag                           | 3*VW/VW/VB
+Vor-/Rückwärtszähler              | Cnt, On, Off                            | 3*VD
+Betriebsstundenzähler             | MI, MN, OT                              | 2*VW, VD
+Analogkomparator                  | On, Off, A, B, Ax, Ay, dA               | 7*VW
+Analoger Multiplexer              | V1, V2, V3, V4, AQ                      | 5*VW
+Rampensteuerung                   | L1, L2, MaxL, StSp, Rate, A, B, AQ      | 8*VW
+PI-Regler                         | SP, Mq, KC, TI, Min, Max, A, B, PV, AQ  | 10*VW
 
 ### Mögliche Anwendung
-Über den Blocknamen könnten bis zu 64 Parameter einem Variablenspeicher ähnlich __0BA7__ zugeordnet werden. Die obige Tabelle zeigt neben den erfassbaren Variablen und Block-Parametern auch die zugehörige Syntax für eine mögliche Anwendung mit einem Variablenspeicher. 
+Über den Blocknamen könnten bis zu 64 Parameter einem Variablenspeicher ähnlich __0BA7__ zugeordnet werden. Die obige Tabelle zeigt neben den erfassbaren Variablen und Block-Parametern auch den zugehörige Datentyp für eine mögliche Anwendung mit einem Variablenspeicher (VM Adressbereich 0 bis 850 bei Adresstyp VB). 
 
 Im Folgenden die VM-Adressierung mit zugehörigem Datentyp nach __0BA7__:
 ```
@@ -1613,9 +1885,9 @@ MSB                                                             LSB
 # Anhang
 
 ## <a name="Ressourcen"></a>__0BA5__ Ressourcen
-Das Handbuch beschreibt ausschließlich das _LOGO!_ Gerät in der Version __0BA5__. Die folgend genannten Ressourcen dienen der Vergleichbarkeit und sind aus LOGO!Soft Comfort ausgelesen:
+Dieses Handbuch beschreibt ausschließlich das _LOGO!_ Gerät in der Version __0BA5__. Die folgend genannten Ressourcen dienen der Vergleichbarkeit und sind aus LOGO!Soft Comfort ausgelesen:
 - Funktionsblöcke: 130
-- REM: 60
+- Rem: 60
 - Digitaleingänge: 24
 - Digitalausgänge: 16
 - Merker: 24
@@ -1629,22 +1901,68 @@ Das Handbuch beschreibt ausschließlich das _LOGO!_ Gerät in der Version __0BA5
 - Schieberegister: 1
 - Schieberegisterbits: 8
 - Offene Klemme: 16
+- max. Tiefe des Programmpfads: 58
 
-## Verwendete Abkürzungen
-- __0BA5__: _LOGO!_ Kleinsteuerung der 6.Generation (wird in diesem Handbuch beschrieben).
+## <a name="Abk"></a>Verwendete Abkürzungen
+- __0BA5__: _LOGO!_ Kleinsteuerung der 6.Generation (wird in diesem Handbuch beschrieben)
+- __0BA7__: _LOGO!_ Kleinsteuerung der 8.Generation
+- __A__: Verstärkung (Gain)
+- __ALU__ (_Arithmetic Logic Unit_): elektronisches Rechenwerk
+- __AND__: Und-Verknüpfung
+- __Ax__: Analogkomparator Eingang Ax
+- __Ay__: Analogkomparator Eingang Ay
+- __dA__: Differenzwert von Ax - Ay
+- __AQ__: Analoger Ausgang
+- __B__: Nullpunktverschiebung (Offset)
 - __B001__: Block Nummer B1
+- __BIN__: Binärwert
 - __Cnt__ (_Count_): Zählimpulse
 - __Co__ (_Connector_): Klemme
+- __CRC__ (Cyclic Redundancy Check): Prüfsummenberechnung
+- __DB__: Datenbaustein einer S7
+- __DEC__ (_Decimal_): Dezimalwert
 - __Dir__ (_Direction_): Festlegung der Richtung
 - __En__ (_Enable_): aktiviert die Funktion eines Blocks.
+- __FB__: Funktionsbaustein einer S7
+- __FC__: Funktion einer S7
 - __Fre__ (_Frequency_): Auszuwertende Frequenzsignale
 - __GF__: Grundfunktionen
+- __HEX__: Hexadezimaler Wert
+- __Hi__ (_High_): Signalwert 1
+- __I__ (_Input_): Digitaler Eingang
 - __Inv__ (_Invert_): Ausgangssignal des Blocks wird invertiert
+- __KC__: Regler Verstärkung
+- __Lo__ (_Low_): Signalwert 0
+- __LSB__ (_Least Significant Bit_): Bit mit dem niedrigsten Stellenwert
+- __M__: Merker
+- __MI__: Parametriertes Wartungsintervall
+- __MN__: Verbleibende Restzeit vom Wartungsintervall
+- __Mq__: Reglerwert von AQ bei manuellem Betrieb
+- __MSB__ (_Most Significant Bit_): Bit mit dem höchsten Stellenwert
 - __No__ (_Nocken_): Parameter der Zeitschaltuhr
+- __OB__: Organisationsbaustein einer S7
+- __Off__: Aus
+- __On__: Ein
+- __OR__: Oder-Verknüpfung
+- __OT__: Aufgelaufene Gesamtbetriebszeit
+- __p__ (_position_): Anzahl der Nachkommastellen
 - __Par__: Parameter
+- __PV__: Regelgröße
+- __Q__: Digitaler Ausgang
 - __R__ (_Reset_): Rücksetzeingang
 - __Ral__ (_Reset all_): internen Werte werden zurückgesetzt
+- __RAM__ (_Random-Access Memory_): Speicher mit wahlfreiem, direktem Zugriff
+- __Rem__ (_Remanenz_): Speicherbereich um Zustände oder Werte zu sichern
 - __S__ (_Set_): Eingang wird gesetzt
 - __SF__: Sonderfunktionen
+- __SFB__: Systemfunktionsbaustein einer S7
+- __SFC__: Systemfunktion einer S7
+- __SP__: Regler Sollwertvorgabe
 - __T__ (_Time_): Zeit-Parameter
+- __Ta__ (_Time actual_): Aktueller Wert einer Zeit
+- __TH__ (_Time High_): oberer Zeitwert
+- __TI__ (_Time Integral_): Regler Zeitintegral
+- __TL__ (_Time Low_): unterer Zeitwert
 - __Trg__ (_Trigger_): Ablauf einer Funktion wird gestartet
+- __X__: Offene Klemme
+- __XOR__: Exklusiv-Oder-Verknüpfung
