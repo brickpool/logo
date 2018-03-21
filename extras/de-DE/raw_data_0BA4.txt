@@ -19,11 +19,7 @@ recv< 06 03 1F 02 40
 // no read firmware for 0BA4 !
 // LOGO!Soft stops here
 
-// read bytes for version firmware
-send> 02 1F 00 
-recv< 06 03 1F 00 04 
-send> 02 1F 01 
-recv< 06 03 1F 01 00 
+// read bytes for version firmware manually
 send> 02 1F 02 
 recv< 06 03 1F 02 40 
 send> 02 1F 03 
@@ -41,44 +37,41 @@ recv< 06 03 1F 08 00
 
 
 // read 10 bytes from 0570 @STOP -> Program Name
-05 05 70 00 10
 send> 05 05 70 00 10 
 recv< 06 
 recv< 41 42 43 44 45 46 47 48 49 4A 4B 4C 4D 4E 4F 50 10 
 
 // read 1 byte @0552 @STOP -> display after power-on
-02 05 52
-// 00 time / date
+// 00 Programmname ?? (LOGO! ohne Uhr)
 // 01 input / output
 send> 02 05 52 
 recv< 06 03 05 52 00 
 
 
 // read 10 bytes from 0E20 @STOP
-05 0E 20 00 0a
 send> 05 0E 20 00 0A 
 recv< 06 80 00 0A 80 FF FF FF FF FF FF 0A
 
-
 // operation mode status
-55 17 17 aa
 send> 55 17 17 AA 
 recv< 06 42 
 
 // start
-55 18 18 aa
 send> 55 18 18 AA 
 recv< 06 
 
 // monitor @RUN
-55 13 13 00 aa
 send> 55 13 13 00 AA 
 recv< 06 
-recv< 55 11 11 40 00 38 CA 11 2A 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 AA 
+recv< 55 11 11 40 00
+38 CA 11 2A
+00
+01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+AA 
 
 // text box 10;
 // 64 bytes / each text box
-05 08 00 02 80
 send> 05 08 00 02 80 
 recv< 06 
 recv< 01 00 31 32 33 34 35 36 20 20 20 20 20 20 00 00
@@ -96,11 +89,8 @@ recv< 00 00 00 00 00 00 00 00 00 00 00 00 00 FF 00
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FF 00
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FF 00 
 
-// Definite register (memory area)
-// (Function block occupied program memory area data length
-// memory area boundary);
-// Function block number 130
-05 0C 00 01 18
+// Amount of data, Memory area Limit of used blocks for the Program Memory Area
+// (Function block number 130)
 send> 05 0C 00 01 18 
 recv< 06 00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4 00 C8 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
 recv< FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 
@@ -109,7 +99,6 @@ recv< FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
 // Digital output Q [1_16]
 // 2 * 20 bytes = 2Byte <80 00> + 16Byte <Data> + 2Byte <FF FF>
 // XOR
-05 0E 20 00 28
 send> 05 0E 20 00 28 
 recv< 06
 80 00
