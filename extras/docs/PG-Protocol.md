@@ -1,6 +1,6 @@
 # LOGO! PG Protocol Reference Guide
 
-Rev. Bt
+Rev. Bu
 
 March 2018
 
@@ -157,8 +157,7 @@ Field Name | Code \(hex\) | Meaning
 Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
-Byte Count | `40` | Number of bytes 64 (dec)
-Padding | `00` | Padding Byte
+Byte Count | `40 00` | Number of bytes 64 (dec)
 Data | `00 7f .. 00` | data block
 Trailer | `aa` | End Delimiter
 >Figure _LOGO!_ Response message
@@ -521,13 +520,13 @@ Trailer | `aa` | End Delimiter
 
 ### Response
 
-Command | Command | Function | Byte Count | Padding | Data | Trailer
---- | --- | --- | --- | --- | --- | --- 
-1 byte | 1 byte | 2 bytes | 1 byte | 1 byte | n bytes | 1 byte
-Confirmation Code | Control Code | Function Code | Number of bytes | Padding Byte | Data Block | End Delimiter
+Command | Command | Function | Byte Count | Data | Trailer
+--- | --- | --- | --- | --- | ---
+1 byte | 1 byte | 2 bytes | 2 bytes | n bytes | 1 byte
+Confirmation Code | Control Code | Function Code | Number of bytes | Data Block | End Delimiter
 >Figure _Fetch Data_ Response Message
 
-The _Byte Count_ value indicates the number of bytes that are followed (excluding the _Padding Byte_ and the _End Delimiter_ `AA`).
+The _Byte Count_ value indicates the number of bytes that are followed (excluding the _End Delimiter_ `AA`). The _Byte Count_ is of the data type Word and in the format _Little-Endian_ (LoByte, HiByte).
 
 __Notes:__
 Minimum _Byte Count_ value
@@ -562,8 +561,7 @@ Field Name | Code \(hex\) | Meaning
 Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
-Byte Count | `40` | Number of bytes 64 (dec)
-Padding | `00` | Padding Byte
+Byte Count | `40 00` | Number of bytes 64 (dec)
 Data | `7f 66 11 2a` `00` `80 01 10 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 a8` `00 00 00` `00 00` `00 00 00` `00` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
@@ -577,8 +575,7 @@ Field Name | Code \(hex\) | Meaning
 Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
-Byte Count | `40` | Number of bytes 64 (dec)
-Padding | `00` | Padding Byte
+Byte Count | `40 00` | Number of bytes 64 (dec)
 Data | `35 08 11 2a` `00` `00 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 0C` `09 00 00` `01 00` `00 00 00` `00` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
@@ -592,8 +589,7 @@ Field Name | Code \(hex\) | Meaning
 Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
-Byte Count | `44` | Number of bytes 68 (dec)
-Padding | `00` | Padding Byte
+Byte Count | `44 00` | Number of bytes 68 (dec)
 Data | `f4 5f 11 2a` `04` `04 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 00` `00 00 00` `00 00` `00 00 00` `01` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
@@ -608,7 +604,7 @@ Field Name | Code \(hex\) | Meaning
 Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
-Byte Count | `4a` | Number of bytes 74 (dec)
+Byte Count | `4a 00` | Number of bytes 74 (dec)
 Data | `b7 c4 19 2c` `00` `10 84 6b 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00` `00 00` | Data Block 10-1f
 Data | `00` `00` `00 00` `00 00 00 00` `00` `00` `00 00 00 00` `00 00`| Data Block 20-2f
