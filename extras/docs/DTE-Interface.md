@@ -1,6 +1,6 @@
 # DTE-Interface for connecting the LOGO! PC cable
 
-Rev. Ae
+Rev. Af
 
 March 2018
 
@@ -29,9 +29,9 @@ Pin | Name | Signal | Color (see above)
 2 | &darr; RX | Receive Data | yellow
 3 | &uarr; TX | Transmit Data | blue
 4 | VCC | Voltage 5V | black
-6 | RTS | Request to Send | black 1)
+6 | RTS | Request to Send | white 1)
 
-__Note:__ 1) Pin 4 and 6 have to be bridged to power the electronics in the PC cable. Chances are that it's just wired from the DB9 connector to a breakout pin on the PCB, and not connected to the IC on that PCB.
+__Note:__ 1) Pin 1 and 6 have to be bridged to power the electronics in the PC cable. 
 
 ![alt text][PinAssignment]
 >Figure _PIN Layout_ of the board

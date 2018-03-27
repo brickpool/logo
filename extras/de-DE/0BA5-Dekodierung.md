@@ -1,6 +1,7 @@
-# Undocumented LOGO! __0BA5__: Aufbau, Funktionsweise und Programmierung
+# Undocumented LOGO! __0BA5__
+## Aufbau, Funktionsweise und Programmierung
 
-Ausgabe Al
+Ausgabe Am
 
 März 2018
 
@@ -285,11 +286,11 @@ Beispiel:
 ### Parameter
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
-|             | 0522        | 1     | W |                                                        |
+|             | [0522](#0522)        | 1     | W |                                                        |
 |             | [0552](#0552)        | 1     |   | Displayinhalt nach Netz-Ein                            |
 | 05 53 00 05 | [0553](#0553) - 0558 | 5     |   | Einstellung des Analogausgangs im Betriebszustand _STOP_ |
-|             | 055E        | 1     |   |                                                        |
-|             | 055F        | 1     |   |                                                        |
+|             | [055E](#0522)        | 1     |   |                                                        |
+|             | [055F](#0522)        | 1     |   |                                                        |
 | 05 66 00 0A | 0566 - 0570 | 10    |   | Passwortspeicherbereich                                |
 | 05 70 00 10 | [0570](#0570) - 0580 | 16    |   | Programmname                                           |
 |             | 0580 - 05C0 | 64    |   | = 0 (64 = 0040h)                                       |
@@ -362,7 +363,7 @@ Speicherbereich: 0552, 1 Byte
 
 Zugriffsmethode: Lesen und Schreiben
 
-Darstellungsformat:
+### Darstellungsformat im Speicher
 ```
 send> 02 05 52 
 recv< 06
@@ -396,7 +397,7 @@ recv< 06
 
 Wertebereich: 0.00 - 9.99
 
-Darstellungsformat:
+### Darstellungsformat im Speicher
 ```
 00  [C4 03] [D5 01]
 Val [AQ1  ] [AQ2  ]
@@ -511,7 +512,7 @@ FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 // (40x)
 ...
 ```
 
-Darstellungsformat:
+### Darstellungsformat im Speicher
 ```
 03 04 20 20 20 20 00 00 00 00 00 00 00 00 00 00
 02 04 0B 2B 00 00 4C 65 6E 3A 20 20 00 00 00 00
@@ -854,7 +855,7 @@ Speicherbedarf: 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20
 ### <a name="0E20"></a>Digitalausgänge - Q
 Die Digitalausgänge _Q1_ bis _Q16_ befinden sich im Speicherbereich `0E20..0EC0` (2*20 Bytes).
 
-Darstellungsformat:
+Darstellungsformat
 ```
 80 00 Q1a Q1b ... ... Q8a  Q8b  FF FF // (20 Byte)
 80 00 Q9a Q9b ... ... Q16a Q16b FF FF
@@ -862,7 +863,7 @@ Darstellungsformat:
 
 `Q<n>a Q<n>b`: _n_ = Element 1-16
 
-## <a name="0EC0"></a>Merker - M
+### <a name="0EC0"></a>Merker - M
 Die Digitalausgänge _M1_ bis _M24_ befinden sich im Speicherbereich `0EC0..0E84` (3*20 Bytes).
 
 Darstellungsformat:
@@ -880,10 +881,37 @@ Die Analogen Ausgänge _AQ1_ und _AQ2_ befinden sich im Speicherbereich `0E84..0
 Darstellungsformat:
 ```
 80 00 AQ1a AQ1b AQ2a AQ2b AM1a AM1b ... ... AM6a AM6b  FF FF // (20 Byte)
+80 00 [AQ1    ] [AQ2    ] [AM1    ] ... ... [AM6    ]  FF FF // (20 Byte)
+
+A<Xn>:
+  X = Q oder M (AQ<n> oder AM<n>)
+  n = 1..8
+
+  Beispiel:
+    X=Q und n=2: AQ2
+  
+  AXa AXb
+    \ /
+    / \
+  AXb,AXa = AX
+
+  AX ist ein 16bit Interger Wert
+  
+    |       AXb (byte)      |       AXa (byte)      |
+ MSB --*--+--+--+--+--+--+--|--+--+--+--+--+--+--+-- LSB
+     bF|bE ..          .. b8|b7 ..          .. b1 b0
+
+  bF: Vorzeichenbit
+    bF=1:negativ; bE..b9:Zahlenwert
+    bF=0:positiv; bE..b9:Zahlenwert
+
+  Beispiel: 
+  int16_t i = AX;  // signed int
 ```
 
-`AQ<n>a AQ<n>b`: _n_ = Element _AQ1-2_<br />
-`AM<n>a AM<n>b`: _n_ = Element _AM1-6_
+
+`AQ<n>`: _n_ = Element _AQ1-2_<br />
+`AM<n>`: _n_ = Element _AM1-6_
 
 ### <a name="0E98"></a>Offene Klemmen - X
 Die Offenen Klemmen _X1_ bis _X16_ befinden sich im Speicherbereich `0E98..0EC0` (2*20 Bytes).
@@ -1034,8 +1062,8 @@ AXn:
     X=I und n=8: AI8
   
   AXa AXb
-     \ /
-     / \
+    \ /
+    / \
   AXb,AXa = AX
 
   AX ist ein 16bit Interger Wert
@@ -1047,9 +1075,6 @@ AXn:
   bF: Vorzeichenbit
     bF=1:negativ; bE..b9:Zahlenwert
     bF=0:positiv; bE..b9:Zahlenwert
-
-  Beispiel: 
-  int16_t i = AX;  // signed int
 ```
 
 ----------
@@ -1413,14 +1438,14 @@ Darstellung | Zeitbasis | Inkrement | Wert
 Darstellungsformat:
 ```
 .. xx T1 T2 xx ..
-.. xx [TW ] xx ..
+.. xx [T  ] xx ..
 
 xx: irgendein Byte
-TW: Zeit, 16bit (Word)
+T: Zeit, 16bit (Word)
   T1 T2
    \ /
    / \
-  T2 T1 = TW
+  T2 T1 = T
 
     |       T2 (byte)       |       T1 (byte)       |
  MSB --+--*--+--+--+--+--+--|--+--+--+--+--+--+--+-- LSB
@@ -1431,8 +1456,8 @@ TW: Zeit, 16bit (Word)
   bF,bE = 1,0 Zeitbasis (m:s), Wertebereich (0-99:0-59)
   bF,bE = 0,1 Zeitbasis (s:1/100s), Wertebereich (0-99:0-99)
 
-  byte b = TW >> 14;  // bF..bE (2bit) -> Zeitbasis (VB)
-  word v = TW & 7FFF; // bD..b0 (14bit) -> Zeitwert (VW)
+  byte b = T >> 14;  // bF..bE (2bit) -> Zeitbasis (VB)
+  word v = T & 7FFF; // bD..b0 (14bit) -> Zeitwert (VW)
   if (b == 3)
   {
     // Zeitbasis Stunden; Inkrement Minuten; (h:m)
@@ -1463,39 +1488,40 @@ Beispiel:
 ```
 
 ### Zähler
-_LOGO!_ __0BA5__ verfügt nur über eine Art von Zähler, welcher an einem Zähleingang die steigenden Flanken zählt. Der Zähler zählt sowohl vorwärts als auch rückwärts. Der Zählerwert ist eine 32Bit Ganzzahl vom Datentyp _ZD_ und wird ohne Vorzeichen gespeichert. Der gültige Wertebereich des Zählers liegt zwischen 0...999999.
+_LOGO!_ __0BA5__ verfügt nur über eine Art von Zähler, welcher an einem Zähleingang die steigenden Flanken zählt. Der Zähler zählt sowohl vorwärts als auch rückwärts. Der Zählerwert ist eine 32Bit Ganzzahl vom Datentyp _VD_ und wird ohne Vorzeichen gespeichert. Der gültige Wertebereich des Zählers liegt zwischen 0...999999.
 
 Darstellungsformat:
 ```
 .. xx 00 06 6C BC xx ..
-.. xx Z1 Z2 Z3 Z4 xx ..
-.. xx [ZD       ] xx ..
+.. xx C1 C2 C3 C4 xx ..
+.. xx [C        ] xx ..
 
 xx:    irgendein Byte
-Z1-Z4: Zählerwert, 32bit (DWord)
+C1-C4: Zählerwert, 32bit (DWord)
 
-  Z1 Z2 Z3 Z4
+  C1 C2 C3 C4
       \ /
       / \
-  Z4 Z3 Z2 Z1
+  C4 C3 C2 C1
   00 06 6C BC = 421052
 ```
 Maximaler Zählerwert F423F:
 ```
-  Z1 Z2 Z3 Z4
+  C1 C2 C3 C4
       \ /
       / \
-  Z4 Z3 Z2 Z1
+  C4 C3 C2 C1
   00 0F 42 3F = 999999
 ```
 
 ## <a name="SF21"></a>Einschaltverzögerung
 Mit der Funktion _Einschaltverzögerung_ wird das Setzen des Ausgangs _Q_ um die programmierte Zeitdauer _T_ verzögert. Die Zeit _Ta_ startet (_Ta_ ist die in _LOGO!_ aktuelle Zeit vom Datentyp _TW_), wenn das Eingangssignal _Trg_ von `0` auf `1` wechselt (positive Signalflanke). Wenn die Zeitdauer abgelaufen ist (_Ta_ > _T_), liefert der Ausgang _Q_ den Signalzustand `1`. Der Ausgang _Q_ bleibt so lange gesetzt, wie der Triggereingang die `1` führt. Wenn der Signalzustand am Triggereingang von `1` auf `0` wechselt, wird der Ausgang _Q_ zurückgesetzt. Die Zeitfunktion wird wieder gestartet, wenn eine neue positive Signalflanke am Starteingang erfasst wird. 
 
-### Programmspeicher auslesen
-RAM/REM: 8/3
+Die Flags für Remananz und Parameterschutz sowie die Beschaltung von Eingang _Trg_ und der Parameter _T_ werden im Mode _STOP_ abgefragt. Der Zeitoperand _Ta_ und der Signalzustand am Ausgang _Q_ sind im Mode _RUN_ abfragbar. 
 
-Darstellungsformat:
+RAM/Rem/Online: 8/3/4
+
+### Darstellungsformat im Speicher
 ```
 21 40 01 00 7A 80 00 00 FF FF FF FF
 21 40 [01 00] [7A 80] 00 00 FF FF FF FF
@@ -1509,7 +1535,7 @@ Pa: Funktionsblockparameter
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
-    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Std.)
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Standard)
 
 Trg: Eingang Trg (Co oder GF/SF)
 Par: Parameter T (T ist die Zeit, nach der der Ausgang eingeschaltet wird)
@@ -1549,12 +1575,99 @@ Weitere Beispiele:
 21 C0 01 00 FE 41 00 00 // Einschaltverzögerung 05:10 (s: 1/100s), Remanenz aktiviert
 ```
 
+### Format im Online-Test
+
+```
+send> 55 13 13 01 0D AA 
+recv< 06 
+recv< 55 11 11 44 00
+F4 5F 11 2A
+04
+04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00
+01 00 0B 80
+AA 
+
+55 11 11 44 00 F4 5F 11 2A 04
+55 [11 11] [44 00] [F4 5F] [11 2A] [04]
+Co [Fc   ] [Bc   ] [     ] [     ] [Ex]
+-----------------------------------
+01 00 0B 80 AA
+01 00 [0B 80] AA
+Pa    [Ta   ] Ed
+```
+
+```
+Co: Kontrollbefehl = 55
+Fc: PG-Funktion = 1111
+Bc: 16bit-Wert; Anzahl Datenbytes (inkl. Extrabytes)
+  B1 B2
+   \ /
+   / \
+  B1 B2
+  00 4A = 74 (DEC)
+
+Ex: Anzahl Extrabytes
+Pa: Funktionsbeschreibung Ta
+    Pa = 0; Ta stop; Ta = 0 (Standard)
+    Pa = 1: Ta läuft; Ta < T
+    Pa = 2: Ta stop; Ta = T
+
+Ta: Aktuelle Zeit, siehe Zeitverhalten
+
+Ed: AA = Ende Trennzeichen
+```
+
+Schaltprogramm:
+```
+      B4
+     .---.
+     |.-.|
+ I1--|--'|
+Par--|   |--B2
+     '---'
+```
+>Abb: Programm _Ermittlung von Speicherbedarf_, Block B004
+
+Abfrage von Block B004:
+```
+send> 55 13 13 01 0D AA 
+recv< 06 
+recv< 55 11 11 44 00
+F4 5F 11 2A
+04
+04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00
+01 00 0B 80
+AA 
+```
+
+Auswertung:
+```
+55 11 11    // Kontrollbefehl; Antwort Online-Test
+44 00       // 68 Bytes folgen (exkl. AA)
+F4 5F       // Prüfsumme ??
+11 2A       // ??
+04          // 4 Extra Bytes im Datenfeld
+04 00....00 // I,M,Q,C,S,AI,AM,AQ
+01          // Ta läuft; Ta < T
+00          // VB = 0
+0B 80       // Ta = 11s; Zeitbasis (m:s)
+AA          // Befehlsende Trennzeichen
+```
+
 ## <a name="SF22"></a>Ausschaltverzögerung
 Mit der Funktion _Ausschaltverzögerung_ wird das Zurücksetzen des Ausgangs _Q_ um die parametrierte Zeitdauer _T_ verzögert. Der Ausgang _Q_ wird mit positiver Signalflanke gesetzt (Eingang _Trg_ wechselt von `0` auf `1`). Wenn der Signalzustand am Eingang _Trg_ wieder auf `0` wechselt (negative Signalflanke), läuft die parametrierte Zeitdauer _T_ ab. Der Ausgang _Q_ bleibt gesetzt, solange die Zeitdauer _Ta_ läuft (_Ta_ < _T_). Nach dem Ablauf der Zeitdauer _T_ (_T_ > _Ta_) wird der Ausgang _Q_ zurückgesetzt. Falls der Signalzustand am Eingang _Trg_ auf `1` wechselt, bevor die Zeitdauer _T_ abgelaufen ist, wird die Zeit zurückgesetzt. Der Signalzustand am Ausgang _Q_ bleibt weiterhin auf `1` gesetzt. 
 
-RAM/REM: 12/3
+Die Flags für Remanenz und Parameterschutz sowie die Beschaltung von Eingang _Trg_ und der Parameter _T_ werden im Mode _STOP_ abgefragt. Der Zeitoperand _Ta_ und der Signalzustand am Ausgang _Q_ sind im Mode _RUN_ abfragbar. 
 
-Darstellungsformat:
+RAM/Rem/Online: 12/3/?
+
+### Darstellungsformat im Speicher
 ```
 22 80 01 00 02 00 1F CD 00 00 00 00
 22 80 [01 00] [02 00] [1F CD] 00 00 00 00
@@ -1568,7 +1681,7 @@ Pa: Funktionsblockparameter
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
-    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Std.)
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Standard)
 
 Trg: Eingang Trg (Co oder GF/SF)
 R: Eingang R (Co oder GF/SF)
@@ -1581,8 +1694,14 @@ Beispiel:
 ```
 
 ## <a name="SF2F"></a>Ein-/Ausschaltverzögerung
+Mit der Funktion _Ein-/Ausschaltverzögerung_  wird das Setzen sowie das Zurücksetzen des Ausgangs Q um die programmierte Zeitdauer _TH_ bzw. _TL_ verzögert. Die Einschaltverzögerung wird gestartet, wenn das Eingangssignal an _Trg_ von `0` auf `1` wechselt (positive Signalflanke). Mit dem Start läuft die programmierte Zeitdauer TH ab. Wenn die Zeitdauer (Ta > TH) abgelaufen ist, liefert der Ausgang Q den Signalzustand `1`.
 
-RAM/REM: 12/3
+Wenn der Signalzustand am Eingang _Trg_ wieder auf `0` wechselt (negative Signalflanke), läuft die parametrierte Zeitdauer _TL_ ab. Der Ausgang _Q_ bleibt gesetzt, solange die Zeitdauer _Ta_ läuft. Nach dem Ablauf der Zeitdauer _TL_ (Ta > TL) wird der Ausgang _Q_ zurückgesetzt. 
+
+Die Flags für Remanenz und Parameterschutz sowie die Beschaltung von Eingang _Trg_ und die Zeit-Parameter _TH_ und _TL_ werden im Mode _STOP_ abgefragt. Der Zeitoperand _Ta_ und der Signalzustand am Ausgang _Q_ sind im Mode _RUN_ abfragbar. 
+
+
+RAM/Rem/Online: 12/3/6
 
 ### Darstellungsformat im Speicher
 
@@ -1600,7 +1719,7 @@ Pa: Funktionsblockparameter
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
-    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Std.)
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Standard)
 
 Trg: Eingang Trg (Co oder GF/SF)
 Par: siehe Zeitverhalten
@@ -1623,7 +1742,7 @@ recv< 55 11 11 46 00
 04 00 00 00 01 80
 AA
 
-55 11 11 46 00 22 8D 11 2A 0A
+55 11 11 46 00 22 8D 11 2A 06
 55 [11 11] [4A 00] [22 8D] [11 2A] [06]
 Co [Fc   ] [Bc   ] [     ] [     ] [Ex]
 -----------------------------------
@@ -1634,8 +1753,8 @@ Pa          [Ta   ] Ed
 
 ```
 Co: Kontrollbefehl = 55
-Fc: Funktion = 1111, Antwort auf Funktion 1313
-BC: 16bit-Wert; Anzahl Datenbytes (inkl. Extrabytes)
+Fc: PG-Funktion = 1111
+Bc: 16bit-Wert; Anzahl Datenbytes (inkl. Extrabytes)
   B1 B2
    \ /
    / \
@@ -1644,7 +1763,7 @@ BC: 16bit-Wert; Anzahl Datenbytes (inkl. Extrabytes)
 
 Ex: Anzahl Extrabytes
 Pa: Funktionsbeschreibung Ta
-    Pa = 0; Ta stop; Ta = 0 (Std.)
+    Pa = 0; Ta stop; Ta = 0 (Standard)
     Pa = 2: Ta stop; Ta = TH
     Pa = 4: Ta läuft; Ta < TH
     Pa = 8: Ta läuft; Ta < TL
@@ -1673,9 +1792,11 @@ Bei der Funktion _Stromstoßrelais_ wechselt der Ausgang _Q_ bei jedem elektrisc
 
 Der Ausgang _Q_ kann mittels der Eingänge _S_ und _R_ vorbelegt werden. Wenn der Signalzustand am Eingang _S_ = `1` und am Eingang _R_ = `0` ist, wird der Ausgang _Q_ auf `1` gesetzt. Wenn der Signalzustand am Eingang _S_ = `0` und am Eingang _R_ = `1` ist, wird der Ausgang _Q_ auf `0` zurückgesetzt. Der Eingang _R_ dominiert den Eingang _S_.
 
-RAM/REM: 12/1
+Die Flags für Remanenz und Parameterschutz sowie die Beschaltung von Eingang _S_ und _R_ werden im Mode _STOP_ abgefragt. Der Signalzustand am Ausgang _Q_ ist im Mode _RUN_ abfragbar. 
 
-Darstellungsformat:
+RAM/Rem/Online: 12/1/?
+
+### Darstellungsformat im Speicher
 ```
 23 00 02 00 FF FF FF FF 00 00 00 00
 23 00 [02 00] [FF FF] [FF FF] 00 00 00 00
@@ -1689,7 +1810,7 @@ Pa: Funktionsblockparameter
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
-    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Std.)
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Standard)
 
 Trg: Eingang Trg (Co oder GF/SF)
 S: Eingabe S (Co oder GF/SF)
@@ -1704,9 +1825,9 @@ Der Ausgang _Q_ wird über drei parametrierbares Ein- und Ausschaltzeiten (Einst
 
 __Hinweis:__ Da die _LOGO!_ Kleinsteuerung Typ 24/24o keine Uhr besitzt, ist die Wochenschaltuhr bei dieser Variante nicht nutzbar. 
 
-RAM/REM: 20/-
+RAM/Rem/Online: 20/-/5
 
-Darstellungsformat:
+### Darstellungsformat im Speicher
 ```
 24 40 F2 00 A0 00 FF FF FF FF FF FF FF FF 2A 00 00 00 00 00
 24 40 [F2 00] [A0 00] [FF FF] [FF FF] [FF FF] [FF FF]  2A 00 00  00 00 00
@@ -1720,8 +1841,8 @@ Pa: Funktionsblockparameter
    MSB --+--+--+--*++++ LSB
        b7 b6 b5 b4 0000
 
-    b7: Remanenz; 1 = aktiv, 0 = nein; * REM (Std.)
-    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Std.)
+    b7: Remanenz; 1 = aktiv, 0 = nein; * REM (Standard)
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Standard)
 
 No1: Nockenparameter 1
 No2: Nockenparameter 2
@@ -1732,8 +1853,8 @@ No3: Nockenparameter 3
         OnL OnH
           \ /
           / \
-        OnH,OnL = TW
-        word t = TW & 0x07FF; // Zeitwert in Minuten
+        OnH,OnL = T
+        word t = T & 0x07FF; // Zeitwert in Minuten
         h = t / 60;
         m = t % 60;
   
@@ -1745,8 +1866,8 @@ No3: Nockenparameter 3
         OffL OffH
            \ /
            / \
-        OffH,OffL = TW
-        word t = TW & 0x07FF; // Zeitwert in Minuten
+        OffH,OffL = T
+        word t = T & 0x07FF; // Zeitwert in Minuten
         h = t / 60;
         m = t % 60;
   
@@ -1754,7 +1875,7 @@ No3: Nockenparameter 3
         A0 = 1010 0000 = 160 (Dec) = 60 * 2 + 40 = 160  // Off = 02:40h
 
 Dx: Wochentage
-    Dx = 00 (Std.)
+    Dx = 00 (Standard)
     Dx = täglich (D=MTWTFSS) = 7F
 
    MSB --+--+--+--*--+--+--+-- LSB
@@ -1808,9 +1929,9 @@ No2: D=MTW ----, On=05:10, Off=--:--
 ## <a name="SF25"></a>Selbsthalterelais
 Mit der Funktion _Selbsthalterelais_ wird der Ausgang _Q_ abhängig vom Signalzustand an den Eingängen _S_ und _R_ gesetzt oder zurückrücksetzt. Wenn der Signalzustand am Eingang _S_  = `1` und am Eingang _R_ = `0` ist, wird der Ausgang _Q_ auf `1` gesetzt. Wenn der Signalzustand am Eingang _S_ = `0` und am Eingang _R_ = `1` ist, wird der Ausgang _Q_ auf `0` zurückgesetzt. Der Eingang _R_ dominiert den Eingang _S_. Bei einem Signalzustand `1` an beiden Eingängen _S_ und _R_ wird der Signalzustand des Ausganges _Q_ auf `0` gesetzt. 
 
-RAM/REM: 8/1
+RAM/Rem/Online: 8/1/?
 
-Darstellungsformat:
+### Darstellungsformat im Speicher
 ```
 25 00 0A 80 FF FF 00 00
 25 00 [0A 80] [FF FF] 00 00
@@ -1824,7 +1945,7 @@ Pa: Funktionsblockparameter
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
-    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Std.)
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Standard)
 
 S: Eingang S (Co oder GF/SF)
 R: Eingang R (Co oder GF/SF)
@@ -1832,9 +1953,9 @@ R: Eingang R (Co oder GF/SF)
 
 ## <a name="SF27"></a>Speichernde Einschaltverzögerung
 
-RAM/REM: 12/3
+RAM/Rem/Online: 12/3/?
 
-Darstellungsformat:
+### Darstellungsformat im Speicher
 ```
 27 80 02 00 FF FF 36 81 00 00 00 00
 27 80 [02 00] [FF FF] [36 81] 00 00 00 00
@@ -1848,7 +1969,7 @@ Pa: Funktionsblockparameter
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
-    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Std.)
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Standard)
 
 Trg: Eingang Trg (Co oder GF/SF)
 R: Eingang R (Co oder GF/SF)
@@ -1862,9 +1983,13 @@ Beispiel:
 Remanenz aktiv, Parameterschutz aktiv, Trg = I3, R = -, 05:10 (h:m)
 
 ## <a name="SF2B"></a>Vor-/Rückwärtszähler
-Der Zähler erfasst binäre Impulse am Eingang _Cnt_ und zählt den internen Zähler _Z_ vom Datentyp _ZD_ hoch oder runter. Über den Eingang _Dir_ (`0`:Z=Z+1, `1`:Z=Z-1) wird zwischen Vorwärts- und Rückwärtszählen umgeschaltet. Der interne Zähler _Z_ kann durch den Rücksetzeingang _R_ auf den Wert `0` zurückgesetzt werden. Über den Parameter _On_ oder _Off_ wird die Schaltschwelle für den Ausgang _Q_ definiert. Sofern der Zähler _Z_ die obere Schaltschwelle (_Z_ > _On_) erreicht bzw. überschreitet wird der Ausgang _Q_ auf `1` und bei erreichen bzw. unterschreiten der unteren Schaltschwelle (_Z_ < _Off_) wird _Q_ auf `0` gesetzt. Der Wertebereich für _On_, _Off_ und _Z_ ist von 0 bis 999999.
+Der Zähler erfasst binäre Impulse am Eingang _Cnt_ und zählt den internen Zähler _Cv_ hoch oder runter. Über den Eingang _Dir_ (`0`:Cv=Cv+1, `1`:Cv=Cv-1) wird zwischen Vorwärts- und Rückwärtszählen umgeschaltet. Der interne Zähler _Cv_ kann durch den Rücksetzeingang _R_ auf den Wert `0` zurückgesetzt werden. Über den Parameter _On_ oder _Off_ wird die Schaltschwelle für den Ausgang _Q_ definiert. Sofern der Zähler _Cv_ die obere Schaltschwelle (_Cv_ > _On_) erreicht bzw. überschreitet wird der Ausgang _Q_ auf `1` und bei erreichen bzw. unterschreiten der unteren Schaltschwelle (_Cv_ < _Off_) wird _Q_ auf `0` gesetzt. Der Wertebereich für _On_, _Off_ und _Cv_ ist von 0 bis 999999.
 
-RAM/REM: 24/5
+Mit dem Rücksetzeingang _R_ kann der internen Zählwert _Cv_ auf 0 zurückgestellt werden. Solange _R_ gleich `1` ist, ist auch der Ausgang Q auf `0` zurückgesetzt. 
+
+Die Flags für Remanenz und Parameterschutz sowie die Beschaltung der Eingänge _R_, _Cnt_ und _Dir_ und der Parameter  _On_ und _Off_ werden im Mode _STOP_ abgefragt. Der Signalzustand am Ausgang _Q_ und der interne Zählerwert _Cv_ ist im Mode _RUN_ abfragbar. 
+
+RAM/Rem/Online: 24/5/10
 
 ### Darstellungsformat im Speicher
 ```
@@ -1883,7 +2008,7 @@ Pa: Funktionsblockparameter
         b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
-    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Std.)
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Standard)
 
 R: Eingang R (Co oder GF/SF)
 Cnt: Eingang Cnt (Co oder GF/SF)
@@ -1925,13 +2050,13 @@ Co [Fc   ] [Bc   ] [     ] [     ] [Ex]
 -----------------------------------
 03 00 00 00 02 00 00 00 00 00 AA
 [03 00 00 00] [02] 00 00 00 00 00 AA
-[ZD         ] [Pa] 00 00 00 00 00 Ed
+[Cv         ] [Pa] 00 00 00 00 00 Ed
 ```
 
 ```
 Co: Kontrollbefehl = 55
-Fc: Funktion = 1111, Antwort auf Funktion 1313
-BC: 16bit-Wert; Anzahl Datenbytes (inkl. Extrabytes)
+Fc: PG-Funktion = 1111
+Bc: 16bit-Wert; Anzahl Datenbytes (inkl. Extrabytes)
   B1 B2
    \ /
    / \
@@ -1939,11 +2064,11 @@ BC: 16bit-Wert; Anzahl Datenbytes (inkl. Extrabytes)
   00 4A = 74 (DEC)
 
 Ex: Anzahl Extrabytes
-ZD: 32bit-Wert; Aktueller Zählerstand
-  Z1 Z2 Z3 Z4
+Cv: 32bit-Wert; Aktueller Zählerstand
+  C1 C2 C3 C4
       \ /
       / \
-  Z4 Z3 Z2 Z1
+  C4 C3 C2 C1
   00 00 00 03 = 3 (DEC)
 
 Pa: Funktionsblockparameter
@@ -1964,7 +2089,7 @@ Auswertung:
 11 2A       // ??
 0A          // 10 Extra Bytes im Datenfeld
 01 00....00 // I,M,Q,C,S,AI,AM,AQ
-03 00 00 00 // akt. Zählerstand ZD = 3
+03 00 00 00 // akt. Zählerstand Cv = 3
 02          // Ausgang Q = 1; Eingang Cnt = 0
 00 00 00 00 // VD = 0; ??
 00          // VB = 0; ??
@@ -1972,16 +2097,18 @@ AA          // Befehlsende Trennzeichen
 ```
 
 ## <a name="SF2D"></a>Asynchroner Impulsgeber
-Mit der Funktion _Asynchroner Impulsgeber_ können wird der Ausgang _Q_ für eine vorprogrammierte Zeitdauer _TH_ gesetzt und für eine vorprogrammierte Zeitdauer _TL_ zurückgesetzt. Die Funktion startet, wenn das Signal am Eingang _En_ von `0` auf `1` (positive Flanke) wechselt. Mit dem Start läuft die programmierte Zeitdauer _TH_ bzw. _TL_ ab. Der Ausgang _Q_ wird für die Zeitdauer _TH_ gesetzt und für _TL_ zurückgesetzt. Über den Eingang _Inv_ lässt sich der Ausgang _Q_ des Impulsgeber invertieren. Die aktuelle Zeit _Ta_ vom Datentyp _TW_ benennt die Zeitdauer des letzten Flankenwechsels (Wechsel von `1` auf `0` bzw. von `0` auf `1`) von Ausgang _Q_. 
+Mit der Funktion _Asynchroner Impulsgeber_ können wird der Ausgang _Q_ für eine vorprogrammierte Zeitdauer _TH_ gesetzt und für eine vorprogrammierte Zeitdauer _TL_ zurückgesetzt. Die Funktion startet, wenn das Signal am Eingang _En_ von `0` auf `1` (positive Flanke) wechselt. Mit dem Start läuft die programmierte Zeitdauer _TH_ bzw. _TL_ ab. Der Ausgang _Q_ wird für die Zeitdauer _TH_ gesetzt und für _TL_ zurückgesetzt. Über den Eingang _Inv_ lässt sich der Ausgang _Q_ des Impulsgeber invertieren. Eingang _En_ und _Inv_, Ausgang _Q_ sowie die Parameter _TH und _TL_ können im Betriebszustand _STOP_ ausgelesen werden.
 
-RAM/REM: 12/3
+Die aktuelle Zeit _Ta_ benennt die Zeitdauer des letzten Flankenwechsels (Wechsel von `1` auf `0` bzw. von `0` auf `1`) von Ausgang _Q_. Ser Signalzustand am Ausgang _Q_, sowie die Variable _Ta_ könne im Betriebszustand _RUN_ ausgelsen werden. 
 
-Darstellungsformat:
+RAM/Rem/Online: 12/3/?
+
+### Darstellungsformat im Speicher
 ```
 2D 40 02 00 FF FF 02 80 02 80 00 00
 2D 40 [02 00] [FF FF] [02 80] [02 80] 00 00
-SF Pa [En   ] [INV  ] [TH   ] [TL   ] 00 00
-SF Pa [En   ] [INV  ] [Par          ] 00 00
+SF Pa [En   ] [Inv  ] [TH   ] [TL   ] 00 00
+SF Pa [En   ] [Inv  ] [Par          ] 00 00
 ```
 
 ```
@@ -1991,10 +2118,10 @@ Pa: Funktionsblockparameter
        b7 b6 b5 b4 0000
 
     b7: Remanenz; 1 = aktiv, 0 = nein
-    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Std.)
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Standard)
 
 En: Eingang En (Co oder GF/SF)
-INV: Eingang INV (Co oder GF/SF)
+Inv: Eingang Inv (Co oder GF/SF)
 Par:
   TH: Parameter TH (Impulsdauer), siehe Zeitverhalten
   TL: Parameter TL (Impulspausendauer), siehe Zeitverhalten
@@ -2002,9 +2129,9 @@ Par:
 
 ## <a name="SF39"></a>Analogwertüberwachung
 
-RAM/REM: 20/-
+RAM/Rem/Online: 20/-
 
-Darstellungsformat:
+### Darstellungsformat im Speicher
 ```
 39 40 FD 00 92 00 C8 00 66 00 00 00 00 00 00 00 00 00 00 00
 39 40 [FD 00] [92 00] [C8 00 66 00 00 00 00 00 00 00 00 00 00 00
@@ -2017,8 +2144,8 @@ Pa: Funktionsblockparameter
    MSB --+--+--+--*++++ LSB
        b7 b6 b5 b4 0000
 
-    b7: Remanenz; 1 = aktiv, 0 = nein; * REM (Std.)
-    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Std.)
+    b7: Remanenz; 1 = aktiv, 0 = nein; * REM (Standard)
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Standard)
 
 En: Eingang En (Co oder GF/SF)
 Ax: Eingang Ax (Co oder GF/SF)
@@ -2072,22 +2199,23 @@ AI7-> AM6-> AQ2 / AI2-> AM6-> AQ2
 
 0522
 ```
-00 | 74 / 00 | 00
+00 74 / 00 00
 ```
 
 055E
 ```
-53 | 53 / 4E | 4E
+53 53 / 4E 4E
 ```
 
 055F
 ```
-09 | 09 / 09 | 09
+09 09 / 09 09
 ```
 
 ```
 74 = 0111 0100
 53 = 0101 0011
+4E = 0100 1110
 09 = 0000 1001
 ```
 
@@ -2107,7 +2235,7 @@ Zufallsgenerator                  | TH, TL                                  | 2*
 Treppenlichtschalter              | Ta, T, T!, T!L                          | 4*VW
 Komfortschalter                   | Ta, T, TL, T!, T!L                      | 5*VW
 Wochenschaltuhr                   | 3* On/Off/Tag                           | 3*VW/VW/VB
-Vor-/Rückwärtszähler              | Cnt, On, Off                            | 3*VD
+Vor-/Rückwärtszähler              | Cv, On, Off                             | 3*VD
 Betriebsstundenzähler             | MI, MN, OT                              | 2*VW, VD
 Analogkomparator                  | On, Off, A, B, Ax, Ay, dA               | 7*VW
 Analoger Multiplexer              | V1, V2, V3, V4, AQ                      | 5*VW
@@ -2116,7 +2244,7 @@ PI-Regler                         | SP, Mq, KC, TI, Min, Max, A, B, PV, AQ  | 10
 >Tab: Erfassbare Daten
 
 ### Mögliche Anwendung
-Über den Blocknamen könnten bis zu 64 Parameter einem Variablenspeicher ähnlich __0BA7__ zugeordnet werden. Die obige Tabelle zeigt neben den erfassbaren Variablen und Block-Parametern auch den zugehörige Datentyp für eine mögliche Anwendung mit einem Variablenspeicher (VM Adressbereich 0 bis 850 bei Adresstyp VB). 
+Über den Blocknamen könnten bis zu 64 Parameter einem Variablenspeicher ähnlich __0BA7__ zugeordnet werden. Die obige Tabelle zeigt neben den erfassbaren Variablen und Block-Parametern auch den zugehörigen Datentyp für eine mögliche Anwendung mit einem Variablenspeicher (VM Adressbereich 0 bis 850 bei Adresstyp VB). 
 
 Im Folgenden die VM-Adressierung mit zugehörigem Datentyp nach __0BA7__:
 ```
@@ -2191,43 +2319,46 @@ Pure     | _LOGO!_ 230 RCo      | 6ED1052-2FB00-0BA5
 \*: zusätzlich mit Analogeingängen
 
 ## <a name="Abk"></a>Verwendete Abkürzungen
-- __0BA5__: _LOGO!_ Kleinsteuerung der 6.Generation (wird in diesem Handbuch beschrieben)
-- __0BA7__: _LOGO!_ Kleinsteuerung der 8.Generation
+- __0BA5__: _LOGO!_ Kleinsteuerung der 6. Generation (wird in diesem Handbuch beschrieben)
+- __0BA7__: _LOGO!_ Kleinsteuerung der 8. Generation
 - __A__: Verstärkung (Gain)
 - __ALU__ (_Arithmetic Logic Unit_): elektronisches Rechenwerk
 - __AND__: Und-Verknüpfung
-- __Ax__: Analogkomparator Eingang Ax
-- __Ay__: Analogkomparator Eingang Ay
-- __dA__: Differenzwert von Ax - Ay
+- __Ax__: Analogkomparator Eingang _Ax_
+- __Ay__: Analogkomparator Eingang _Ay_
+- __dA__: Differenzwert von _Ax_ - _Ay_
 - __AQ__: Analoger Ausgang
 - __B__: Nullpunktverschiebung (Offset)
-- __B001__: Block Nummer B1
+- __B001__: Block Nummer, B1
+- __Bc__ (_Byte count_): Anzahl Bytes
 - __BIN__: Binärwert
 - __Cnt__ (_Count_): Zählimpulse
 - __Co__ (_Connector_): Klemme
 - __CRC__ (Cyclic Redundancy Check): Prüfsummenberechnung
-- __DB__: Datenbaustein einer S7
+- __Cv__ (_Counter value_): Zählerwert
+- __DB__: Datenbaustein einer _S7_
 - __DEC__ (_Decimal_): Dezimalwert
 - __Dir__ (_Direction_): Festlegung der Richtung
+- __Ed__: Ende Trennzeichen `AA`
 - __En__ (_Enable_): aktiviert die Funktion eines Blocks.
 - __FB__: Funktionsbaustein einer S7
 - __FC__: Funktion einer S7
 - __Fre__ (_Frequency_): Auszuwertende Frequenzsignale
 - __GF__: Grundfunktionen
 - __HEX__: Hexadezimaler Wert
-- __Hi__ (_High_): Signalwert 1
+- __Hi__ (_High_): Signalwert `1`
 - __I__ (_Input_): Digitaler Eingang
 - __Inv__ (_Invert_): Ausgangssignal des Blocks wird invertiert
 - __KC__: Regler Verstärkung
-- __Lo__ (_Low_): Signalwert 0
+- __Lo__ (_Low_): Signalwert `0`
 - __LSB__ (_Least Significant Bit_): Bit mit dem niedrigsten Stellenwert
 - __M__: Merker
 - __MI__: Parametriertes Wartungsintervall
 - __MN__: Verbleibende Restzeit vom Wartungsintervall
-- __Mq__: Reglerwert von AQ bei manuellem Betrieb
+- __Mq__: Reglerwert von _AQ_ bei manuellem Betrieb
 - __MSB__ (_Most Significant Bit_): Bit mit dem höchsten Stellenwert
 - __No__ (_Nocken_): Parameter der Zeitschaltuhr
-- __OB__: Organisationsbaustein einer S7
+- __OB__: Organisationsbaustein einer _S7_
 - __Off__: Aus
 - __On__: Ein
 - __OR__: Oder-Verknüpfung
@@ -2244,8 +2375,8 @@ Pure     | _LOGO!_ 230 RCo      | 6ED1052-2FB00-0BA5
 - __Rem__ (_Remanenz_): Speicherbereich um Zustände oder Werte zu sichern
 - __S__ (_Set_): Eingang wird gesetzt
 - __SF__: Sonderfunktionen
-- __SFB__: Systemfunktionsbaustein einer S7
-- __SFC__: Systemfunktion einer S7
+- __SFB__: Systemfunktionsbaustein einer _S7_
+- __SFC__: Systemfunktion einer _S7_
 - __SP__: Regler Sollwertvorgabe
 - __T__ (_Time_): Zeit-Parameter
 - __Ta__ (_Time actual_): Aktueller Wert einer Zeit
