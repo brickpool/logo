@@ -4,6 +4,9 @@
 # Windows thumbnail cache files
 Thumbs.db
 
+# TinCad backup files
+.dsn.autosave
+
 # Ignore directory with old versions
 /00_old/
 /extras/docs/00_old/
