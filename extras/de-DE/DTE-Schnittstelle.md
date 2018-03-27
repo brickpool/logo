@@ -1,11 +1,11 @@
-# DataLogger
+# DTE-Interface
 
-Ausgabe Ad
+Ausgabe Af
 
 März 2018
 
 ## Hardware
-Auf Basis eines Arduino UNO und einem [Data Logger Shield](https://learn.adafruit.com/adafruit-data-logger-shield/overview) von Adafruit (alte Version) wird ein Datenlogger-Modul für das _LOGO!_ der Baureihe __0BA6__ (__0BA4__ und __0BA5__ sollten ebenfalls unterstützt werden, ist jedoch nicht getestet) hergestellt.
+Auf Basis eines Arduino UNO mit RS-232 Schnittstellte wird eine Verbindung zu einem _LOGO!_ der Baureihe __0BA5__ (__0BA4__ und __0BA6__ sollten ebenfalls unterstützt werden) hergestellt.
 
 Damit das PG-Interface an das Arduino mit Shield angeschlossen werden kann, wird eine RS-232 Schnittstelle (offiziell [TIA/EIA-232-F](https://de.wikipedia.org/wiki/RS-232)) benötigt. Der Arduino UNO fungiert als Terminal (_DTE_) und die Kleinsteuerung _LOGO!_ als Übertragungseinrichtung (_DCE_).
 
@@ -19,9 +19,19 @@ Fazit: Sofern nicht zum Lötkolben gegriffen werden soll, scheint es nur wenig A
 
 Ich habe mich jedoch entschlossen die RS232-Schnittstelle mit notwendigen Pegelwandler auf einem [Prototype-Shield](#Schaltung) unterzubringen. Nähres im folgendem Abschnitt.
 
-## Schaltung
-Der Schaltungsentwurf von „Werner Kriegmeier“ ([Elektor 7-8/1999](https://www.elektormagazine.de/magazine/elektor-199907/31905)) bietet die notwendigen Informationen zur Beschaltung des Siemens PG-Kabels (DCE). Basierend darauf wird die passende _DTE_ Schaltung im Prototypeing-Bereich ein MAX232 Level-Shifter ([Conrad #152281](http://www.google.de/search?q=Conrad+152281)) inkl. vier 1µF Kondensatoren ([Conrad #453382](http://www.google.de/search?q=Conrad+453382)) für die Datenleitungen RX, TX und die Versorgung der Signalleitung DTR eingebracht.
+![alt text][DTEshield]
+>Abb: VeeCad Layout
 
-Damit die Möglichkeit zum Monitoring am PC erhalten bleibt, kommt nicht die Standard-Schnittstelle ([HardwareSerial](https://www.arduino.cc/reference/en/language/functions/communication/serial/)) über Pin 0 und 1 vom Arduino UNO zur Anwendung, sondern es werden unter Nutzung der [CustomSoftwareSerial](https://github.com/ledongthuc/CustomSoftwareSerial) Bibliothek die Pins 2 für RX (TTL Pin 9 von IC1) und Pin 3 für TX (TTL Pin 10 von IC1) verwendet. Zur Versorgung der Elektronik im PG-Kabel wird DTR an 5V gelegt. 
+## Schaltung
+Der Schaltungsentwurf von „Werner Kriegmeier“ ([Elektor 7-8/1999](https://www.elektormagazine.de/magazine/elektor-199907/31905)) bietet die notwendigen Informationen zur Beschaltung des Siemens PG-Kabels (DCE). Basierend darauf wird die passende _DTE_ Schaltung im Prototypeing-Bereich ein MAX232 Level-Shifter ([Conrad #152281](http://www.google.de/search?q=Conrad+152281)) inkl. fünf 1µF Kondensatoren ([Conrad #453382](http://www.google.de/search?q=Conrad+453382)) für die Datenleitungen RX, TX und die Versorgung der Signalleitung DTR eingebracht.
+
+Damit die Möglichkeit zum Monitoring am PC erhalten bleibt, kommt nicht die Standard-Schnittstelle ([HardwareSerial](https://www.arduino.cc/reference/en/language/functions/communication/serial/)) über Pin 0 und 1 vom Arduino UNO zur Anwendung, sondern es werden unter Nutzung der [CustomSoftwareSerial](https://github.com/ledongthuc/CustomSoftwareSerial) Bibliothek die Pins 2 für RX (TTL Pin 9 von IC1) und Pin 3 für TX (TTL Pin 10 von IC1) verwendet. Zur Versorgung der Elektronik im PG-Kabel wird DTR fest verdrahtet (Pin 11 von IC1 an Masse, Pin 14 von IC1 an Pin 4 vom DB9-Stecker). 
 
 Der 9polige D-Sub-Stecker ([Conrad #716690](http://www.google.de/search?q=Conrad+716690)) wird über einen Pfostenstecker ([Conrad #741648](http://www.google.de/search?q=Conrad+741648)) mit dem Shield verbunden. 
+
+![alt text][DTEcircuit]
+Abb: TinyCad Schaltung
+
+[DTEshield]: https://github.com/brickpool/logo/blob/master/extras/images/DTE-Interface_Shield_Layout.png "DTE Interface Shield"
+
+[DTEcircuit]: https://github.com/brickpool/logo/blob/master/extras/images/DTE-Interface_Shield_Schematic.png "DTE Interface Circuit"
