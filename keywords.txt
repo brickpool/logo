@@ -29,6 +29,7 @@ PlcStop	KEYWORD2
 GetPlcStatus	KEYWORD2
 GetPlcDateTime	KEYWORD2
 SetPlcDateTime	KEYWORD2
+GetOrderCode  KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

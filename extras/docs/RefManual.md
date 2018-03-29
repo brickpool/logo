@@ -1,6 +1,6 @@
 # LOGO! PG Library Reference Manual
 
-Rev. Af
+Rev. Ag
 
 March 2018
 
@@ -189,14 +189,15 @@ Gets CPU order code and version info.
 The `Info` argument is an _C_ structure defined in the library:
 ```
 typedef struct {
-  char Code[18];  // Order Code
+  char Code[19];  // Order Code
   byte V1;        // Version V1.V2.V3
   byte V2;
   byte V3;
 } TOrderCode;
 ```
 
-The Order code is a _C_ string such as `6ED1052-xxx00-0BA6`.
+The Order code is a null terminated _C_ string such as `6ED1052-xxx00-0BA6`.
+Please note, for the _LOGO!_ __0BA4__ device and in Operation mode _STOP_ , the firmware can not be read out (V1 to V3 have a value of `0`).
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
@@ -273,8 +274,8 @@ Field Values:
 
 Protection  | Values | Description
 --- | --- | --- 
-`sch_schal` | 1,2,3 | Protection level set with the mode selector (1:STOP, 2:RUN,no password, 3:RUN,password set)
-`sch_par` | 0,1 | Password level (0: no password)
+`sch_schal` | 1,2,3 | Protection level set with the mode selector (1:STOP, 2:RUN, 3:RUN and password set)
+`sch_par` | 0,1 | Password level (0: no password or cannot be determined)
 `sch_rel` | 0,1,2,3 | Valid protection level of the CPU
 `bart_sch` | 1,3 | Mode selector setting (1:RUN, 3:STOP, 0:undefined or cannot be determined)
 `anl_sch` | 0 | Startup switch setting (0:undefined, does not exist or cannot be determined)

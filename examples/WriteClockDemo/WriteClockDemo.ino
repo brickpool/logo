@@ -5,7 +5,7 @@
 const byte rxPin = 2;
 const byte txPin = 3;
 
-const unsigned long START_TIME = 1357041600; // Jan 1 2013
+const unsigned long MY_TIME = 1522238400; // Mar 28 2018
 
 // set up the SoftwareSerial object
 CustomSoftwareSerial LogoSerial(rxPin, txPin);
@@ -29,6 +29,10 @@ void setup() {
   Serial.println("Cable connected");  
   if (LogoSerial.isListening())
     Serial.println("Softserial is listening !");
+
+  // set the system time to the give time MY_TIME
+  if (timeStatus() != timeSet)
+    setTime(MY_TIME);
 }
 
 void loop() 
@@ -50,15 +54,14 @@ void loop()
     {
       Serial.println("STOPPING THE PROG");
       LOGO.PlcStop();
-      Serial.print("DEFAULT: ");
-      Result = LOGO.SetPlcDateTime(START_TIME);
-      breakTime(START_TIME, DateTime);
+      if (LogoClockStatus() != timeSet)
+      {
+        Serial.print("Set Time: ");
+        Result = LOGO.SetPlcDateTime(now());
+      }
     }
-    else
-    {
-      Serial.print("LOGO Clock: ");
-      Result = LOGO.GetPlcDateTime(&DateTime);
-    }
+    Serial.print("LOGO Clock: ");
+    Result = LOGO.GetPlcDateTime(&DateTime);
     if (Result == 0)
     {
       DisplayClock(DateTime);
@@ -129,3 +132,19 @@ void CheckError(int ErrNo)
     LOGO.Disconnect(); 
   }
 }
+
+timeStatus_t LogoClockStatus()
+{
+  // Su 00:00 01-01-2003
+  const unsigned long START_TIME = 1041379200;
+  const uint8_t START_WDAY = 1;
+  const int op_mode;
+ 
+  TimeElements tm;
+  if (LOGO.GetPlcDateTime(&tm) == 0) {
+    if (!(makeTime(tm) == START_TIME && tm.Wday == START_WDAY))
+      return timeSet;
+  }
+  return timeNotSet;
+}
+

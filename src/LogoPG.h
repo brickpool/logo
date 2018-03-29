@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.5.0-beta.3
+ * LogoPG library, Version 0.5.0-rc1
  * 
  * Portion copyright (c) 2018 by Jan Schneider
  * 
@@ -93,8 +93,8 @@ const byte LogoCpuStatusUnknown = 0x00;
 const byte LogoCpuStatusRun     = 0x08;
 const byte LogoCpuStatusStop    = 0x04;
 
-#define Size_OC 18
-#define Size_WR 6
+#define Size_OC 19  // Order Code
+#define Size_RD 6
 
 typedef unsigned long dword;      // 32 bit unsigned integer
 
@@ -102,8 +102,8 @@ typedef byte   *pbyte;
 typedef int    *pint;
 
 typedef struct {
-  byte H[Size_WR];                // PDU Header
-  byte DATA[MaxPduSize-Size_WR];  // PDU Data
+  byte H[Size_RD];                // PDU Header
+  byte DATA[MaxPduSize-Size_RD];  // PDU Data
   byte T[1];                      // PDU Trailer
 } TPDU;
 extern TPDU PDU;
@@ -117,7 +117,9 @@ typedef struct {
 } TOrderCode;
 
 typedef struct {
+  byte sch_schal;
   byte sch_par;
+  byte sch_rel;
   byte bart_sch;
   byte anl_sch;
 } TProtection;
@@ -190,8 +192,8 @@ public:
   int GetOrderCode(TOrderCode *Info);
   // Security functions
 /*
-  SetSessionPassword
-  ClearSessionPassword
+  int SetSessionPassword(char *password);
+  int ClearSessionPassword();
 */
   int GetProtection(TProtection *Protection);
   // Miscellaneous functions
@@ -211,6 +213,7 @@ private:
   // so LogoClient can use HardwareSerial or CustomSoftwareSerial
   Stream *StreamClient;
 
+  byte IdentNo;           // Ident Number
   int PDULength;          // PDU length negotiated (0 if not negotiated)
   int PDURequested;       // PDU length requested by the client
   int AddrLength;         // Address length negotiated (in bytes for function sizeof)
@@ -235,6 +238,10 @@ private:
 * position      description
 * 0BA4 0BA5 0BA6
 ***********************************************************************
+     6   6   6  block 1-128
+    22  22      block 129-130
+            22  block 129-200
+
     23  23  31  input 1-8
     24  24  32  input 9-16
     25  25  33  input 17-24
@@ -244,10 +251,10 @@ private:
     26  26  35  output 1-8
     27  27  36  output 9-16
                 
-    28  28  37  flag 1-8
-    29  29  38  flag 9-16
-    30  30  39  flag 17-24
-            40  flag 25-27
+    28  28  37  merker 1-8
+    29  29  38  merker 9-16
+    30  30  39  merker 17-24
+            40  merker 25-27
                 
     31  31  41  shift register 1-8
                 
@@ -275,22 +282,23 @@ private:
     51  51  61  analog output 2 low
     52  52  62  analog output 2 high
                 
-    53  53  63  analog flag 1 low
-    54  54  64  analog flag 1 high
-    55  55  65  analog flag 2 low
-    56  56  66  analog flag 2 high
-    57  57  67  analog flag 3 low
-    58  58  68  analog flag 3 high
-    59  59  69  analog flag 4 low
-    60  60  70  analog flag 4 high
-    61  61  71  analog flag 5 low
-    62  62  72  analog flag 5 high
-    63  63  73  analog flag 6 low
-    64  64  74  analog flag 6 high
+    53  53  63  analog merker 1 low
+    54  54  64  analog merker 1 high
+    55  55  65  analog merker 2 low
+    56  56  66  analog merker 2 high
+    57  57  67  analog merker 3 low
+    58  58  68  analog merker 3 high
+    59  59  69  analog merker 4 low
+    60  60  70  analog merker 4 high
+    61  61  71  analog merker 5 low
+    62  62  72  analog merker 5 high
+    63  63  73  analog merker 6 low
+    64  64  74  analog merker 6 high
 ***********************************************************************
 */
 
 // LOGO 0BA4 and 0BA5 index in PDU.DATA
+#define B_0BA4     0x06
 #define I_0BA4     0x16
 #define Q_0BA4     0x19
 #define M_0BA4     0x1B
@@ -301,6 +309,7 @@ private:
 #define AM_0BA4    0x34
 
 // LOGO 0BA6 index in PDU.DATA
+#define B_0BA6     0x06
 #define I_0BA6     0x1E
 #define F_0BA6     0x21
 #define Q_0BA6     0x22
@@ -313,7 +322,7 @@ private:
 
 /*
  * The LOGO > 0BA6 has reserved fixed memory addresses for inputs,
- * outputs, flags in the Variable Memory above the 850th byte.
+ * outputs, merkers in the Variable Memory above the 850th byte.
  * These depending on the model (0BA7 or 0BA8). Our library should
  * represent the Variable Memory as 0BA7 address scheme.
  *
@@ -372,48 +381,48 @@ private:
         1086     analog output 8 high
         1087     analog output 8 low
    
-   948  1104     flag 1-8
-   949  1105     flag 9-16
-   950  1106     flag 17-24
-   951           flag 25-27
-        1107     flag 25-32
-        1108     flag 33-40
-        1109     flag 41-48
-        1110     flag 49-56
-        1111     flag 47-64
+   948  1104     merker 1-8
+   949  1105     merker 9-16
+   950  1106     merker 17-24
+   951           merker 25-27
+        1107     merker 25-32
+        1108     merker 33-40
+        1109     merker 41-48
+        1110     merker 49-56
+        1111     merker 47-64
    
-   952  1118     analog flag 1 high
-   953  1119     analog flag 1 low
-   954  1120     analog flag 2 high
-   955  1121     analog flag 2 low
-   956  1122     analog flag 3 high
-   957  1123     analog flag 3 low
-   958  1124     analog flag 4 high
-   959  1125     analog flag 4 low
-   960  1126     analog flag 5 high
-   961  1127     analog flag 5 low
-   962  1128     analog flag 6 high
-   963  1129     analog flag 6 low
-   964  1130     analog flag 7 high
-   965  1131     analog flag 7 low
-   966  1132     analog flag 8 high
-   967  1133     analog flag 8 low
-   968  1134     analog flag 9 high
-   969  1135     analog flag 9 low
-   970  1136     analog flag 10 high
-   971  1137     analog flag 10 low
-   972  1138     analog flag 11 high
-   973  1139     analog flag 11 low
-   974  1140     analog flag 12 high
-   975  1141     analog flag 12 low
-   976  1142     analog flag 13 high
-   977  1143     analog flag 13 low
-   978  1144     analog flag 14 high
-   979  1145     analog flag 14 low
-   980  1146     analog flag 15 high
-   981  1147     analog flag 15 low
-   982  1148     analog flag 16 high
-   983  1149     analog flag 16 low
+   952  1118     analog merker 1 high
+   953  1119     analog merker 1 low
+   954  1120     analog merker 2 high
+   955  1121     analog merker 2 low
+   956  1122     analog merker 3 high
+   957  1123     analog merker 3 low
+   958  1124     analog merker 4 high
+   959  1125     analog merker 4 low
+   960  1126     analog merker 5 high
+   961  1127     analog merker 5 low
+   962  1128     analog merker 6 high
+   963  1129     analog merker 6 low
+   964  1130     analog merker 7 high
+   965  1131     analog merker 7 low
+   966  1132     analog merker 8 high
+   967  1133     analog merker 8 low
+   968  1134     analog merker 9 high
+   969  1135     analog merker 9 low
+   970  1136     analog merker 10 high
+   971  1137     analog merker 10 low
+   972  1138     analog merker 11 high
+   973  1139     analog merker 11 low
+   974  1140     analog merker 12 high
+   975  1141     analog merker 12 low
+   976  1142     analog merker 13 high
+   977  1143     analog merker 13 low
+   978  1144     analog merker 14 high
+   979  1145     analog merker 14 low
+   980  1146     analog merker 15 high
+   981  1147     analog merker 15 low
+   982  1148     analog merker 16 high
+   983  1149     analog merker 16 low
  ***********************************************************************
 */
 

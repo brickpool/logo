@@ -6,15 +6,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## 0.5.0-beta.3 - 2018-03-08
+## [0.5.0] - 2018-03-29
 ### Added
 - CHANGELOG.md added to the project folder
 - Library Reference Manual (RefManual.md) added to the project folder
 - DTE Interface description (DTE-Interface.md) added to the project folder
-- LogoClient::GetPlcDateTime and WritePlcDateTime
-- LogoClient::ReadByte, WriteByte and CpuError
-- Example ReadClockDemo.ino added to the project folder
-- Example WriteClockDemo.ino added to the project folder
+- Date/Time functions: LogoClient::GetPlcDateTime and WritePlcDateTime
+- System info function: LogoClient::GetOrderCode
+- Private functions: LogoClient::GetOrderCode, WriteByte and CpuError
+- Security function: LogoClient::GetProtection
+- Example ReadClockDemo.ino and WriteClockDemo.ino added to the project folder
+- Example PlcInfoDemo.ino added to the project folder
 
 ### Changed
 - Customization of CPU Exception Codes for LogoClient::CpuError
@@ -118,7 +120,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - LogoPG.cpp added to the project folder
 - keywords.txt added to the project folder
 
-## 0.1.0 - 2018-02-07
+## 0.1.0-pre-alpha - 2018-02-07
 ### Added
 - Initial version created
 - LICENCE.md added to the project

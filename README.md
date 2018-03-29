@@ -8,7 +8,7 @@ Information about the API is described in the document [LOGO! PG Library Referen
 All information about the protocol is described in a separate document: [LOGO! PG Protocol Reference Guide](/extras/docs/PG-Protocol.md)
 
 ## Releases
-The current library version is [0.4.3](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate, with patchlevel 3.
+The current library version is [0.5.0](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate, with patchlevel 0.
 
 ## Examples
 This directory contains the library and some examples that illustrate how the library can be used. The examples were tested with an Arduino UNO. Other hardware has not been tried.
@@ -18,6 +18,7 @@ This directory contains the library and some examples that illustrate how the li
 - [CyclicReading.ino](/examples/CyclicReading/CyclicReading.ino) Cyclic reading of inputs, outputs and flags. The example uses the same function as the LOGO!Soft Routine _Online Test_.
 - [ReadClockDemo.ino](/examples/ReadClockDemo/ReadClockDemo.ino) The example reads the date and time from the _LOGO!_ controller.
 - [WriteClockDemo.ino](/examples/WriteClockDemo/WriteClockDemo.ino) The example writes a date and time to the _LOGO!_ controller.
+- [PlcInfoDemo.ino](/examples/PlcInfoDemo/PlcInfoDemo.ino) The example reads the Ident Number, Firmware version and Protection level from the PLC.
 
 ## Dependencies
 - _LOGO!_ controller version __0BA4__, __0BA5__ or __0BA6__, e.g. part number `6ED1052-1MD00-0BA6`

@@ -1,7 +1,7 @@
 # Undocumented LOGO! __0BA5__
 ## Aufbau, Funktionsweise und Programmierung
 
-Ausgabe Am
+Ausgabe An
 
 März 2018
 
@@ -18,6 +18,7 @@ _Siemens_ und _LOGO!_ sind eingetragene Marken der Siemens AG.
 Wertvolle Informationen finden Sie in den folgenden Veröffentlichungen:
   * [LOGO! Handbuch Ausgabe 05/2006](http://www.google.de/search?q=A5E00380834-02), Bestellnummer 6ED1050-1AA00-0AE6
   * [SPS Grundlagen](http://www.sps-lehrgang.de/ "SPS Lehrgang")
+  * [Translation Method of Ladder Diagram on PLC with Application to an Manufacturing Process](http://www.google.de/search?q=A+Translation+Method+of+Ladder+Diagram+on+PLC+with+Application+to+an+Manufacturing+Process) von Hyung Seok Kim und weiteren Autoren
 
 Einzelheiten zum _LOGO!_-Adresslayout finden Sie in den folgenden Veröffentlichungen:
   * neiseng @ [https://www.amobbs.com](https://www.amobbs.com/thread-3705429-1-1.html "Siemens LOGO! Pictures") dekodierte den Datenadressraum einer __0BA5__ (@post 42)
@@ -77,60 +78,97 @@ Das _LOGO!_ Basismodul ist das Herzstück. In dem Basismodul wird das Schaltprog
 
 Innerhalb des Basismoduls sind verschiedene Systembereiche untergebracht, damit die verschieden Vorgänge ablaufen können. Im folgenden Bild ist der Aufbau schematisch dargestellt.
 ```
-.------------------------------------.
-| PE      O  O  O  O  O  O  O  O     |
-+------------------------------------+
-|                 PG-Schnittstelle ###
-| .------------.----------.--------. |
-| | Steuereinh.| Speicher | Zähler | |
-| '-----o------'-----o----'----o---' |
-|  =====|=====Busverbindung====|===###
-| .-----o------.-----o----.----o---. |
-| | Rechenwerk | Merker   | Zeiten | |
-| '------------'----------'--------' |
-+------------------------------------+
-| PA      O  O  O  O  O  O  O  O     |
-'------------------------------------'
+            .------------------------.
+            | Eingänge               |
+            '------------------------'
+    ..........|..|..|..|..|..|..|..|..........
+              v  v  v  v  v  v  v  v         
+.---+------------------------------------.   
+|   | PE      O  O  O  O  O  O  O  O     |    :
+|   +------------------------------------+    :
+|   |       .-------> PG-Schnittstelle ### <--:--> Programmiergerät
+|   |       v                            |    :
+|   | .------------.----------.--------. |    :
+|   | | Steuereinh.| Speicher | Zähler | |    :
+| P | '-----o------'-----o----'----o---' |    :
+| S |  =====|=====Busverbindung====|===### <--:--> Erweiterungsmodule
+| U | .-----o------.-----o----.----o---. |    :
+|   | | Rechenwerk | Merker   | Zeiten | |    :
+|   | '------------'----------'--------' |
+|   |                                    |
+|   +------------------------------------+
+|   | PA      O  O  O  O  O  O  O  O     |
+'---+------------------------------------'
+    ..........|..|..|..|..|..|..|..|..........
+              v  v  v  v  v  v  v  v
+            .------------------------.
+            | Ausgänge               |
+            '------------------------'
+
 ```
 >Abbild: Schema Systembereiche
 
 Zu den Systembereichen eines Basismoduls gehören:
--	Steuereinheit
--	Rechenwerk
--	Speicher
--	Prozessabbild der Eingänge (_PE_)
--	Prozessabbild der Ausgänge (_PA_)
--	Zeiten
--	Zähler
--	Merker
+- Steuereinheit
+- Rechenwerk
+- Speicher
+- Prozessabbild der Eingänge (_PE_)
+- Prozessabbild der Ausgänge (_PA_)
+- Zeiten
+- Zähler
+- Merker
+
+Zur Peripherie gehören
+- Stromversorgung (_PSU_)
+- PG-Schnittstelle und Progammiergerät (PC mit LOGO!Soft Comfort)
+- Eingänge (Eingangsklemmen)
+- Ausgänge (Relais: LOGO! R/RC/RCo, Transitoren:_LOGO!_ 24/24o)
+- Erweiterungsmodule (DM8, DM16, AM2, CM)
+
 
 ### Steuereinheit
 Die Steuereinheit wird verwendet, um den gesamten Ablauf innerhalb des Basismoduls zu koordinieren. Dazu gehören u.a. die Koordination der internen Vorgänge und der Datentransport.
 
-Die Befehle vom Schaltprogramm werden aus dem Speicher ausgelesen und Schrittweise ausgeführt. Die Verarbeitung erfolgt in mehreren Stufen. Zuerst erfolgt eine Initialisierung des Programmzyklus. Als nächstes werden die Zustände der Eingänge ausgelesen und in das Prozessabbild der Eingänge _PE_ geschrieben, um anschließend die Anweisungsbefehle für die Funktionen auszuführen, wobei weitere Werte wie Zeiten, Zählern und Merker berücksichtigt werden. Das Ergebnis der Programmbearbeitung wird schließlich in das Prozessabbild der Ausgänge _PA_ geschrieben, um die Ausgänge neu zu setzen. Als letzter Schritt wird der interne Status aktualisiert und der Zyklus beginnt erneut. 
+Die Übersetzung des Schaltprogramms in ausführbare Anweisungen erfolgt sobald _LOGO!_ in den Betriebszustand _RUN_ wechselt. Die Verknüpfungen vom Schaltprogramm werden aus dem Ladespeicher gelesen, in einem Zwischencode (Steuerungsprogramm) übersetzt und in den Arbeitsspeicher gehalten (1).
+
+Kennzeichen einer jeden SPS ist die über die Firmware gesteuerte zyklische Programmabarbeitung, so auch bei der LOGO! Kleinsteuerung. Im Betriebszustand _RUN_ führt die LOGO! die Anweisungem vom Schaltprogramm zyklisch aus. Die Steuereinheit ruft bei jedem Zyklus das Steuerungsprogramm auf führt die Anweisungsbefehle Schrittweise aus. Typische Zykluszeiten liegen im Bereich von etwa 100 ms (Zykluszeit je Funktion < 0,1ms).
+
+Ein Programzyklus wird in drei Schritten ausgeführt:
+1. Zuerst erfolgt eine Initialisierung des Programmzyklus. Hierbei werden Zeiten gestartet, die Ausgänge anhand des Prozessabbildes der Ausgänge _PA_ gesetzt, sowie die Zustände der Eingänge ausgelesen und in das Prozessabbild der Eingänge _PE_ übernommen.
+2. Anschließend werden die Anweisungsbefehle vom Steuerungsprogramm sequentiell abgearbeitet, wobei weitere Werte wie Zeiten, Zählern und Merker berücksichtigt werden.
+3. Als letzter Schritt wird die PG-Schnittstelle für Senden/Empfangen von Daten bedient, der interne Status aktualisiert und der Zyklus beginnt erneut. 
 
 ```
-.----->-----.
-|           V
-|  .--------o------------------.
-|  | Initialisierung           |
-|  o---------------------------o
-|  | Eingänge auf PE abbilden  |
-|  o---------------------------o
-|  | Programmausführung unter  |
-^  | Nutzung PE, T, Cnt, Flags |
-|  | etc. und schreiben in PA  |
-|  o---------------------------o
-|  | PA auf Ausgänge abbilden  |
-|  o---------------------------o
-|  | Status aktualisieren      |
-|  '--------o------------------'
-|           V
-'-----<-----'
+.------->--------.
+|                V
+|  .-------------o-------------.  ...
+|  | Zeiten starten            |   :
+|  |...........................|   :
+|  | PA auf Ausgänge abbilden  |   Initialisierung
+|  |...........................|   :
+|  | Eingänge auf PE abbilden  |   :
+|  o---------------------------o  ...
+|  | Programmausführung unter  |   :
+|  | von Nutzung PE, PA sowie  |   :
+|  | Zeiten, Zähler und Merker |   :
+^  | 1. Anweisung              |   Ausführung,
+|  | 2. Anweisung              |   Steuerungsprogramm
+|  | ...                       |   :
+|  | n. Anweisung              |   :
+|  o---------------------------o  ...
+|  | Senden/Empfangen von      |   :
+|  | Daten der                 |   :
+|  | PG-Schnittstelle          |   Daten austauschen,
+|  |...........................|   Status aktualisieren
+|  | Status aktualisieren      |   :
+|  '-------------o-------------'  ...
+|                V
+'-------<--------'
 ```
->Abb: Schematische Darstellung eines Programmzyklus
+>Abb: Schematische Darstellung Prozessabbild
 
 Die Steuereinheit ist über die Busverbindung mit den anderen Systembereichen wie Rechenwerk, Zeiten, Zähler usw. verbunden. Unmittelbar nach Anlegen der Netzspannung werden die remanenten Zähler, Zeiten und Merker sowie die Prozessabbilder der Eingänge und Ausgänge gesetzt.
+
 
 ### Rechenwerk
 Der Begriff wird häufig synonym mit Arithmetisch-Logischen Einheit (_ALU_) gebraucht, genau genommen stellt eine _ALU_ jedoch lediglich die zentrale Komponente eines Rechenwerks dar, das zusätzlich aus einer Reihe von Hilfs- und Statusregistern besteht. Die _ALU_ selbst enthält hingegen keine Registerzellen und stellt somit ein reines Schaltnetz dar.
@@ -144,7 +182,7 @@ Beim Ausführen von Operationen verknüpft die _ALU_ zwei Binärwerte (Akku1 und
           ^                               |
           |                               |
           v                               v
-|--- Akku1 16bit ---|           |--- Akku1 16bit ---|
+|--- Akku1 16bit ---|           |--- Akku2 16bit ---|
 |++++*++++|++++*++++|-.       .-|++++*++++|++++*++++|
           ^           |       |
           |           v       v       .-------------.
@@ -188,7 +226,7 @@ Die Zustände der Eingänge und Ausgänge werden in den Speicherbereichen _PE_ u
 ### Programmierschnittstelle (PG)
 Die _LOGO!_ Kleinsteuerung besitzt eine PG-Schnittstelle, um die Verbindung zum Programmiergerät/PC herzustellen. Im Betriebszustand _STOP_ kann über die Schnittstelle das Schaltprogramm zwischen PC und Basismodul (und umgekehrt) übertragen werden, sowie Parameter (Echtzeituhr, Displayanzeige, Passwort, Programmname) gesetzt werden. Im Betriebszustand _RUN_ können mittels der _Online-Test_-Funktion aktuelle Werte (Eingänge, Ausgänge, Zustände, Zeiten, Zähler etc.) ausgelesen werden. Die Schnittstelle dient leider nicht zum Anschluss von Erweiterungsbaugruppen oder Bedien- und Beobachtungsgeräten wie bei einer Standard SPS. 
 
-_N_ nicht unterstützt, _R_ lesen unterstützt, _W_ scheiben unterstützt
+_N_ nicht unterstützt, _R_ lesen unterstützt, _W_ schreiben unterstützt
 
 Funktion, Datenelement| _RUN_ | _STOP_
 ----------------------|-------|-------
@@ -223,9 +261,7 @@ Das Bussystem kann unterteilt werden in ein Rückwandbus und Peripheriebus. Der 
 Hinsichtlich der Spannungsklassen gelten Regeln, die beim Verbinden mit dem _P-Bus_ beachtet werden müssen! Detaillierte Informationen zur Integration der Erweiterungs- bzw. Kommunikationsmodule (Einbaureihenfolge etc.) finden sich im _LOGO!_ Handbuch. 
 
 ## Speicherarchitektur
-Der Speicherbereich innerhalb eines Basismoduls ist in mehrere Bereiche aufgeteilt, wobei jeder Speicherbereich eigene Aufgaben erfüllt. Vereinfacht gesagt besteht der Speicher im Basismodul aus dem Systemspeicher, dem Ladespeicher und dem Arbeitsspeicher.
-
-Alle Konfigurationsdaten sind im Basismodul gespeichert. Unter anderem das Anwenderprogramm, sowie die Symboltabelle und evtl. noch Meldetexte und Blocknamen. Das Anwenderprogramm besteht aus Steuerungsbefehlen und Steuerungsdaten, die in Programmbausteinen und Datenbausteinen untergebracht sind. 
+Der Speicherbereich innerhalb eines Basismoduls ist in mehrere Bereiche aufgeteilt, wobei jeder Speicherbereich eigene Aufgaben erfüllt. Vereinfacht gesagt besteht der Speicher im Basismodul aus dem Ladespeicher, dem Arbeitsspeicher und dem Systemspeicher. 
 
 Zusätzlich ist die Firmware mit untergebracht. Die Firmware sorgt dafür, dass das Programm in der korrekten Reihenfolge abgearbeitet wird. Für die Firmware ist ein eigener Festwertspeicher im Basismodul vorhanden. 
 
@@ -235,17 +271,39 @@ Folgend die Auflistung der verwendeten Speichertypen:
 - [Arbeitsspeicher](#arbeitsspeicher)
 - [Systemspeicher](#systemspeicher)
 
+Die Programmbearbeitung erfolgt ausschließlich im Bereich von Arbeitsspeicher und Systemspeicher. Die folgende Abbildung veranschaulicht das Zusammenspiel:
+```
+   Ladespeicher          Arbeitsspeicher         Systemspeicher
+.-----------------.     .---------------.     .-------------------.
+| Klemmenspeicher |--1->| Interpreter   |--.  | Prozessabb. Eing. |
+| Programmzeilen- |     |...............|  |  |...................|
+| speicher        |  .->| Funktionen    |  |  | Prozessabb. Ausg. |
+|.................|  |  |...............|  2  |...................|
+| Passwort        |  5  | Programmdaten |  |  | Zeiten (T)        |
+| Programmname    |  |  | Anweisungs-   |  |  | Zähler (C)        |
+| ...             |  '--| befehle (4)   |<-'  | Merker (M)        |
+|                 |     | ...           |     |...................|
+|                 |     |               |     | Stack             |
+|                 |     |               |<-3->|...................|
+|                 |     |               |     | Statusdaten       |
+|                 |     |               |     | ...               |
+'-----------------'     '---------------'     '-------------------'
+```
+> Abb. Speicher Blockdiagramm
+
 ### Festwertspeicher
 Der Festwertspeicher ist ein Nur-Lese-Speicher (engl. Read Only Memory, kurz _ROM_). Hierauf befindet sich die _LOGO!_ Firmware, welche vom Hersteller Siemens stammt. _Read Only_ deshalb, weil der Speicher nicht gelöscht oder geändert werden kann und zudem nicht flüchtig ist. Bei Spannungsausfall bleiben die Daten erhalten. 
 
 ### Ladespeicher
-Über die Schnittstelle zum Programmiergerät werden die gesamten Schaltdaten inkl. der Konfiguration in den Ladespeicher geladen. Der Ladespeicher kann zusätzlich auf sogenannte Memory Cards gesichert werden. Die Daten bleiben auch bei Spannungsausfall erhalten. 
+Alle Konfigurationsdaten sind im Ladespeicher vom Basismodul gespeichert. Unter anderem das Anwenderprogramm, sowie die Funktionsparameter und evtl. noch Passwort, Programmname, Meldetexte und Blocknamen. Der Ladespeicher ist ein digitaler Flash-EEPROM Speicherbaustein. Die Daten bleiben auch bei Spannungsausfall erhalten. Über die Schnittstelle zum Programmiergerät werden die Schaltdaten inkl. der Konfiguration (kurz Schaltprogram) in den Ladespeicher geladen.
 
-### Arbeitsspeicher 
-Beim Arbeitsspeicher (engl. Random Access Memory, kurz _RAM_) handelt es sich um einen flüchtiger Speicher, d.h. der Inhalt geht nach einem Spannungsausfall verloren. Er ist als ein Schreib-/Lesespeicher konzipiert. Vom Ladespeicher werden die ablaufrelevanten Teile des Programms in den Arbeitsspeicher geladen. Dazu zählt insbesondere der Klemmenspeicher und Programmzeilenspeicher (vergl. _S7_ Programmbausteine) sowie die Speicherbereiche für Passwort, Programmname, Meldetexte und Blocknamen (vergl. _S7_ Datenbausteine). 
+### Arbeitsspeicher
+Beim Arbeitsspeicher (engl. Random Access Memory, kurz _RAM_) handelt es sich um einen flüchtiger Speicher, d.h. der Inhalt geht nach einem Spannungsausfall verloren. Er ist als ein Schreib-/Lesespeicher konzipiert.
 
-### Systemspeicher 
-Im Systemspeicher werden die Zustände der Eingänge und Ausgänge über das Prozessabbild (_PE_ und _PA_), die Zeiten, Zähler, Merker und der Daten-Stack gespeichert. 
+Im Arbeitsspeicher werden die ablaufrelevanten Programm- und Datenbausteine sowie Konfigurationsdaten abgelegt (4). Der Arbeitsspeicher dient zur Abarbeitung, sowie zur Bearbeitung der Daten des Steuerungsprogramms (5). Dazu werden die vom Ladespeicher ablaufrelevanten Teile des Schaltrogramms beim Wechsel vom Betriebszustand _STOP_ nach _RUN_ geladen (1) und von einem Interpreter übersetzt und das Ergebnis als Steuerungsprogramm im Arbeitsspeicher gespeichert (2).
+
+### Systemspeicher
+Der Systemspeicher ist ein flüchtiger Speicher (_RAM_) und in Operandenbereiche aufgeteilt. Im Systemspeicher werden die Zustände der Eingänge und Ausgänge über das Prozessabbild (_PE_ und _PA_), die Zeiten (_T_), Zähler (_C_), Merker (_M_) und der Stack und Statusdaten gespeichert. Während eine Programzyklus werden auf die Datem im Systemspeicher zugegriffen und Programmzustände aktualisiert (3). 
 
 ### Adressierung
 _LOGO!_ __0BA5__ nutzt eine 16-Bit-Adressierung. Vereinfacht dargestellt bedeutet dies, dass die Speicherarchitektur so ausgelegt ist, dass jede Speicherstelle durch einen 16Bit-Zeiger (also 2 Byte) direkt adressiert werden kann. Die _LOGO!_ Kleinsteuerung __0BA5__ nutzt teilweise eine Segmentierung, sodass auch 8Bit-Zeiger (Verweise) zu Anwendung kommen, um eine Speicherstelle zu adressieren. 
@@ -282,6 +340,7 @@ Beispiel:
 >Abb: Byte-Reihenfolge im Speicher bei Little-Endian
 
 ## <a name="Adresslayout"></a>Adressübersicht
+Das folgende Adresslayout ist ein Abbild des dekodierten Ladespeichers einer _LOGO!_ __0BA5__. Auf den Lagespeicher kann (bis auf wenige Ausnahmen) nur im Betriebszustand _STOP_ zugegriffen werden. 
 
 ### Parameter
 | Beispiel    | Adresse     | Länge |   |                                                        |
@@ -332,8 +391,8 @@ Beispiel:
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
 |             | 4100        | 1     | W |                                                        |
-| 01 43 00 00 | [4300](#4400)        | 1     | W | Werte speichern: RTC=00, S/W=01                        |
-| 01 44 00 00 | [4400](#4400)        | 1     | W | Werte laden: RTC=00, S/W=01                            |
+| 01 43 00 00 | [4300](#FB00)        | 1     | W | Werte speichern: RTC=00, S/W=01                        |
+| 01 44 00 00 | [4400](#FB00)        | 1     | W | Werte laden: RTC=00, S/W=01                            |
 
 ### Systemfunktion Passwort
 | Beispiel    | Adresse     | Länge |   |                                                        |
@@ -344,7 +403,7 @@ Beispiel:
 ### Parameter Echtzeituhr
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
-| 02 FB 00    | [FB00](#4400) - FB05 | 6     |   | Echtzeituhr, Sommer-/Winterzeitumstellung              |
+| 02 FB 00    | [FB00](#FB00) - FB05 | 6     |   | Echtzeituhr, Sommer-/Winterzeitumstellung              |
 
 
 __Hinweis:__
@@ -363,7 +422,7 @@ Speicherbereich: 0552, 1 Byte
 
 Zugriffsmethode: Lesen und Schreiben
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 ```
 send> 02 05 52 
 recv< 06
@@ -397,7 +456,7 @@ recv< 06
 
 Wertebereich: 0.00 - 9.99
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 ```
 00  [C4 03] [D5 01]
 Val [AQ1  ] [AQ2  ]
@@ -512,7 +571,7 @@ FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 // (40x)
 ...
 ```
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 ```
 03 04 20 20 20 20 00 00 00 00 00 00 00 00 00 00
 02 04 0B 2B 00 00 4C 65 6E 3A 20 20 00 00 00 00
@@ -653,7 +712,7 @@ Read Byte | Wert | Beschreibung
 ### Passwort R/W
 Ein Schaltprogramm mit Passwort sollte geschützt bleiben. Das Knacken eines Passwortes ist nicht Zielsetzung dieser Beschreibung, daher sind die Systemfunktionen und Befehlsfolgen für das Auslesen und Setzen des Passwortes hier nicht beschrieben. 
 
-## <a name="4400"></a>Echtzeituhr, S/W
+## <a name="FB00"></a>Echtzeituhr, S/W
 Alle Datums- und Zeitwerte sind Bytewerte. Die Echtzeituhr (RTC) startet nach längerem Stromausfall oder nach Speicherverlust mit folgendem Datum und folgender Zeit:
 - Datum: `01-Jan-2003`
 - Zeit: `00:00:00`
@@ -1521,7 +1580,7 @@ Die Flags für Remananz und Parameterschutz sowie die Beschaltung von Eingang _T
 
 RAM/Rem/Online: 8/3/4
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 ```
 21 40 01 00 7A 80 00 00 FF FF FF FF
 21 40 [01 00] [7A 80] 00 00 FF FF FF FF
@@ -1667,7 +1726,7 @@ Die Flags für Remanenz und Parameterschutz sowie die Beschaltung von Eingang _T
 
 RAM/Rem/Online: 12/3/?
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 ```
 22 80 01 00 02 00 1F CD 00 00 00 00
 22 80 [01 00] [02 00] [1F CD] 00 00 00 00
@@ -1703,7 +1762,7 @@ Die Flags für Remanenz und Parameterschutz sowie die Beschaltung von Eingang _T
 
 RAM/Rem/Online: 12/3/6
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 
 ```
 2F 40  00 00  03 80    E9 43 00 00 FF FF
@@ -1796,7 +1855,7 @@ Die Flags für Remanenz und Parameterschutz sowie die Beschaltung von Eingang _S
 
 RAM/Rem/Online: 12/1/?
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 ```
 23 00 02 00 FF FF FF FF 00 00 00 00
 23 00 [02 00] [FF FF] [FF FF] 00 00 00 00
@@ -1827,7 +1886,7 @@ __Hinweis:__ Da die _LOGO!_ Kleinsteuerung Typ 24/24o keine Uhr besitzt, ist die
 
 RAM/Rem/Online: 20/-/5
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 ```
 24 40 F2 00 A0 00 FF FF FF FF FF FF FF FF 2A 00 00 00 00 00
 24 40 [F2 00] [A0 00] [FF FF] [FF FF] [FF FF] [FF FF]  2A 00 00  00 00 00
@@ -1931,7 +1990,7 @@ Mit der Funktion _Selbsthalterelais_ wird der Ausgang _Q_ abhängig vom Signalzu
 
 RAM/Rem/Online: 8/1/?
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 ```
 25 00 0A 80 FF FF 00 00
 25 00 [0A 80] [FF FF] 00 00
@@ -1955,7 +2014,7 @@ R: Eingang R (Co oder GF/SF)
 
 RAM/Rem/Online: 12/3/?
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 ```
 27 80 02 00 FF FF 36 81 00 00 00 00
 27 80 [02 00] [FF FF] [36 81] 00 00 00 00
@@ -1991,7 +2050,7 @@ Die Flags für Remanenz und Parameterschutz sowie die Beschaltung der Eingänge 
 
 RAM/Rem/Online: 24/5/10
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 ```
 send> 05 0F 00 00 18
 recv< 06
@@ -2103,7 +2162,7 @@ Die aktuelle Zeit _Ta_ benennt die Zeitdauer des letzten Flankenwechsels (Wechse
 
 RAM/Rem/Online: 12/3/?
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 ```
 2D 40 02 00 FF FF 02 80 02 80 00 00
 2D 40 [02 00] [FF FF] [02 80] [02 80] 00 00
@@ -2131,7 +2190,7 @@ Par:
 
 RAM/Rem/Online: 20/-
 
-### Darstellungsformat im Speicher
+### Darstellungsformat im Ladespeicher
 ```
 39 40 FD 00 92 00 C8 00 66 00 00 00 00 00 00 00 00 00 00 00
 39 40 [FD 00] [92 00] [C8 00 66 00 00 00 00 00 00 00 00 00 00 00
@@ -2364,9 +2423,9 @@ Pure     | _LOGO!_ 230 RCo      | 6ED1052-2FB00-0BA5
 - __OR__: Oder-Verknüpfung
 - __OT__: Aufgelaufene Gesamtbetriebszeit
 - __p__ (_position_): Anzahl der Nachkommastellen
--	__PA__: Prozessabbild der Ausgänge 
+- __PA__: Prozessabbild der Ausgänge 
 - __Par__: Parameter
--	__PE__: Prozessabbild der Eingänge
+- __PE__: Prozessabbild der Eingänge
 - __PV__: Regelgröße
 - __Q__: Digitaler Ausgang
 - __R__ (_Reset_): Rücksetzeingang
