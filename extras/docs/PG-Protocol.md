@@ -1,8 +1,8 @@
 # LOGO! PG Protocol Reference Guide
 
-Rev. Bu
+Rev. Bv
 
-March 2018
+April 2018
 
 ## Preface
 This guide is written for persons who will communicate with a Siemens (TM) _LOGO!_ __0BA4__, __0BA5__ or __0BA6__ using the PG Interface. The PG Interface used an undocumented protocol for program loading, diagnostics, etc. which is referred to here as PG protocol. This guide describes how messages are constructed, and how transactions take place by using the PG protocol. 
@@ -64,7 +64,7 @@ Refer to the following publication for details about the RS232 specifications an
   * [Chapter 5 - Errors and Confirmations](#chapter-5---errors-and-confirmations)
     * [Confirmed Codes Used by LOGO](#confirmed-codes-used-by-logo)
     * [Acknowledge Response `06`](#acknowledge-response-06)
-    * [Exception Responses `15`](#exception-responses-15)
+    * [Exception Response `15`](#exception-response-15)
   * [Appendix A - Address Scheme](#appendix-a---address-scheme)
   * [Appendix B - Application Notes](#appendix-b---application-notes)
   * [Appendix C - CRC Generation](#appendix-c---crc-generation)
@@ -112,9 +112,9 @@ The specification for each communication via the PG Interface:
 ### Pinout:
 - [x] RxD Receive Data; _DTE_ in direction; pin 2
 - [x] TxD Transmit Data; _DTE_ out direction; pin 3
-- [ ] DTR Data Terminal Ready; _DTE_ out direction; pin 4 \*)
+- [x] DTR Data Terminal Ready; _DTE_ out direction; pin 4 \*)
 - [x] GND Ground; pin 5
-- [x] RTS Request to Send; _DTE_ out direction; pin 7 \*)
+- [ ] RTS Request to Send; _DTE_ out direction; pin 7 \*)
 
 __Note:__ \*) DTS and/or RTS are used to power the plug electronics
 
@@ -622,7 +622,7 @@ The execution of this command completes the monitoring. There are no further ret
 ## Operating Mode `17`
 
 ### Description
-The Control Command "17" queries the current operating mode.
+The Control Command `17` queries the current operating mode.
 
 ### Query
 
@@ -740,7 +740,7 @@ _Y_ indicates that the confirmation is supported. _N_ indicates that it is not s
 Code | Name | __0BA4__ | __0BA5__ | __0BA6__
 --- | --- | --- | --- | ---
 `06` | Acknowledge Response | Y | Y | Y
-`15` | Exception Responses | Y | Y | Y
+`15` | Exception Response | Y | Y | Y
 
 ## Acknowledge Response `06`
 
@@ -768,11 +768,11 @@ Here is an example of a response to the query above:
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
-Confirmation | `06` | Acknowledgment
+Confirmation Code | `06` | Acknowledgment
 Data | `42` | Current Operating Mode is STOP
 >Figure Example _Acknowledge_ Response
 
-## Exception Responses `15`
+## Exception Response `15`
 
 ### Description
 _LOGO!_ confirmation code `15` (NOK), followed by an exception code (1 byte). 
@@ -797,7 +797,7 @@ Here is an example of a response to the query above:
 
 Field Name | Code \(hex\) | Meaning
 --- | --- | ---
-Confirmation | `15` | Exception
+Confirmation Code | `15` | Exception
 Exception Code | `05` | Unknown command
 >Figure Example _Exception_ Response __0BA4__
 
@@ -895,12 +895,12 @@ Command | Description | Query | Response 1)
 `14` | Stop Fetch Data | 4 | 0
 `17` | Operating Mode | 4 | 2
 `18` | Start Operating | 4 | 1
-`20` | Clear Program | N | (0)
-`21` | Connection Request | N | 0)
-`22` | Restart | N | (0)
+`20` | Clear Program | N | (0,2)
+`21` | Connection Request | N | (0,2)
+`22` | Restart | N | (0,2)
 >Figure Maximum Q/R Parameters __0BA4__ and __0BA5__
 
-__Notes:__ 1) The information in brackets applies to the _LOGO!_ Version __0BA4__
+__Notes:__ 1) The information in brackets applies to the _LOGO!_ Version __0BA4__, __0BA5__
 
 ### Response Parameter List __0BA4__ and __0BA5__
 
@@ -908,7 +908,7 @@ Command | Description | Query 1) | Response
 --- | --- | --- | ---
 `03` | Read Byte Response | (`02`) | 5
 `06` | Acknowledge Response | 1 | 1 + n
-`11` | Fetch Data Response | (`13`) | 70
+`11` | Fetch Data Response | (`13`) | 70 + c
 `15` | Exception Response | (`..`) | 2
 >Figure Maximum R Parameters __0BA4__ and __0BA5__
 
@@ -939,7 +939,7 @@ Command | Description | Query 1) | Response
 --- | --- | --- | ---
 `03` | Read Byte Response | (`02`) | 7
 `06` | Acknowledge Response | 1 | 1 + n
-`11` | Fetch Data Response | (`13`) | 80
+`11` | Fetch Data Response | (`13`) | 80 + c
 `15` | Exception Response | (`..`) | 2
 >Figure Maximum R Parameters __0BA6__
 
@@ -950,12 +950,12 @@ __Notes:__ 1) The information in brackets shows the command code to which a resp
 ### The Transaction Sequence
 The following sequence of events occurs during a serial transaction. Letters in parentheses ( ) refer to the timing notes at the end of the listing.
 
-1. The _DTE_ composes the message.
-2. The query message is transmitted to the _LOGO!_. ( 1 )
-3. The _LOGO!_ processes the query message. ( 2 ) ( 3 )
-4. The _LOGO!_ calculates an error check field. ( 4 )
-5. The response message is transmitted to the _DTE_. ( 1 )
-6. The _DTE_ application acts upon the response and its data.
+1. The _DTE_ composes the message
+2. The query message is transmitted to the _LOGO!_ ( 1 )
+3. The _LOGO!_ processes the query message ( 2 ) ( 3 )
+4. The _LOGO!_ calculates an error check field ( 4 )
+5. The response message is transmitted to the _DTE_ ( 1 )
+6. The _DTE_ application acts upon the response and its data
 
 ### Timing Notes
 1. Use the following formula to estimate the transmission time:
