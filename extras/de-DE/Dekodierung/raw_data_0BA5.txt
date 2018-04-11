@@ -21,7 +21,7 @@ send> 02 FB 04
 recv< 06 03 FB 04 00 
 send> 02 FB 05 
 recv< 06 03 FB 05 00 
-// 01-01-2013, 00:00, Su (Sontag)
+// 01-01-2013, 00:00, Su (Sonntag)
 
 // read firmware
 send> 55 17 17 AA 

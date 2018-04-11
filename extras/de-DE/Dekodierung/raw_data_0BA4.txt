@@ -1,4 +1,4 @@
-// version
+// ident
 02 1f 02
 send> 02 1F 02 
 recv< 06 03 1F 02 40 
@@ -42,7 +42,7 @@ recv< 06
 recv< 41 42 43 44 45 46 47 48 49 4A 4B 4C 4D 4E 4F 50 10 
 
 // read 1 byte @0552 @STOP -> display after power-on
-// 00 Programmname ?? (LOGO! ohne Uhr)
+// 00 Programname ?? (LOGO! without clock)
 // 01 input / output
 send> 02 05 52 
 recv< 06 03 05 52 00 
@@ -189,25 +189,25 @@ recv< 06
 recv< 41 42 43 00 00 00 00 00 00 00 40 
 
 // read program from LOGO -> PC
-55 17 17 AA
-01 48 00 00
-05 05 c0 00 40
-05 06:00:02:00
-05 08:00:02:80
-05 0c:00:01:18
-05 0e:20:00:28
-05 0e:40:00:3c
-05 0E 84 00 14
-05 0E 98 00 28
-05 0e:c0:00:28
-05 0E E8 07 D0
+send> 55 17 17 AA
+send> 01 48 00 00
+send> 05 05 C0 00 40
+send> 05 06 00 02 00
+send> 05 08 00 02 80
+send> 05 0C 00 01 18
+send> 05 0E 20 00 28
+send> 05 0E 40 00 3C
+send> 05 0E 84 00 14
+send> 05 0E 98 00 28
+send> 05 0E C0 00 28
+send> 05 0E E8 07 D0
 // 2.3 sec
-05 05:70:00:10
-05 05:66:00:0a
-02:05:5e
-02 05 5F
-55 17 17 AA
-00
+send> 05 05 70 00 10
+send> 05 05 66 00 0A
+send> 02 05 5E
+send> 02 05 5F
+send> 55 17 17 AA
+send> 00
 *** 03.03.18 12:52 
 *** LOGO! --> PC
 0BA4.Standard

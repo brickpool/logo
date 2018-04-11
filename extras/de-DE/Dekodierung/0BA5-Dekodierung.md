@@ -1,9 +1,9 @@
 # Undocumented LOGO! __0BA5__
 ## Aufbau, Funktionsweise und Programmierung
 
-Ausgabe An
+Ausgabe Ao
 
-März 2018
+April 2018
 
 ## Vorwort
 Dieses Handbuch beschreibt die Interna einer _LOGO!_ Kleinsteuerung Version __0BA5__, um unter Nutzung der PG-Schnittstelle darauf zuzugreifen. Die PG-Schnittstelle verwendet hierzu ein nicht dokumentiertes Protokoll zum Programm laden, lesen und zur Diagnose. 
@@ -398,6 +398,7 @@ Das folgende Adresslayout ist ein Abbild des dekodierten Ladespeichers einer _LO
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
 | 01 47 40 00 | 4740        | 1     | W | = 00, Passwort lesen/setzen initialisieren             |
+| 01 48 00 00 | 4800        | 1     | W |                                                        |
 | 02 48 FF    | [48FF](#48FF)        | 1     | R | Passwort vorhanden?                                    |
 
 ### Parameter Echtzeituhr
