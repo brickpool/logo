@@ -14,8 +14,9 @@
 --  p_frag.lua      by mj99, https://osqa-ask.wireshark.org/answer_link/55764/
 --
 -- History:
---  0.1   04.04.2018, inital version
---  0.2   05-11.04.2018, desegmentation of packets
+--  0.1   04.04.2018      inital version
+--  0.2   05-11.04.2018   desegmentation of packets
+--  0.2.1 11.04.2018      bug fixing
 --
 -------------------------------------------------------------------------------
 
@@ -479,25 +480,7 @@ local function dissect(tvb, pinfo, root)
     local flagtree = subtree:add(ppi_fields.flags, flags):set_generated()
     flagtree:add(ppi_fields.fragmented, flags)
 
-    if result < 0 then
-      -- we need more bytes, so set the desegment_offset to what we
-      -- already consumed, and the desegment_len to how many more
-      -- are needed
-      pinfo.desegment_offset = bytes_consumed
-
-      -- we need more bytes, so tell the main dissector function that we
-      -- didn't dissect anything, and we need an unknown number of more
-      -- bytes (which is what "DESEGMENT_ONE_MORE_SEGMENT" is used for)
-      pinfo.desegment_len = DESEGMENT_ONE_MORE_SEGMENT
-
-      -- even though we need more bytes, this packet is for us, so we
-      -- tell wireshark all of its bytes are for us by returning the
-      -- number of tvb bytes we "successfully processed", namely the
-      -- length of the tvb
-      return length
-    end
-
-    -- Te real dissector starts here with complete ADU header
+    -- Te real dissector starts here
     result = Dissector.get("logopg"):call(tvb(bytes_consumed, length - bytes_consumed):tvb(), pinfo, root)
     if result == 0 then
       -- If the result is 0, then it means we hit an error
@@ -559,8 +542,7 @@ function LOGOPPI.dissector(tvb, pinfo, root)
   end
 
   -- Wireshark isn't set up to have dissectors look at any packet other than the current packet
-  -- the correct way to process information in earlier packets is to save it in a data structure
-  -- for future reference
+  -- the correct way to process information in earlier packets is to save it for future reference
   if not pinfo.visited then
     -- create new desegment info pg_fields for this packet
     if packet_info[pinfo.number] == nil then
@@ -590,31 +572,34 @@ function LOGOPPI.dissector(tvb, pinfo, root)
   end
 
   local result = 0
+  -- We're going to call our "dissect()" function, which is defined
+  -- above in this script file.
   if bytes_needed > 0 then
     dprint7("using desegment_offset/desegment_len method")
 
     if fragments[pinfo.number-1] ~= nil then
       dprint7("Read fragment(n-1):", pinfo.number-1)
       local full_frame = fragments[pinfo.number-1]
-      local remaining_bytes = full_frame(offset, frame:len()-offset)
+      local remaining_bytes = full_frame(offset, full_frame:len()-offset)
       remaining_bytes:append(tvb:bytes())
       local new_tvb = remaining_bytes:tvb("Reassembled")
       result = dissect(new_tvb, pinfo, root)
     end
   else
-    -- We're going to call our "dissect()" function, which is defined
-    -- above in this script file.
     result = dissect(tvb, pinfo, root)
   end
 
-  -- Pinfo's desegment_len/desegment_offset may be updated.
+  -- update stored packet info
   if result > 0 then
+    -- update next_seq_number
     dprint7("Update Sequence number:", msg_index)
     packet_info[pinfo.number].next_seq_number = msg_index
+
+    -- desegment_len/desegment_offset may be updated
     if pinfo.desegment_len ~= 0 or pinfo.desegment_offset ~= 0 then
       dprint7("Update desegment_offset/desegment_len")
-      packet_info[pinfo.number].desegment_offset = pinfo.desegment_offset
-      packet_info[pinfo.number].desegment_len = pinfo.desegment_len
+      packet_info[pinfo.number].desegment_offset  = pinfo.desegment_offset
+      packet_info[pinfo.number].desegment_len     = pinfo.desegment_len
     end
   end
 
