@@ -17,6 +17,8 @@
 --  0.1   04.04.2018      inital version
 --  0.2   05-11.04.2018   desegmentation of packets
 --  0.2.1 11.04.2018      bug fixing
+--  0.2.2 12-14.04.2018   optimisations of reasembling
+--  0.3   14.04.2018      dissection of message type 0x06
 --
 -------------------------------------------------------------------------------
 
@@ -43,6 +45,7 @@ local default_settings = {
   debug_level   = DEBUG,
   enabled       = true,   -- whether this dissector is enabled or not
   max_msg_len   = 2002,   -- this is the maximum size of a message
+  address_len   = 2,      -- if not known, then the length for the address field is 2 bytes
   value         = 1,      -- start value for message counting
 }
 
@@ -80,7 +83,8 @@ LOGOPG = Proto("logopg", "LOGO Programming Device Protocol")
 -- a table of our PPI-Protocol fields
 local ppi_fields = LOGOPPI.fields
 
-local msg_index = 0
+local message_id    = 0
+local address_len   = 2
 local FLAG_VALUE    = { [0] = "Not Set", [1] = "Set" }
 local FL_FRAGMENT   = 0x01
 
@@ -101,6 +105,8 @@ pg_fields.pdu_length      = ProtoField.uint16("LOGOPG.pdu_length",      "PDU Len
 -- PDU fields
 pg_fields.message_type    = ProtoField.uint8 ("LOGOPG.message_type",    "Message Type",   base.HEX)
 pg_fields.address         = ProtoField.uint32("LOGOPG.address",         "Address",        base.HEX)
+pg_fields.response_code   = ProtoField.uint8 ("LOGOPG.response_code",   "Response Code",  base.HEX)
+pg_fields.exception_code  = ProtoField.uint8 ("LOGOPG.exception_code",  "Exception Code", base.HEX)
 pg_fields.function_code   = ProtoField.uint16("LOGOPG.function_code",   "Function Code",  base.HEX)
 pg_fields.byte_count      = ProtoField.uint16("LOGOPG.byte_count",      "Byte Count",     base.DEC)
 pg_fields.end_delimiter   = ProtoField.uint8 ("LOGOPG.end_delimiter",   "End Delimiter",  base.HEX)
@@ -115,18 +121,64 @@ pg_fields.end_delimiter   = ProtoField.uint8 ("LOGOPG.end_delimiter",   "End Del
 function LOGOPPI.init()
   dprint7("PPI (re-)initialise")
 
-  msg_index = default_settings.value
-  packet_info = {}
-  packet_info[0] = {
-    next_seq_number   = msg_index,
-    desegment_len     = 0,
-    desegment_offset  = 0,
-  }
+  message_id = default_settings.value
+  address_len = default_settings.address_len
+  message_counter = {}
   fragments = {}
 end
 
 -- this holds the plain "data" Dissector, in case we can't dissect it as LOGOPG
 local data = Dissector.get("data")
+
+local lookup_ack_response = {
+  [0x01] = {
+    name = "Operating Mode RUN",
+	pdu_length = function(...)
+      return 2
+    end
+  },
+  [0x03] = {
+    name = "Data Response",
+	pdu_length = function(tvb)
+      if tvb:len() < 3 then return -1 end
+      -- check if it is a Connection Response of a 0ba6
+      if tvb(2,1):uint() == 0x21 then
+        -- at 0ba6 all addresses are 32bit
+        address_len = 4
+        -- Confirmation Code + Data Response + Connection Request + Ident Number
+        return 4
+      else
+        -- Confirmation Code + Data Response + Address + Data Byte
+        return 1 + 1 + address_len + 1
+      end
+    end
+  },
+  [0x20] = {
+    name = "Operating Mode EDIT",
+	pdu_length = function(...)
+      return 2
+    end
+  },
+  [0x42] = {
+    name = "Operating Mode STOP",
+	pdu_length = function(...)
+      return 2
+    end
+  },
+  [0x55] = {
+    name = "Fetch Data Response",
+	pdu_length = function(tvb)
+      if tvb:len() < 4 then return -1 end
+      -- Control Code + Function Code + ...
+      local func = lookup_function_code[tvb(2,2):uint()]
+      if func and func.pdu_length then
+        return func.pdu_length(tvb)
+      else
+        return -1
+      end
+    end
+  },
+}
 
 local lookup_function_code = {
   [0x1111] = {
@@ -186,14 +238,14 @@ local lookup_message_type = {
     name = "Write Byte",
 	pdu_length = function(...)
       -- Data Code + Address + Data Byte
-      return 4
+      return 1 + address_len + 1
     end
   },
   [0x02] = {
     name = "Read Byte",
 	pdu_length = function(...)
       -- Data Code + Address
-      return 3
+      return 1 + address_len
     end
   },
   [0x04] = {
@@ -201,21 +253,32 @@ local lookup_message_type = {
 	pdu_length = function(tvb)
       if tvb:len() < 5 then return -1 end
       -- Data Code + Address + Byte Count + Data + Checksum
-      return 1 + 2 + 2 + tvb(3,2):le_uint() + 1
+      return 1 + address_len + 2 + tvb(3,2):le_uint() + 1
     end
   },
   [0x05] = {
     name = "Read Block",
 	pdu_length = function(...)
       -- Data Code + Address + Byte Count
-      return 5
+      return 1 + address_len + 2
     end
   },
   [0x06] = {
     name = "Acknowledge Response",
-	pdu_length = function(...)
+	pdu_length = function(tvb)
       -- Confirmation Code + ...
-      return 1
+      if tvb:len() < 2 then return -1 end
+      -- Control Code + Message Code + ...
+      local func = lookup_ack_response[tvb(1,1):uint()]
+      if not func then
+        -- 1 Byte Acknowledgment
+        return 1
+      elseif func.pdu_length then
+        -- 1 Byte Acknowledgment
+        return func.pdu_length(tvb)
+      else
+        return -1
+      end
     end
   },
   [0x15] = {
@@ -330,7 +393,7 @@ end
 --------------------------------------------------------------------------------
 function LOGOPG.dissector(tvb, pinfo, tree)
 
-  dprint6("PG Protocol dissector called")
+  dprint6("PG Protocol dissector called, message id:", message_id)
 
   -- "length" is the number of bytes remaining in the Tvb buffer
   local length = tvb:len()
@@ -366,17 +429,16 @@ function LOGOPG.dissector(tvb, pinfo, tree)
     return length
   end
 
+  -- if we got here, then we have a whole PDU in the Tvb buffer
   -- set the protocol column to show our protocol name
   pinfo.cols.protocol = LOGOPG.name
 
   -- We start by adding our protocol to the dissection display tree.
   local subtree = tree:add(LOGOPG)
-
-  -- if we got here, then we have a whole ADU header in the Tvb buffer
-  -- so let's dissecting the ADU header
+  -- Next, the ADU header will be displayed
   subtree:add(pg_fields.pdu_length, pdu_length):set_generated()
 
-  -- Next, the PDU data will be displayed
+  -- Now, let's dissecting the PDU data
   local offset = 0
   local pdutree = subtree:add(tvb(), "Protocol Data Unit (PDU)")
   local message_type = tvb(0,1):uint()
@@ -388,11 +450,10 @@ function LOGOPG.dissector(tvb, pinfo, tree)
   or message_type == 0x04
   or message_type == 0x05
   then
-    if length >= 3 then
-      -- Address (16bit value Big-Endian)
-      address = tvb(1, 2):uint()
-      pdutree:add(pg_fields.address, tvb(1,2))
-      offset = 3
+    if length >= 1+address_len then
+      -- Address (16/32bit value Big-Endian)
+      pdutree:add(pg_fields.address, tvb(1,address_len))
+      offset = 1+address_len
     end
   end
 
@@ -408,10 +469,32 @@ function LOGOPG.dissector(tvb, pinfo, tree)
 
   if message_type == 0x06 then
     -- Acknowledge Response
+    if pdu_length > 1 then
+      if length >= 4 then
+        local data_response = tvb(1,1):uint()
+        offset = 5
+        pdutree:add(pg_fields.response_code, tvb(1,1))
+        -- check if it is a Connection Response of a 0ba6
+        if tvb(2,1):uint() == 0x21 then
+          -- Ident Number
+          subtree:add(pg_fields.unit_id, tvb(3,1))
+          offset = 4
+        else
+          -- Address (16/32bit value Big-Endian)
+          pdutree:add(pg_fields.address, tvb(2,address_len))
+          offset = 2+address_len
+        end
+      end
+    end
   end
 
   if message_type == 0x15 then
     -- Exception Response
+    if length >= 2 then
+      -- Exception Code
+      pdutree:add(pg_fields.exception_code, tvb(1,1))
+      offset = 2
+    end
   end
 
   if message_type == 0x55 then
@@ -420,7 +503,7 @@ function LOGOPG.dissector(tvb, pinfo, tree)
       pdutree:add(pg_fields.function_code, tvb(1,2))
       if function_code == 0x1313 and length >= 4 then
         -- Number of Bytes (8bit value)
-        byte_count = tvb(3, 1):uint()
+        byte_count = tvb(3,1):uint()
         pdutree:add(pg_fields.byte_count, tvb(3,1))
         offset = 3
       end
@@ -431,7 +514,7 @@ function LOGOPG.dissector(tvb, pinfo, tree)
     end
   end
 
-  -- if we got here, then we have a whole PDU in the Tvb buffer
+  -- if we got here, then we have only data bytes in the Tvb buffer
   data:call(tvb(offset, pdu_length - offset):tvb(), pinfo, subtree)
 
   -- we don't need more bytes, so we return the number of bytes of the PDU
@@ -470,7 +553,7 @@ local function dissect(tvb, pinfo, root)
     local subtree = root:add(LOGOPPI)
 
     -- Inserted the message fields to the tree
-    subtree:add(ppi_fields.sequence_number, msg_index):set_generated()
+    subtree:add(ppi_fields.sequence_number, message_id):set_generated()
     local flags = 0
     if result < 0 or bytes_consumed + result > length then
       flags = bit.bor(flags, FL_FRAGMENT)
@@ -502,8 +585,8 @@ local function dissect(tvb, pinfo, root)
 
     -- we successfully processed an PG message, of 'result' length
     bytes_consumed = bytes_consumed + result
-    -- increment msg_index
-    msg_index = msg_index + 1
+    -- increment message_id
+    message_id = message_id + 1
       
   end
 
@@ -541,66 +624,51 @@ function LOGOPPI.dissector(tvb, pinfo, root)
     return 0
   end
 
-  -- Wireshark isn't set up to have dissectors look at any packet other than the current packet
-  -- the correct way to process information in earlier packets is to save it for future reference
-  if not pinfo.visited then
-    -- create new desegment info pg_fields for this packet
-    if packet_info[pinfo.number] == nil then
-      packet_info[pinfo.number] = {
-        next_seq_number   = msg_index,
-        desegment_len     = 0,
-        desegment_offset  = 0,
-      }
-      dprint7("Creating packet info:", pinfo.number)
-    end
+  -- since the protocol has no index, we need to generated a message id
+  if not pinfo.visited and message_counter[pinfo.number] == nil then
+    -- if not already available, save the current message index
+    dprint7("Store message index:", message_id, "to packet number:", pinfo.number)
+    message_counter[pinfo.number] = message_id
+  elseif message_counter[pinfo.number] ~= nil then
+    -- load the saved message index if available
+    message_id = message_counter[pinfo.number]
+  end
 
-    if fragments[pinfo.number] == nil then
-      local bytes = tvb():bytes()
-      fragments[pinfo.number] = bytes
-      dprint7("Store packet:", pinfo.number)
+  local buffer = tvb
+  -- check if there are any fragmentations for this message id
+  if fragments[message_id] ~= nil then
+    -- if data exists, load the saved data and create a composite "ByteArray"
+    local last_fragment = fragments[message_id][pinfo.number] == nil
+    if last_fragment then
+      -- Read all previous fragments from our stored structure
+      local reassembled = ByteArray.new()
+      for key,data in pairs(fragments[message_id]) do
+        dprint7("Read fragment ["..message_id..":"..key.."]")
+        reassembled = reassembled .. data
+      end
+      -- We're going to our "dissect()" function with a composite Tvb buffer
+      reassembled = reassembled .. tvb:bytes()
+      buffer = reassembled:tvb("Reassembled")
     end
   end
 
-  local offset, bytes_needed = 0, 0
-  if packet_info[pinfo.number-1] ~= nil then
-    -- get packet_info
-    bytes_needed  = packet_info[pinfo.number-1].desegment_len
-    offset        = packet_info[pinfo.number-1].desegment_offset
-    msg_index     = packet_info[pinfo.number-1].next_seq_number
+  -- Now, we call our "dissect()" which is defined above in this script file
+  -- with the original or composite Tvb buffer
+  local result = dissect(buffer, pinfo, root)
 
-    dprint7("pinfo(n-1) offset:", pinfo.desegment_offset, "bytes needed:", bytes_needed, "last seq", msg_index)
-  end
-
-  local result = 0
-  -- We're going to call our "dissect()" function, which is defined
-  -- above in this script file.
-  if bytes_needed > 0 then
-    dprint7("using desegment_offset/desegment_len method")
-
-    if fragments[pinfo.number-1] ~= nil then
-      dprint7("Read fragment(n-1):", pinfo.number-1)
-      local full_frame = fragments[pinfo.number-1]
-      local remaining_bytes = full_frame(offset, full_frame:len()-offset)
-      remaining_bytes:append(tvb:bytes())
-      local new_tvb = remaining_bytes:tvb("Reassembled")
-      result = dissect(new_tvb, pinfo, root)
+  -- Only return values other than 0 are valid values.
+  -- If "desegment_len" is greater than 0, it is a fragment
+  if result ~= 0 and pinfo.desegment_len > 0 then
+    -- Wireshark isn't set up to have dissectors look at any frame other than the current frame;
+    -- the correct way to process information in earlier frames is to save it in a data structure for future reference.
+    if fragments[message_id] == nil then
+      dprint7("Save fragment ["..message_id..":"..pinfo.number.."]")
+      fragments[message_id] = {}
     end
-  else
-    result = dissect(tvb, pinfo, root)
-  end
-
-  -- update stored packet info
-  if result > 0 then
-    -- update next_seq_number
-    dprint7("Update Sequence number:", msg_index)
-    packet_info[pinfo.number].next_seq_number = msg_index
-
-    -- desegment_len/desegment_offset may be updated
-    if pinfo.desegment_len ~= 0 or pinfo.desegment_offset ~= 0 then
-      dprint7("Update desegment_offset/desegment_len")
-      packet_info[pinfo.number].desegment_offset  = pinfo.desegment_offset
-      packet_info[pinfo.number].desegment_len     = pinfo.desegment_len
-    end
+    -- determine the actual length and the associated offset of the current packet
+    local offset = pinfo.desegment_offset - (buffer:len() - tvb:len())
+    local length = tvb:len() - offset
+    fragments[message_id][pinfo.number] = tvb(offset, length):bytes()
   end
 
   return result
@@ -617,7 +685,7 @@ local wtap_encap_table = DissectorTable.get("wtap_encap")
 
 -- register our protocol to USER0
 dprint7("Register PPI protocol for USER0")
-wtap_encap_table:add(wtap.USER1, LOGOPPI)
+wtap_encap_table:add(wtap.USER0, LOGOPPI)
 
 
 --------------------------------------------------------------------------------
