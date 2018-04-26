@@ -22,6 +22,9 @@
 --  0.3.1 15.04.2018      optimisations of dissecting
 --  0.3.2 16-17.04.2018   bug fixing
 --  0.4   18-24.04.2018   update desegmentation
+--  0.4.1 25.04.2018      bug fixing
+--  0.4.2 25-26.04.2018   optimisations of dissecting
+--  0.5   26.04.2018      dissection of function code 0x11 and 0x13
 --
 -------------------------------------------------------------------------------
 
@@ -39,14 +42,14 @@ local debug_level = {
 -- set this DEBUG to debug_level.LEVEL_6 to enable printing debug_level info
 -- set it to debug_level.LEVEL_7 to enable really verbose printing
 -- note: this will be overridden by user's preference settings
-local DEBUG = debug_level.LEVEL_7
+local DEBUG = debug_level.LEVEL_4
 
 -- a table of our default settings - these can be changed by changing
 -- the preferences through the GUI or command-line; the Lua-side of that
 -- preference handling is at the end of this script file
 local default_settings = {
   debug_level   = DEBUG,
-  enabled       = true,   -- whether this dissector is enabled or not
+  subdissect    = true,   -- display data as tree info in wireshark
   max_msg_len   = 2002,   -- this is the maximum size of a message
   address_len   = 2,      -- address field is 2 bytes
   ident_number  = 0,      -- ident_number is unknown (0)
@@ -90,7 +93,10 @@ local ppi_fields = LOGOPPI.fields
 
 local address_len = default_settings.address_len
 
-local FLAG_VALUE  = { [0] = "Not Set", [1] = "Set" }
+local FLAG_VALUE  = {
+  [0] = "Not Set",
+  [1] = "Set"
+}
 local FL_FRAGMENT = 0x01
 
 -- Message fields
@@ -153,6 +159,11 @@ local IDENTIFIERS = {
   [0x44] = "0BA6",
 }
 
+local LOGICAL_VALUE = {
+  [0] = "Low",
+  [1] = "High",
+}
+
 -- ADU fields
 pg_fields.transaction_id  = ProtoField.uint16("LOGOPG.transaction_id",  "Transaction identifier", base.DEC)
 pg_fields.unit_id         = ProtoField.uint8 ("LOGOPG.unit_id",         "Unit identifier",        base.HEX, IDENTIFIERS)
@@ -165,8 +176,36 @@ pg_fields.response_code   = ProtoField.uint8 ("LOGOPG.response_code",   "Respons
 pg_fields.exception_code  = ProtoField.uint8 ("LOGOPG.exception_code",  "Exception Code", base.DEC, EXCEPTION_CODES)
 pg_fields.function_code   = ProtoField.uint16("LOGOPG.function_code",   "Function Code",  base.HEX, FUNCTION_CODES)
 pg_fields.byte_count      = ProtoField.uint16("LOGOPG.byte_count",      "Byte Count",     base.DEC)
+pg_fields.data            = ProtoField.bytes ("LOGOPG.data",            "Data")
+pg_fields.bit0            = ProtoField.uint8 ("LOGOPG.bit0",            "b0",             base.DEC, LOGICAL_VALUE, 0x01)
+pg_fields.bit1            = ProtoField.uint8 ("LOGOPG.bit1",            "b1",             base.DEC, LOGICAL_VALUE, 0x02)
+pg_fields.bit2            = ProtoField.uint8 ("LOGOPG.bit2",            "b2",             base.DEC, LOGICAL_VALUE, 0x04)
+pg_fields.bit3            = ProtoField.uint8 ("LOGOPG.bit3",            "b3",             base.DEC, LOGICAL_VALUE, 0x08)
+pg_fields.bit4            = ProtoField.uint8 ("LOGOPG.bit4",            "b4",             base.DEC, LOGICAL_VALUE, 0x10)
+pg_fields.bit5            = ProtoField.uint8 ("LOGOPG.bit5",            "b5",             base.DEC, LOGICAL_VALUE, 0x20)
+pg_fields.bit6            = ProtoField.uint8 ("LOGOPG.bit6",            "b6",             base.DEC, LOGICAL_VALUE, 0x40)
+pg_fields.bit7            = ProtoField.uint8 ("LOGOPG.bit7",            "b7",             base.DEC, LOGICAL_VALUE, 0x80)
 pg_fields.checksum        = ProtoField.uint8 ("LOGOPG.checksum",        "Checksum XOR",   base.HEX)
 pg_fields.trailer         = ProtoField.uint8 ("LOGOPG.trailer",         "Trailer",        base.HEX, {[0xAA] = "End Delimiter"})
+
+
+--------------------------------------------------------------------------------
+-- https://www.lua.org/pil/19.3.html
+-- With this function, it is easy to loop in order
+--------------------------------------------------------------------------------
+function pairsByKeys (t, f)
+  local a = {}
+  for n in pairs(t) do table.insert(a, n) end
+  table.sort(a, f)
+  local i = 0      -- iterator variable
+  local iter = function ()   -- iterator function
+    i = i + 1
+    if a[i] == nil then return nil
+    else return a[i], t[a[i]]
+    end
+  end
+  return iter
+end
 
 --------------------------------------------------------------------------------
 -- The Serial Capture Service splits large packets over the serial interface 
@@ -355,15 +394,9 @@ function PacketHelper:desegment(tvb, pinfo)
     -- If there are no more fragments, load the saved data and create a composite "ByteArray"
     local reassembled = ByteArray.new()
     -- Read all previous fragments from our stored structure
-    local last_key = 0
-    for key,data in pairs(self.fragments[self.message_counter]) do
+    for key,data in pairsByKeys(self.fragments[self.message_counter]) do
       dprint6("Read fragment ["..self.message_counter..":"..key.."]")
-      if last_key > key then
-        reassembled = data .. reassembled
-      else
-        reassembled = reassembled .. data
-      end
-      last_key = key
+      reassembled = reassembled .. data
     end
     -- We're going to our "dissect()" function with a composite buffer buffer
     reassembled = reassembled .. tvb:bytes()
@@ -443,12 +476,209 @@ local lookup_function_code = {
       if tvb:len() < 5 then return -1 end
       -- Confirmation Code + Control Code + Function Code + Byte Count + Data + End Delimiter
       return 1 + 1 + 2 + 2 + tvb(4,2):le_uint() + 1
+    end,
+    dissect = function(tvb, pinfo, tree)
+      -- Header: Confirmation Code + Control Code + Function Code + Byte Count + ...
+      local pdu_header_len = 1 + 1 + 2 + 2
+      if tvb:len() < pdu_header_len then return 0 end
+      tree:add(pg_fields.response_code, tvb(1,1))
+      tree:add(pg_fields.function_code, tvb(2,2))
+      -- Number of Bytes (16bit value)
+      local number_of_bytes = tvb(4,2):le_uint()
+      tree:add_le(pg_fields.byte_count, tvb(4,2))
+
+      -- ... Data + ...
+      local pdu_length = pdu_header_len + number_of_bytes + 1
+      if tvb:len() < pdu_length then return 0 end
+
+      if not default_settings.subdissect then
+        tree:add(pg_fields.data, tvb(pdu_header_len, pdu_length - pdu_header_len - 1))
+      else
+        -- display data as tree info in wireshark
+        local offset = pdu_header_len
+        local datatree = tree:add(tvb(pdu_header_len, pdu_length - pdu_header_len - 1), "Data bytes")
+        datatree:add(tvb(offset, 4), string.format("Program Identifier: 0x%08x", tvb(offset, 4):uint()))
+        offset = offset + 4
+        local additional_bytes = tvb(offset, 1):uint()
+        offset = offset + 1
+  
+        -- check if it is a Response of a 0ba6 or 0ba4/0ba5
+        address_len = (number_of_bytes - additional_bytes) > 64 and 4 or 2
+
+        -- block outputs
+        local number_of_bits = address_len == 4 and 200 or 130
+        local bytes_consumed = address_len == 4 and 25 or 17
+        local subtree = datatree:add(tvb(offset, bytes_consumed), "Block outputs")
+        local bit = 1
+        while bytes_consumed > 0 do
+          subtree:add(tvb(offset,1), string.format("B%03u-B%03u", bit+7 > number_of_bits and number_of_bits or bit+7, bit))
+          subtree:add(pg_fields.bit0, tvb(offset,1))
+          subtree:add(pg_fields.bit1, tvb(offset,1))
+          bit = bit + 2
+          if bit < number_of_bits then
+            subtree:add(pg_fields.bit2, tvb(offset,1))
+            subtree:add(pg_fields.bit3, tvb(offset,1))
+            subtree:add(pg_fields.bit4, tvb(offset,1))
+            subtree:add(pg_fields.bit5, tvb(offset,1))
+            subtree:add(pg_fields.bit6, tvb(offset,1))
+            subtree:add(pg_fields.bit7, tvb(offset,1))
+            bit = bit + 6
+          end
+          offset = offset + 1
+          bytes_consumed = bytes_consumed - 1
+        end
+  
+        -- digital inputs
+        number_of_bits = 24
+        bytes_consumed = 3
+        subtree = datatree:add(tvb(offset, bytes_consumed), "Digital inputs")
+        bit = 1
+        while bytes_consumed > 0 do
+          subtree:add(tvb(offset,1), string.format("I%02u-I%02u", bit+7, bit))
+          subtree:add(pg_fields.bit0, tvb(offset,1))
+          subtree:add(pg_fields.bit1, tvb(offset,1))
+          subtree:add(pg_fields.bit2, tvb(offset,1))
+          subtree:add(pg_fields.bit3, tvb(offset,1))
+          subtree:add(pg_fields.bit4, tvb(offset,1))
+          subtree:add(pg_fields.bit5, tvb(offset,1))
+          subtree:add(pg_fields.bit6, tvb(offset,1))
+          subtree:add(pg_fields.bit7, tvb(offset,1))
+          bit = bit + 8
+          offset = offset + 1
+          bytes_consumed = bytes_consumed - 1
+        end
+        
+        -- function keys
+        if address_len == 4 then
+          subtree = datatree:add(tvb(offset,1), "Function keys")
+          subtree:add(tvb(offset,1), "F04-F01")
+          subtree:add(pg_fields.bit0, tvb(offset,1))
+          subtree:add(pg_fields.bit1, tvb(offset,1))
+          subtree:add(pg_fields.bit2, tvb(offset,1))
+          subtree:add(pg_fields.bit3, tvb(offset,1))
+          offset = offset + 1
+        end
+  
+        -- digital outputs
+        number_of_bits = 16
+        bytes_consumed = 2
+        subtree = datatree:add(tvb(offset, bytes_consumed), "Digital outputs")
+        bit = 1
+        while bytes_consumed > 0 do
+          subtree:add(tvb(offset,1), string.format("Q%02u-Q%02u", bit+7, bit))
+          subtree:add(pg_fields.bit0, tvb(offset,1))
+          subtree:add(pg_fields.bit1, tvb(offset,1))
+          subtree:add(pg_fields.bit2, tvb(offset,1))
+          subtree:add(pg_fields.bit3, tvb(offset,1))
+          subtree:add(pg_fields.bit4, tvb(offset,1))
+          subtree:add(pg_fields.bit5, tvb(offset,1))
+          subtree:add(pg_fields.bit6, tvb(offset,1))
+          subtree:add(pg_fields.bit7, tvb(offset,1))
+          bit = bit + 8
+          offset = offset + 1
+          bytes_consumed = bytes_consumed - 1
+        end
+        
+        -- digital merkers
+        number_of_bits = address_len == 4 and 27 or 24
+        bytes_consumed = address_len == 4 and 4 or 3
+        subtree = datatree:add(tvb(offset, bytes_consumed), "Digital merkers")
+        bit = 1
+        while bytes_consumed > 0 do
+          subtree:add(tvb(offset,1), string.format("M%02u-M%02u", bit+7 > number_of_bits and number_of_bits or bit+7, bit))
+          subtree:add(pg_fields.bit0, tvb(offset,1))
+          subtree:add(pg_fields.bit1, tvb(offset,1))
+          subtree:add(pg_fields.bit2, tvb(offset,1))
+          bit = bit + 3
+          if bit < number_of_bits then
+            subtree:add(pg_fields.bit3, tvb(offset,1))
+            subtree:add(pg_fields.bit4, tvb(offset,1))
+            subtree:add(pg_fields.bit5, tvb(offset,1))
+            subtree:add(pg_fields.bit6, tvb(offset,1))
+            subtree:add(pg_fields.bit7, tvb(offset,1))
+            bit = bit + 5
+          end
+          offset = offset + 1
+          bytes_consumed = bytes_consumed - 1
+        end
+        
+        -- shift register
+        subtree = datatree:add(tvb(offset,1), "Shift register")
+        subtree:add(tvb(offset,1), "S08-S01")
+        subtree:add(pg_fields.bit0, tvb(offset,1))
+        subtree:add(pg_fields.bit1, tvb(offset,1))
+        subtree:add(pg_fields.bit2, tvb(offset,1))
+        subtree:add(pg_fields.bit3, tvb(offset,1))
+        subtree:add(pg_fields.bit4, tvb(offset,1))
+        subtree:add(pg_fields.bit5, tvb(offset,1))
+        subtree:add(pg_fields.bit6, tvb(offset,1))
+        subtree:add(pg_fields.bit7, tvb(offset,1))
+        offset = offset + 1
+        
+        -- cursor keys
+        subtree = datatree:add(tvb(offset,1), "Cursor keys")
+        subtree:add(tvb(offset,1), "C04-C01")
+        subtree:add(pg_fields.bit0, tvb(offset,1))
+        subtree:add(pg_fields.bit1, tvb(offset,1))
+        subtree:add(pg_fields.bit2, tvb(offset,1))
+        subtree:add(pg_fields.bit3, tvb(offset,1))
+        offset = offset + 1
+  
+        -- analog inputs
+        bytes_consumed = 16
+        subtree = datatree:add(tvb(offset,bytes_consumed), "Analog inputs")
+        local analog = 1
+        while bytes_consumed > 0 do
+          subtree:add(tvb(offset,2), string.format("AI%u: %d", analog, tvb(offset,2):le_int()))
+          analog = analog + 1
+          offset = offset + 2
+          bytes_consumed = bytes_consumed - 2
+        end
+  
+        -- analog outputs
+        subtree = datatree:add(tvb(offset,4), "Analog outputs")
+        subtree:add(tvb(offset,2), string.format("AQ1: %d", tvb(offset,2):le_int()))
+        offset = offset + 2
+        subtree:add(tvb(offset,2), string.format("AQ2: %d", tvb(offset,2):le_int()))
+        offset = offset + 2
+  
+        -- analog merkers
+        bytes_consumed = 12
+        subtree = datatree:add(tvb(offset,bytes_consumed), "Analog merkers")
+        local analog = 1
+        while bytes_consumed > 0 do
+          subtree:add(tvb(offset,2), string.format("AM%u: %d", analog, tvb(offset,2):le_int()))
+          analog = analog + 1
+          offset = offset + 2
+          bytes_consumed = bytes_consumed - 2
+        end
+  
+        -- ... Extra Bytes + 
+        if additional_bytes > 0 then
+          subtree = datatree:add(tvb(offset, additional_bytes), "Additional bytes")
+          subtree:add(pg_fields.data, tvb(offset, additional_bytes))
+          subtree:add(tvb(pdu_header_len+4, 1), string.format("Length: %d", additional_bytes))
+        else
+          datatree:add(tvb(pdu_header_len+4, 1), string.format("Additional bytes: Null (%d)", additional_bytes))
+        end
+      end
+
+      -- ... End Delimiter
+      tree:add(pg_fields.trailer, tvb(pdu_length - 1, 1))
+      return pdu_length
     end
   },
   [0x1212] = {
     -- Stop Operating
     pdu_length = function(...)
       -- Control Code + Function Code + End Delimiter
+      return 4
+    end,
+    dissect = function(tvb, pinfo, tree)
+      -- Control Code + Function Code + End Delimiter
+      if tvb:len() < 4 then return 0 end
+      tree:add(pg_fields.function_code, tvb(1,2))
+      tree:add(pg_fields.trailer, tvb(3,1))
       return 4
     end
   },
@@ -458,12 +688,47 @@ local lookup_function_code = {
       if tvb:len() < 4 then return -1 end
       -- Control Code + Function Code + Byte Count + Data + End Delimiter
       return 1 + 2 + 1 + tvb(3,1):uint() + 1
+    end,
+    dissect = function(tvb, pinfo, tree)
+      -- Control Code + Function Code + Byte Count + ...
+      local pdu_header_len = 1 + 2 + 1
+      if tvb:len() < pdu_header_len then return 0 end
+      local function_code = tvb(1,2):uint()
+      tree:add(pg_fields.function_code, tvb(1,2))
+      -- Number of Bytes (8bit value)
+      local number_of_bytes = tvb(3,1):uint()
+      tree:add(pg_fields.byte_count, tvb(3,1))
+
+      -- ... Data + ...
+      local pdu_length = pdu_header_len + number_of_bytes + 1
+      if tvb:len() < pdu_length then return 0 end
+
+      if not default_settings.subdissect then
+        tree:add(pg_fields.data, tvb(pdu_header_len, pdu_length - pdu_header_len - 1))
+      else
+        -- display data as tree info in wireshark
+        local subtree = tree:add(tvb(pdu_header_len, pdu_length - pdu_header_len - 1), "Data bytes")
+        for offset = pdu_header_len, pdu_length - 2, 1 do
+          local block_number = tvb(offset, 1):uint() - 9
+          subtree:add(tvb(offset, 1), string.format("Block: B%03u", block_number))
+        end
+      end
+      -- ... + End Delimiter
+      tree:add(pg_fields.trailer, tvb(pdu_length - 1, 1))
+      return pdu_length
     end
   },
   [0x1414] = {
     -- Stop Fetch Data
     pdu_length = function(...)
       -- Control Code + Function Code + End Delimiter
+      return 4
+    end,
+    dissect = function(tvb, pinfo, tree)
+      -- Control Code + Function Code + End Delimiter
+      if tvb:len() < 4 then return 0 end
+      tree:add(pg_fields.function_code, tvb(1,2))
+      tree:add(pg_fields.trailer, tvb(3,1))
       return 4
     end
   },
@@ -472,12 +737,26 @@ local lookup_function_code = {
     pdu_length = function(...)
       -- Control Code + Function Code + End Delimiter
       return 4
+    end,
+    dissect = function(tvb, pinfo, tree)
+      -- Control Code + Function Code + End Delimiter
+      if tvb:len() < 4 then return 0 end
+      tree:add(pg_fields.function_code, tvb(1,2))
+      tree:add(pg_fields.trailer, tvb(3,1))
+      return 4
     end
   },
   [0x1818] = {
     -- Start Operating
     pdu_length = function(...)
       -- Control Code + Function Code + End Delimiter
+      return 4
+    end,
+    dissect = function(tvb, pinfo, tree)
+      -- Control Code + Function Code + End Delimiter
+      if tvb:len() < 4 then return 0 end
+      tree:add(pg_fields.function_code, tvb(1,2))
+      tree:add(pg_fields.trailer, tvb(3,1))
       return 4
     end
   },
@@ -488,21 +767,47 @@ local lookup_ack_response = {
     -- Mode RUN
     pdu_length = function(...)
       return 2
+    end,
+    dissect = function(tvb, pinfo, tree)
+      if tvb:len() < 2 then return 0 end
+      tree:add(pg_fields.response_code, tvb(1,1))
+      return 2
     end
   },
   [0x03] = {
     -- Read Data Response
     pdu_length = function(tvb)
+      -- Confirmation Code + Data Response + ...
       if tvb:len() < 3 then return -1 end
       -- check if it is a Connection Response of a 0ba6
       if tvb(2,1):uint() == 0x21 then
         -- at 0ba6 all addresses are 32bit
         address_len = 4
-        -- Confirmation Code + Data Response + Connection Request + Ident Number
+        -- Confirmation Code + Data Response + Connection Response + Ident Number
         return 4
       else
         -- Confirmation Code + Data Response + Address + Data Byte
         return 1 + 1 + address_len + 1
+      end
+    end,
+    dissect = function(tvb, pinfo, tree)
+      -- Confirmation Code + Data Response + Connection Response (8bit) + Ident Number
+      if tvb:len() < 4 then return 0 end
+      tree:add(pg_fields.response_code, tvb(1,1))
+      -- check if it is a Connection Response of a 0ba6
+      if tvb(2,1):uint() == 0x21 then
+        tree:add(tvb(2,1), "Connection Response (0x21)")
+        tree:add(tvb(3,1), string.format("Unit identifierer: 0BA6 (0x%02x)", tvb(3,1):unit()))
+        return 4
+      else
+        -- Confirmation Code + Data Response + Address (16/32bit) + ...
+        local pdu_header_len = 2 + address_len
+        local pdu_length = pdu_header_len + 1
+        if tvb:len() < pdu_length then return 0 end
+        -- Address (16/32bit value Big-Endian)
+        tree:add(pg_fields.address, tvb(2, address_len))
+        tree:add(pg_fields.data, tvb(pdu_header_len, 1))
+        return pdu_length
       end
     end
   },
@@ -510,11 +815,21 @@ local lookup_ack_response = {
     -- Mode EDIT
     pdu_length = function(...)
       return 2
+    end,
+    dissect = function(tvb, pinfo, tree)
+      if tvb:len() < 2 then return 0 end
+      tree:add(pg_fields.response_code, tvb(1,1))
+      return 2
     end
   },
   [0x42] = {
     -- Mode STOP
     pdu_length = function(...)
+      return 2
+    end,
+    dissect = function(tvb, pinfo, tree)
+      if tvb:len() < 2 then return 0 end
+      tree:add(pg_fields.response_code, tvb(1,1))
       return 2
     end
   },
@@ -524,10 +839,17 @@ local lookup_ack_response = {
       if tvb:len() < 4 then return -1 end
       -- Confirmation Code + Control Code + Function Code + ...
       local function_code = tvb(2,2):uint()
-      dprint7("Confirmation Code 0x06, Control Code 0x55, Function Code:", function_code)
       -- Acknowledgement
       if function_code ~= 0x1111 then return 1 end
       return lookup_function_code[function_code] and lookup_function_code[function_code].pdu_length(tvb) or 0
+    end,
+    dissect = function(tvb, pinfo, tree)
+      if tvb:len() < 4 then return 0 end
+      -- Confirmation Code + Control Code + Function Code + ...
+      local function_code = tvb(2,2):uint()
+      -- Acknowledgement
+      if function_code ~= 0x1111 then return 1 end
+      return lookup_function_code[function_code] and lookup_function_code[function_code].dissect(tvb, pinfo, tree) or 0
     end
   },
 }
@@ -555,11 +877,12 @@ local lookup_message_type = {
     end,
     dissect = function(tvb, pinfo, tree)
       -- Data Code + Address (16/32bit value Big-Endian) + Data Byte
-      local pdu_length = 1 + address_len + 1
+      local pdu_header_len = 1 + address_len
+      local pdu_length = pdu_header_len + 1
       if tvb:len() < pdu_length then return 0 end
       tree:add(pg_fields.message_type, tvb(0,1))
-      tree:add(pg_fields.address, tvb(1,address_len))
-      data:call(tvb(1+address_len,1):tvb(), pinfo, tree)
+      tree:add(pg_fields.address, tvb(1, address_len))
+      tree:add(pg_fields.data, tvb(pdu_header_len, 1))
       return pdu_length
     end
   },
@@ -571,11 +894,11 @@ local lookup_message_type = {
     end,
     dissect = function(tvb, pinfo, tree)
       -- Data Code + Address (16/32bit value Big-Endian)
-      local pdu_length = 1 + address_len
-      if tvb:len() < pdu_length then return 0 end
+      local pdu_header_len = 1 + address_len
+      if tvb:len() < pdu_header_len then return 0 end
       tree:add(pg_fields.message_type, tvb(0,1))
-      tree:add(pg_fields.address, tvb(1,address_len))
-      return pdu_length
+      tree:add(pg_fields.address, tvb(1, address_len))
+      return pdu_header_len
     end
   },
   [0x04] = {
@@ -598,16 +921,16 @@ local lookup_message_type = {
       local number_of_bytes = tvb(1+address_len,2):le_uint()
       tree:add_le(pg_fields.byte_count, tvb(1+address_len,2))
 
-      local max_length = tvb:len() - pdu_header_len
-      if number_of_bytes < max_length then
-        -- ... Data + Checksum
-        data:call(tvb(pdu_header_len, number_of_bytes):tvb(), pinfo, tree)
-        tree:add(pg_fields.checksum, tvb(pdu_header_len+number_of_bytes,1))
-        return pdu_header_len + number_of_bytes + 1
-      else
+      local pdu_length = pdu_header_len + number_of_bytes + 1
+      if tvb:len() < pdu_length then
         -- ... Data(0..max_length)
-        data:call(tvb(pdu_header_len, max_length):tvb(), pinfo, tree)
-        return pdu_header_len + max_length
+        data:call(tvb(pdu_header_len, tvb:len()-pdu_header_len):tvb(), pinfo, tree)
+        return tvb:len()
+      else
+        -- ... Data + Checksum
+        tree:add(pg_fields.data, tvb(pdu_header_len, number_of_bytes))
+        tree:add(pg_fields.checksum, tvb(pdu_length-1, 1))
+        return pdu_length
       end
     end
   },
@@ -624,7 +947,7 @@ local lookup_message_type = {
       tree:add(pg_fields.message_type, tvb(0,1))
       tree:add(pg_fields.address, tvb(1,address_len))
       tree:add_le(pg_fields.byte_count, tvb(1+address_len,2))
-      return pdu_length
+      return pdu_header_len
     end
   },
   [0x06] = {
@@ -634,6 +957,13 @@ local lookup_message_type = {
       if tvb:len() < 2 then return -1 end
       local response_code = tvb(1,1):uint()
       return lookup_ack_response[response_code] and lookup_ack_response[response_code].pdu_length(tvb) or 1
+    end,
+    dissect = function(tvb, pinfo, tree)
+      -- Confirmation Code + Response Code + ...
+      if tvb:len() < 2 then return 0 end
+      tree:add(pg_fields.message_type, tvb(0,1))
+      local response_code = tvb(1,1):uint()
+      return lookup_ack_response[response_code] and lookup_ack_response[response_code].dissect(tvb, pinfo, tree) or 1
     end
   },
   [0x15] = {
@@ -695,6 +1025,15 @@ local lookup_message_type = {
       -- Return 0 (error) if it is a Confirmation Response
       if function_code == 0x1111 then return 0 end
       return lookup_function_code[function_code] and lookup_function_code[function_code].pdu_length(tvb) or 0
+    end, 
+    dissect = function(tvb, pinfo, tree)
+      -- Control Code + Function Code + ...
+      if tvb:len() < 3 then return 0 end
+      tree:add(pg_fields.message_type, tvb(0,1))
+      local function_code = tvb(1,2):uint()
+      -- Return 0 (error) if it is a Confirmation Response
+      if function_code == 0x1111 then return 0 end
+      return lookup_function_code[function_code] and lookup_function_code[function_code].dissect(tvb, pinfo, tree) or 0
     end
   },
 }
@@ -715,7 +1054,7 @@ local lookup_queries = {
   [0x551414] = true, -- Stop Fetch Data
   [0x551717] = true, -- Operation Mode
   [0x551818] = true, -- Start Operating
-  [0x06551111] = true, -- Data Request (with Fetch Data Response)
+  [0x06065511] = true, -- Data Request (with Fetch Data Response)
 }
 
 --------------------------------------------------------------------------------
@@ -772,7 +1111,6 @@ local function get_pdu_length(tvb, pinfo, offset)
   dprint7("PDU length:", length)
   return length
 end
-
 
 --------------------------------------------------------------------------------
 -- The following creates the callback function for the PG dissector.
@@ -880,143 +1218,15 @@ function LOGOPG.dissector(tvb, pinfo, tree)
   subtree:add(pg_fields.pdu_length, pdu_length):set_generated()
 
   -- Now, let's dissecting the PDU data
-  local offset = 0
   local pdutree = subtree:add(tvb(), "Protocol Data Unit (PDU)")
   local message_type = tvb(0,1):uint()
-
-  if message_type == 0x06 then
-    -- Acknowledge Response
-    pdutree:add(pg_fields.message_type, tvb(0,1))
-    offset = 1
-    if length >= 4 and address_len == 4 and tvb(1,2):uint() == 0x0321 then
-      -- Connection Response of a 0ba6
-      pdutree:add(pg_fields.response_code, tvb(1,1))
-      pdutree:add(tvb(2,1), "Connection Response")
-      offset = offset + 2
-    elseif pdu_length > 1 then
-      if length >= 2 then
-        local response_code = tvb(offset,1):uint()
-        pdutree:add(pg_fields.response_code, tvb(offset,1))
-        offset = offset + 1
-        if response_code == 0x03 and length >= offset+address_len then
-          -- Address (16/32bit value Big-Endian)
-          pdutree:add(pg_fields.address, tvb(offset,address_len))
-          offset = offset + address_len
-        end
-      end
-    end
-  elseif message_type == 0x55 then
-    pdutree:add(pg_fields.message_type, tvb(0,1))
-    offset = 1
-    if length >= 3 then
-      function_code = tvb(1,2):uint()
-      pdutree:add(pg_fields.function_code, tvb(1,2))
-      offset = 3
-      if function_code == 0x1313 and length >= 4 then
-        -- Number of Bytes (8bit value)
-        byte_count = tvb(3,1):uint()
-        pdutree:add(pg_fields.byte_count, tvb(3,1))
-        offset = 4
-      end
-    end
-    if pdu_length-1 < length then
-      data:call(tvb(offset, pdu_length - offset-1):tvb(), pinfo, pdutree)
-      pdutree:add(pg_fields.trailer, tvb(pdu_length-1, 1))
-      offset = pdu_length
-    end
-  else
-    offset = lookup_message_type[message_type] and lookup_message_type[message_type].dissect(tvb, pinfo, pdutree) or 0
-  end
+  local offset = lookup_message_type[message_type] and lookup_message_type[message_type].dissect(tvb, pinfo, pdutree) or 0
 
   -- if we got here, then we have only data bytes in the Tvb buffer
   data:call(tvb(offset, pdu_length - offset):tvb(), pinfo, subtree)
 
   -- we don't need more bytes, so we return the number of bytes of the PDU
   return pdu_length
-end
-
-
-
---------------------------------------------------------------------------------
--- The 'tvb' contains the packet data, 'pinfo' is a packet info object,
--- and 'root' is the object of the Wireshark tree view which are create in the
--- PPI Proto's dissector.
---------------------------------------------------------------------------------
-local function dissect(tvb, pinfo, root)
-
-  dprint7("dissect() function called")
-
-  local length = tvb:len()
-
-  local bytes_consumed = 0
-
-  -- set the protocol column to show our protocol name
-  pinfo.cols.protocol = LOGOPPI.name
-
-  -- reference to #3
-  -- That's similar to many protocols running atop TCP, so that's not inherently insoluble.
-  while bytes_consumed < length do
-    -- reference to #4
-    local result = get_pdu_length(tvb, pinfo, bytes_consumed)
-    if result == 0 then
-      -- If the result is 0, then it means we hit an error of some kind,
-      -- so return 0. Returning 0 tells Wireshark this packet is not for
-      -- us, and it will try heuristic dissectors or the plain "data"
-      -- one, which is what should happen in this case.
-      return 0
-    end
-
-    -- if we got here, then we know we have a PG message in the Tvb buffer
-    local subtree = root:add(LOGOPPI)
-    -- check if the remaning bytes in buffer are a part of PDU message or not
-    local fragmented = bytes_consumed + result > length
-    -- Inserted the message fields to the tree
-    local flags = 0
-    if not fragmented then flags = bit.band(flags, bit.bnot(FL_FRAGMENT)) end
-    subtree:add(ppi_fields.sequence_number, packet_helper:get_number()):set_generated()
-    local flagtree = subtree:add(ppi_fields.flags, flags):set_generated()
-    flagtree:add(ppi_fields.fragmented, flags)
-
-    -- reference to #1 and #3
-    -- We might have to implement something similar to tcp in our dissector.
-    -- For that we using old desegment_offset/desegment_len method
-    if fragmented then
-      -- call the data dissector
-      data:call(tvb(bytes_consumed, length - bytes_consumed):tvb(), pinfo, root)
-
-      -- we need more bytes, so set the desegment_offset to what we
-      -- already consumed, and the desegment_len to how many more
-      -- are needed
-      pinfo.desegment_offset = bytes_consumed
-
-      pinfo.desegment_len = result
-
-      -- even though we need more bytes, this packet is for us, so we
-      -- tell Wireshark all of its bytes are for us by returning the
-      -- number of tvb bytes we "successfully processed", namely the
-      -- length of the tvb
-      return length
-    end
-
-    -- The real dissector starts here
-    result = Dissector.get("logopg"):call(tvb(bytes_consumed, length - bytes_consumed):tvb(), pinfo, root)
-    if result == 0 then
-      -- If the result is 0, then it means we hit an error
-      return 0
-    end
-    
-    -- we successfully processed an PG message, of 'result' length
-    bytes_consumed = bytes_consumed + result
-
-    -- reference to #5
-    -- increment message_counter
-    packet_helper:set_number(packet_helper:get_number() + 1)
-  end
-
-  -- Do NOT return the number 0, or else Wireshark will interpret that to mean
-  -- this packet did not belong to your protocol, and will try to dissect it
-  -- with other protocol dissectors (such as heuristic ones)
-  return bytes_consumed
 end
 
 --------------------------------------------------------------------------------
@@ -1043,6 +1253,9 @@ function LOGOPPI.dissector(tvb, pinfo, root)
   if length ~= tvb:reported_len() then
     -- captured packets are being sliced/cut-off, so don't try to desegment/reassemble
     dprint4("Captured packet was shorter than original, can't reassemble")
+    -- Returning 0 tells Wireshark this packet is not for
+    -- us, and it will try heuristic dissectors or the plain "data"
+    -- one, which is what should happen in this case.
     return 0
   end
 
@@ -1053,12 +1266,13 @@ function LOGOPPI.dissector(tvb, pinfo, root)
   local result = packet_helper:set_number(pinfo)
   if result == 0 then return 0 end
 
+  local flags = 0
   -- display the fragments as data
   if packet_helper:fragmented() and packet_helper:more_fragment(pinfo) then
     -- From here we know that the frame is part of a PDU message (but not the last on).
     -- The tvb is a fragment of a PDU message, so display only the message fields and the data to the tree
     local subtree = root:add(LOGOPPI)
-    local flags = bit.bor(0, FL_FRAGMENT)
+    flags = bit.bor(flags, FL_FRAGMENT)
     subtree:add(ppi_fields.sequence_number, packet_helper:get_number()):set_generated()
     local flagtree = subtree:add(ppi_fields.flags, flags):set_generated()
     flagtree:add(ppi_fields.fragmented, flags)
@@ -1068,25 +1282,79 @@ function LOGOPPI.dissector(tvb, pinfo, root)
   end
 
   -- Now, we dissect the (original or composite) Tvb buffer
-  
   local buffer = tvb
   -- reassembly the message if needed
   if packet_helper:fragmented() then
     buffer = packet_helper:desegment(tvb, pinfo)
+    -- update the length, beacause we can have a new buffer
+    length = buffer:len()
+    if length == 0 then return 0 end
   end
-    
-  -- We call our "dissect()" function which is defined above in this script file
-  result = dissect(buffer, pinfo, root)
+  
+  -- reference to #3
+  -- That's similar to many protocols running atop TCP, so that's not inherently insoluble.
+  local bytes_consumed = 0
+  while bytes_consumed < length do
+    -- reference to #4
+    local result = get_pdu_length(buffer, pinfo, bytes_consumed)
+    if result == 0 then
+      -- If the result is 0, then it means we hit an error of some kind,
+      -- so increment sequence and return 0.
+      packet_helper:set_number(packet_helper:get_number() + 1)
+      return 0
+    end
 
-  -- Only return values other than 0 are valid.
-  -- If "desegment_len" is greater than 0, it is a fragment
-  if result ~= 0 and pinfo.desegment_len > 0 then
-    packet_helper:set_fragment(buffer, pinfo)
+    -- if we got here, then we know we have a PG message in the Tvb buffer
+    local subtree = root:add(LOGOPPI)
+    -- check if the remaning bytes in buffer are a part of PDU message or not
+    local fragmented = bytes_consumed + result > length
+    -- Inserted the message fields to the tree
+    flags = 0
+    if not fragmented then flags = bit.band(flags, bit.bnot(FL_FRAGMENT)) end
+    subtree:add(ppi_fields.sequence_number, packet_helper:get_number()):set_generated()
+    local flagtree = subtree:add(ppi_fields.flags, flags):set_generated()
+    flagtree:add(ppi_fields.fragmented, flags)
+
+    -- reference to #1 and #3
+    -- We might have to implement something similar to tcp in our dissector.
+    -- For that we using old desegment_offset/desegment_len method
+    if fragmented then
+      -- call the data dissector
+      data:call(buffer(bytes_consumed, length - bytes_consumed):tvb(), pinfo, root)
+
+      -- we need more bytes, so set the desegment_offset to what we
+      -- already consumed, and the desegment_len to how many more
+      -- are needed and save the fragment to our structure
+      pinfo.desegment_offset = bytes_consumed
+      pinfo.desegment_len = result
+      packet_helper:set_fragment(buffer, pinfo)
+
+      -- even though we need more bytes, this packet is for us, so we
+      -- tell Wireshark all of its bytes are for us by returning the
+      -- number of tvb bytes we "successfully processed", namely the
+      -- length of the tvb
+      return length
+    end
+
+    -- The real dissector starts here
+    result = Dissector.get("logopg"):call(buffer(bytes_consumed, length - bytes_consumed):tvb(), pinfo, root)
+    if result == 0 then
+      -- If the result is 0, then it means we hit an error
+      return 0
+    end
+  
+    -- we successfully processed an PG message, of 'result' length
+    bytes_consumed = bytes_consumed + result
+
+    -- reference to #5 increment sequence number
+    packet_helper:set_number(packet_helper:get_number() + 1)
   end
 
-  return result
+  -- Do NOT return the number 0, or else Wireshark will interpret that to mean
+  -- this packet did not belong to your protocol, and will try to dissect it
+  -- with other protocol dissectors (such as heuristic ones)
+  return bytes_consumed
 end
-
 
 --------------------------------------------------------------------------------
 -- We want to have our protocol dissection invoked for a specific USER,
@@ -1116,9 +1384,8 @@ local debug_pref_enum = {
 -- register our preferences
 LOGOPPI.prefs.value       = Pref.uint("Value", default_settings.value, "Start value for counting")
 
-LOGOPPI.prefs.subdissect  = Pref.bool("Enable sub-dissectors", default_settings.add_tree_info, 
-                                     "Whether the PG packet's content" ..
-                                     " should be dissected or not")
+LOGOPPI.prefs.subdissect  = Pref.bool("Enable sub-dissectors", default_settings.subdissect, 
+                                     "Whether the data content should be dissected or not")
 
 LOGOPPI.prefs.debug       = Pref.enum("Debug", default_settings.debug_level,
                                      "The debug printing level", debug_pref_enum)
@@ -1128,8 +1395,8 @@ LOGOPPI.prefs.debug       = Pref.enum("Debug", default_settings.debug_level,
 function LOGOPPI.prefs_changed()
   dprint7("prefs_changed called")
 
-  example_add_tree_info = LOGOPPI.prefs.subdissect
-
+  default_settings.value = LOGOPPI.prefs.value
+  default_settings.subdissect = LOGOPPI.prefs.subdissect
   default_settings.debug_level = LOGOPPI.prefs.debug
   reset_debug_level()
   
