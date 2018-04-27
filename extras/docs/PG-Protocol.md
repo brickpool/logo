@@ -1,6 +1,6 @@
 # LOGO! PG Protocol Reference Guide
 
-Rev. Bv
+Rev. Bw
 
 April 2018
 
@@ -29,7 +29,6 @@ Refer to the following publication for details about the LOGO address layout:
 
 Refer to the following publication for details about the RS232 specifications and use cases:
   * [RS232 Specifications and standard](https://www.lammertbies.nl/comm/info/RS-232_specs.html) by Lammert Bies
-  * [CRC calculation](https://www.lammertbies.nl/comm/info/crc-calculation.html) by Lammert Bies
   * [LOGO! Interface](https://www.elektormagazine.com/magazine/elektor-199907/34458) by W. Kriegmaier Elektor 7/1999 page 55
   * [Get power out of PC RS-232 port](http://www.epanorama.net/circuits/rspower.html) by Tomi Engdahl
   * [RS-232 vs. TTL Serial Communication](https://www.sparkfun.com/tutorials/215) by SparkFun
@@ -67,7 +66,7 @@ Refer to the following publication for details about the RS232 specifications an
     * [Exception Response `15`](#exception-response-15)
   * [Appendix A - Address Scheme](#appendix-a---address-scheme)
   * [Appendix B - Application Notes](#appendix-b---application-notes)
-  * [Appendix C - CRC Generation](#appendix-c---crc-generation)
+  * [Appendix C - Checksum Generation](#appendix-c---checksum-generation)
 
 
 ----------
@@ -244,12 +243,12 @@ sets an error if they are not the same as configured for that device (_DTE_ and 
 
 Note that parity checking can only detect an error if an odd number of bits are picked up or dropped in a character frame during transmission. 
 
-### CRC/XOR Checking
-For the block commands `04` and `05`, the _DTE_ query or _LOGO!_ response messages include an error–checking field that is based on a Cyclical Redundancy Check XOR method. The _CRC_ field checks the contents of the entire data. It is applied regardless of any parity check method used for the individual characters of the message. 
+### XOR Checking
+For the block commands `04` and `05`, the _DTE_ query or _LOGO!_ response messages include an error–checking field that is based on a Checksum XOR method. The _Checksum_ field checks the contents of the entire data. It is applied regardless of any parity check method used for the individual characters of the message. 
 
-The _CRC_ field is one byte, containing an 8–bit binary value. The CRC value is calculated by the transmitting device, which appends the XOR value to the message. The receiving _DTE_ program must calculate the CRC during receipt of the message, and compares the calculated value to the actual value it received in the _CRC_ field. If the two values are not equal, an error results.
+The _Checksum_ field is one byte, containing an 8–bit binary value. The Checksum value is calculated by the transmitting device, which appends the XOR value to the message. The receiving _DTE_ program must calculate the Checksum during receipt of the message, and compares the calculated value to the actual value it received in the _Checksum_ field. If the two values are not equal, an error results.
 
-__Note:__ The application of _CRC_ field in response message are not mandatory. 
+__Note:__ The application of _Checksum_ field in response message are not mandatory. 
 
 
 ----------
@@ -369,7 +368,7 @@ The command contains the standard fields of command code, address offset and Byt
 Command | Address | Byte Count | Data | Checksum
 --- | --- | --- | --- | ---
 1 byte | 2 or 4 bytes | 2 bytes | n bytes | 1 byte
-Data Code | 16/32bit Address | Number of bytes | Data Content | CRC8 XOR
+Data Code | 16/32bit Address | Number of bytes | Data Content | CheckSum8 XOR
 >Figure _Write Block_ Query Message
 
 ### Response
@@ -404,7 +403,7 @@ The data in the response message is sent as hexadecimal binary content. The numb
 Command | Data | Checksum
 --- | --- | ---
 1 byte | n bytes | 1 Byte
-Confirmation Code | Data Block | CRC8 XOR
+Confirmation Code | Data Block | CheckSum8 XOR
 >Figure _Read Byte_ Response Message
 
 Here is an example of a response to the query above:
@@ -972,7 +971,7 @@ The time allotted for servicing the PG interface at the end of the controller cy
 
 3. The Commands `04`, `05`, and `13` permit the _DTE_ to request more data than can be processed during the time allotted for servicing the _LOGO!_ PG interface. If the _LOGO!_ cannot process all of the data, it will buffer the data and process it at the end of subsequent cycle.
 
-4. CRC calculation time is about 0.1 ms for each 8 bits of data to be returned in the response.
+4. Checksum calculation time is about 0.1 ms for each 8 bits of data to be returned in the response.
 
 ## Application Examples
 The following examples show some simple command blocks and the resulting output values.
@@ -1134,23 +1133,23 @@ Here are a few example sequences for accessing the memory depending on operating
 
 ----------
 
-# Appendix C - CRC Generation
+# Appendix C - Checksum Generation
 
-## CRC Generation
-The Cyclical Redundancy Check (CRC) field is one byte, containing a 8–bit binary value. The CRC value is calculated by the transmitting device, which appends the CRC to the _Data_ field. The receiving device recalculates a CRC during receipt of the message, and compares the calculated value to the actual value it received in the CRC field. If the two values are not equal, an error results.
+## Checksum Generation
+The _Checksum_ field is one byte, containing a 8–bit binary value. The Checksum value is calculated by the transmitting device, which appends the Checksum to the _Data_ field. The receiving device recalculates a Checksum during receipt of the message, and compares the calculated value to the actual value it received in the Checksum field. If the two values are not equal, an error results.
 
-Only the data bytes of a message are used for generating the CRC. _Command_, _Address_ and _Byte Count_ fields, and the _End_ delimiter, do not apply to the CRC. 
+Only the data bytes of a message are used for generating the Checksum. _Command_, _Address_ and _Byte Count_ fields, and the _End_ delimiter, do not apply to the Checksum. 
 
 ### Example
-The implementation is simple because only an 8-bit checksum must be calculated for a sequence of hexadecimal bytes. We use a function `F(bval,cval)` that inputs one data byte and a check value and outputs a recalculated check value. The initial value for `cval` is 0. The checksum can be calculated using the following example function (in C language), which we call repeatedly for each byte of the _Data_ field. The 8-bit checksum is the 2's complement of the sum off all bytes.
+The implementation is simple because only an 8-bit checksum must be calculated for a sequence of hexadecimal bytes. We use a function `F(bval,cval)` that inputs one data byte and a check value and outputs a recalculated check value. The initial value for `cval` is 0. The checksum can be calculated using the following example function (in C language), which we call repeatedly for each byte of the _Data_ field. The 8-bit checksum is the XOR off all bytes.
 
 ```
 int F_chk_8( int bval, int cval )
 {
-  return ( bval + cval ) % 256;
+  return ( bval ^ cval ) % 256;
 }
 ```
->Figure CRC implementation in C language
+>Figure Checksum implementation in C language
 
 __Note:__ 
-Therefore the CRC value returned from the function can be directly placed into the message for transmission.
+Therefore the Checksum value returned from the function can be directly placed into the message for transmission.
