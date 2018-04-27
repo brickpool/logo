@@ -26,6 +26,7 @@
 --  0.4.2 25-26.04.2018   optimisations of dissecting
 --  0.5   26.04.2018      dissection of function code 0x11 and 0x13
 --  0.5.1 27.04.2018      display src, dest and info
+--  0.5.2 27.04.2018      bug fixing 0x00 and 0x05, add checksum
 --
 -------------------------------------------------------------------------------
 
@@ -51,7 +52,7 @@ local DEBUG = debug_level.LEVEL_4
 local default_settings = {
   debug_level   = DEBUG,
   subdissect    = true,   -- display data as tree info in wireshark
-  max_msg_len   = 2002,   -- this is the maximum size of a message
+  max_msg_len   = 2000+7, -- this is the maximum size of a message
   address_len   = 2,      -- address field is 2 bytes
   ident_number  = 0,      -- ident_number is unknown (0)
   value         = 1,      -- start value for message counting
@@ -197,7 +198,7 @@ pg_fields.trailer         = ProtoField.uint8 ("LOGOPG.trailer",         "Trailer
 -- https://www.lua.org/pil/19.3.html
 -- With this function, it is easy to loop in order
 --------------------------------------------------------------------------------
-function pairsByKeys (t, f)
+function pairsByKeys(t, f)
   local a = {}
   for n in pairs(t) do table.insert(a, n) end
   table.sort(a, f)
@@ -209,6 +210,18 @@ function pairsByKeys (t, f)
     end
   end
   return iter
+end
+
+
+--------------------------------------------------------------------------------
+-- This function calc the XOR Checksum, Parameter "data" is a ByteAarry
+--------------------------------------------------------------------------------
+function checkSum8Xor(data)
+  local cval = 0
+  for i = 0, data:len()-1 do
+    cval = bit.bxor(cval, data:get_index(i))
+  end
+  return cval
 end
 
 --------------------------------------------------------------------------------
@@ -856,8 +869,7 @@ local lookup_message_type = {
     -- No Operation
     pdu_length = function(...)
       -- NOP
-      --return 1
-      return 0
+      return 1
     end,
     dissect = function(tvb, pinfo, tree)
       -- NOP
@@ -926,25 +938,65 @@ local lookup_message_type = {
       else
         -- ... Data + Checksum
         tree:add(pg_fields.data, tvb(pdu_header_len, number_of_bytes))
-        tree:add(pg_fields.checksum, tvb(pdu_length-1, 1))
+        local xor_byte = tvb(pdu_length-1, 1):uint()
+        local checksum = checkSum8Xor(tvb(pdu_header_len, number_of_bytes):bytes())
+        if xor_byte == checksum then
+          tree:add(pg_fields.checksum, tvb(pdu_length-1, 1), xor_byte, nil, "[correct]")
+        else
+          local incorrect = string.format("[incorrect, should be 0x%02x]", checksum)
+          tree:add(pg_fields.checksum, tvb(pdu_length-1, 1), xor_byte, nil, incorrect)
+        end
         return pdu_length
       end
     end
   },
   [0x05] = {
     -- Read Block
-    pdu_length = function(...)
-      -- Data Code + Address (16/32bit) + Byte Count
-      return 1 + address_len + 2
+    pdu_length = function(tvb)
+      if tvb:len() < 2 then return -1 end
+      if tvb(0,2):uint() ~= 0x0506 then
+        -- Data Code + Address (16/32bit) + Byte Count
+        return 1 + address_len + 2
+      else
+        -- Data Code [+ Acknowledge Response] + Address (16/32bit) + Byte Count (Big-Endian)
+        local pdu_header_len = 1 + 1 + address_len + 2
+        if tvb:len() < pdu_header_len then return -1 end
+        local number_of_bytes = tvb(1+1+address_len,2):uint()
+        return 1 + 1 + address_len + 2 + number_of_bytes + 1
+      end
     end,
     dissect = function(tvb, pinfo, tree)
-      -- Data Code + Address (16/32bit value Big-Endian) + Byte Count (Little Endian)
-      local pdu_header_len = 1 + address_len + 2
-      if tvb:len() < pdu_header_len then return 0 end
-      tree:add(pg_fields.message_type, tvb(0,1))
-      tree:add(pg_fields.address, tvb(1,address_len))
-      tree:add_le(pg_fields.byte_count, tvb(1+address_len,2))
-      return pdu_header_len
+      if tvb:len() < 2 then return 0 end
+      if tvb(0,2):uint() ~= 0x0506 then
+        -- Data Code + Address (16/32bit value Big-Endian) + Byte Count (Big-Endian)
+        local pdu_header_len = 1 + address_len + 2
+        if tvb:len() < pdu_header_len then return 0 end
+        tree:add(pg_fields.message_type, tvb(0,1))
+        tree:add(pg_fields.address, tvb(1,address_len))
+        tree:add(pg_fields.byte_count, tvb(1+address_len,2))
+        return pdu_header_len
+      else
+        -- Data Code [+ Acknowledge Response] + Address (16/32bit) + Byte Count (Big-Endian) + ...
+        local pdu_header_len = 1 + 1 + address_len + 2
+        if tvb:len() < pdu_header_len then return 0 end
+        tree:add(pg_fields.message_type, tvb(0,1))
+        tree:add(pg_fields.address, tvb(2,address_len))
+        local number_of_bytes = tvb(1+1+address_len,2):uint()
+        tree:add(pg_fields.byte_count, tvb(2+address_len,2))
+        local pdu_length = pdu_header_len + number_of_bytes + 1
+        if tvb:len() < pdu_length then return pdu_header_len end
+        -- ... Data + Checksum
+        tree:add(pg_fields.data, tvb(pdu_header_len, number_of_bytes))
+        local xor_byte = tvb(pdu_length-1, 1):uint()
+        local checksum = checkSum8Xor(tvb(pdu_header_len, number_of_bytes):bytes())
+        if xor_byte == checksum then
+          tree:add(pg_fields.checksum, tvb(pdu_length-1, 1), xor_byte, nil, "[correct]")
+        else
+          local incorrect = string.format("[incorrect, should be 0x%02x]", checksum)
+          tree:add(pg_fields.checksum, tvb(pdu_length-1, 1), xor_byte, nil, incorrect)
+        end
+        return pdu_length
+      end
     end
   },
   [0x06] = {
@@ -1104,7 +1156,7 @@ local function get_pdu_length(tvb, pinfo, offset)
   
   if length > default_settings.max_msg_len then
     -- too many bytes, invalid message
-    dprint6("Message length is too long:", length)
+    dprint4("Message length is too long:", length)
     return 0
   end
 
