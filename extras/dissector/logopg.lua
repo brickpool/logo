@@ -25,6 +25,7 @@
 --  0.4.1 25.04.2018      bug fixing
 --  0.4.2 25-26.04.2018   optimisations of dissecting
 --  0.5   26.04.2018      dissection of function code 0x11 and 0x13
+--  0.5.1 27.04.2018      display src, dest and info
 --
 -------------------------------------------------------------------------------
 
@@ -91,15 +92,13 @@ LOGOPG = Proto("logopg", "LOGO Programming Device Protocol")
 -- a table of our PPI-Protocol fields
 local ppi_fields = LOGOPPI.fields
 
-local address_len = default_settings.address_len
-
+-- Message fields
 local FLAG_VALUE  = {
   [0] = "Not Set",
   [1] = "Set"
 }
 local FL_FRAGMENT = 0x01
 
--- Message fields
 ppi_fields.sequence_number  = ProtoField.uint32("LOGOPPI.sequence_number",  "Sequence number")
 ppi_fields.flags            = ProtoField.uint8 ("LOGOPPI.Flags",            "Flags",          base.HEX)
 ppi_fields.fragmented       = ProtoField.uint8 ("LOGOPPI.fragmented",       "More Fragment",  base.DEC, FLAG_VALUE, FL_FRAGMENT)
@@ -110,15 +109,21 @@ local pg_fields = LOGOPG.fields
 
 local transaction_id = 0
 local ident_number = default_settings.ident_number
+local address_len = default_settings.address_len
 
-local ACK_RESPONSES = {
-  [0x01] = "Operation Mode RUN",
-  [0x03] = "Read Data Response",
-  [0x20] = "Operation Mode EDIT",
-  [0x42] = "Operation Mode STOP",
-  [0x55] = "Control Command Response",
+-- ADU fields
+local IDENTIFIERS = {
+  [0x40] = "0BA4",
+  [0x42] = "0BA5",
+  [0x43] = "0BA6",
+  [0x44] = "0BA6",
 }
 
+pg_fields.transaction_id  = ProtoField.uint16("LOGOPG.transaction_id",  "Transaction identifier", base.DEC)
+pg_fields.unit_id         = ProtoField.uint8 ("LOGOPG.unit_id",         "Unit identifier",        base.HEX, IDENTIFIERS)
+pg_fields.pdu_length      = ProtoField.uint16("LOGOPG.pdu_length",      "PDU Length",             base.DEC)
+
+-- PDU fields
 local MESSAGE_CODES = {
   [0x00] = "No Operation",
   [0x01] = "Write Byte",
@@ -131,6 +136,14 @@ local MESSAGE_CODES = {
   [0x21] = "Connect Request",
   [0x22] = "Restart",
   [0x55] = "Control Command",
+}
+
+local ACK_RESPONSES = {
+  [0x01] = "Operation Mode RUN",
+  [0x03] = "Read Data Response",
+  [0x20] = "Operation Mode EDIT",
+  [0x42] = "Operation Mode STOP",
+  [0x55] = "Control Command Response",
 }
 
 local EXCEPTION_CODES = {
@@ -152,24 +165,15 @@ local FUNCTION_CODES = {
   [0x1818] = "Start Operating",
 }
 
-local IDENTIFIERS = {
-  [0x40] = "0BA4",
-  [0x42] = "0BA5",
-  [0x43] = "0BA6",
-  [0x44] = "0BA6",
-}
-
 local LOGICAL_VALUE = {
   [0] = "Low",
   [1] = "High",
 }
 
--- ADU fields
-pg_fields.transaction_id  = ProtoField.uint16("LOGOPG.transaction_id",  "Transaction identifier", base.DEC)
-pg_fields.unit_id         = ProtoField.uint8 ("LOGOPG.unit_id",         "Unit identifier",        base.HEX, IDENTIFIERS)
-pg_fields.pdu_length      = ProtoField.uint16("LOGOPG.pdu_length",      "PDU Length",             base.DEC)
+local TRAILER_CODES = {
+  [0xAA] = "End Delimiter"
+}
 
--- PDU fields
 pg_fields.message_type    = ProtoField.uint8 ("LOGOPG.message_type",    "Message Type",   base.HEX, MESSAGE_CODES)
 pg_fields.address         = ProtoField.bytes ("LOGOPG.address",         "Address")
 pg_fields.response_code   = ProtoField.uint8 ("LOGOPG.response_code",   "Response Code",  base.HEX, ACK_RESPONSES)
@@ -186,7 +190,7 @@ pg_fields.bit5            = ProtoField.uint8 ("LOGOPG.bit5",            "b5",   
 pg_fields.bit6            = ProtoField.uint8 ("LOGOPG.bit6",            "b6",             base.DEC, LOGICAL_VALUE, 0x40)
 pg_fields.bit7            = ProtoField.uint8 ("LOGOPG.bit7",            "b7",             base.DEC, LOGICAL_VALUE, 0x80)
 pg_fields.checksum        = ProtoField.uint8 ("LOGOPG.checksum",        "Checksum XOR",   base.HEX)
-pg_fields.trailer         = ProtoField.uint8 ("LOGOPG.trailer",         "Trailer",        base.HEX, {[0xAA] = "End Delimiter"})
+pg_fields.trailer         = ProtoField.uint8 ("LOGOPG.trailer",         "Trailer",        base.HEX, TRAILER_CODES)
 
 
 --------------------------------------------------------------------------------
@@ -278,6 +282,7 @@ end
 function PacketHelper:set_number(param1, param2)
   dprint7("PacketHelper:set_number() function called, parameter:", type(param1), type(param2))
 
+  -- set the parameters according to the types
   local pinfo = nil
   if type(param1) == "userdata" then
     pinfo = param1
@@ -292,8 +297,9 @@ function PacketHelper:set_number(param1, param2)
   end
 
   -- simple type checking
-  if pinfo == nil and message_id == nil then return 0 end
-  if pinfo ~= nil and pinfo["number"] == nil then return 0 end
+  if (pinfo == nil and message_id == nil)
+  or (pinfo ~= nil and pinfo["number"] == nil)
+  then return 0 end
 
   if pinfo == nil then
     -- set current sequence number to message_id
@@ -346,6 +352,8 @@ end
 --
 -- The parameter "pinfo" is optional. If pinfo is specified and we have
 -- fragments for parameter pinfo, the function returned true, otherwise false.
+-- If pinfo isn't specified the function returns the same info for the current
+-- sequence number
 --------------------------------------------------------------------------------
 function PacketHelper:fragmented(pinfo)
   -- Check if there are any fragmentations for the sequence number of pinfo
@@ -384,8 +392,10 @@ function PacketHelper:desegment(tvb, pinfo)
   dprint7("PacketHelper:desegment() function called")
 
   -- simple type checking
-  if type(pinfo) ~= "userdata" or pinfo["number"] == nil then return 0 end
-  if type(tvb) ~= "userdata" then return 0 end
+  if type(tvb) ~= "userdata"
+  or type(pinfo) ~= "userdata"
+  or pinfo["number"] == nil
+  then return 0 end
 
   local buffer = tvb
   local message_id = self.message_counter
@@ -414,8 +424,10 @@ function PacketHelper:set_fragment(tvb, pinfo)
   dprint7("PacketHelper:set_fragment() function called, parameter:", type(tvb), type(pinfo))
 
   -- simple type checking
-  if type(pinfo) ~= "userdata" or pinfo["number"] == nil then return 0 end
-  if type(tvb) ~= "userdata" then return 0 end
+  if type(tvb) ~= "userdata"
+  or type(pinfo) ~= "userdata"
+  or pinfo["number"] == nil
+  then return 0 end
 
   local offset = pinfo.desegment_offset
   local length = pinfo.desegment_len
@@ -444,27 +456,8 @@ function PacketHelper:set_fragment(tvb, pinfo)
   return length
 end
 
+-- this holds our "helper"
 local packet_helper = nil
-
---------------------------------------------------------------------------------
--- We need initialization routine, to reset the var(s) whenever a capture
--- is restarted or a capture file loaded.
--- The vars would just be local to our whole script. That's why we need to
--- set or reset it, because Wireshark doesn't provide anything to do that for
--- us automatically
---------------------------------------------------------------------------------
-function LOGOPPI.init()
-  dprint7("PPI (re-)initialise")
-
-  -- PPI packet helper
-  packet_helper = PacketHelper.new()
-  
-  -- ADU header helper
-  transaction_id  = 0
-  trxn_id_table   = {}
-  ident_number    = default_settings.ident_number
-  address_len     = default_settings.address_len
-end
 
 -- this holds the plain "data" Dissector, in case we can't dissect it as LOGOPG
 local data = Dissector.get("data")
@@ -497,9 +490,11 @@ local lookup_function_code = {
         -- display data as tree info in wireshark
         local offset = pdu_header_len
         local datatree = tree:add(tvb(pdu_header_len, pdu_length - pdu_header_len - 1), "Data bytes")
-        datatree:add(tvb(offset, 4), string.format("Program Identifier: 0x%08x", tvb(offset, 4):uint()))
-        offset = offset + 4
-        local additional_bytes = tvb(offset, 1):uint()
+        datatree:add(tvb(offset,2), string.format("Program checksum: 0x%04x", tvb(offset,2):uint()))
+        offset = offset + 2
+        datatree:add(tvb(offset,2), string.format("Device Identifier: 0x%04x", tvb(offset,2):uint()))
+        offset = offset + 2
+        local additional_bytes = tvb(offset,1):uint()
         offset = offset + 1
   
         -- check if it is a Response of a 0ba6 or 0ba4/0ba5
@@ -507,10 +502,10 @@ local lookup_function_code = {
 
         -- block outputs
         local number_of_bits = address_len == 4 and 200 or 130
-        local bytes_consumed = address_len == 4 and 25 or 17
-        local subtree = datatree:add(tvb(offset, bytes_consumed), "Block outputs")
+        local bytes_to_consume = address_len == 4 and 25 or 17
+        local subtree = datatree:add(tvb(offset, bytes_to_consume), "Block outputs")
         local bit = 1
-        while bytes_consumed > 0 do
+        while bytes_to_consume > 0 do
           subtree:add(tvb(offset,1), string.format("B%03u-B%03u", bit+7 > number_of_bits and number_of_bits or bit+7, bit))
           subtree:add(pg_fields.bit0, tvb(offset,1))
           subtree:add(pg_fields.bit1, tvb(offset,1))
@@ -525,15 +520,15 @@ local lookup_function_code = {
             bit = bit + 6
           end
           offset = offset + 1
-          bytes_consumed = bytes_consumed - 1
+          bytes_to_consume = bytes_to_consume - 1
         end
   
         -- digital inputs
         number_of_bits = 24
-        bytes_consumed = 3
-        subtree = datatree:add(tvb(offset, bytes_consumed), "Digital inputs")
+        bytes_to_consume = 3
+        subtree = datatree:add(tvb(offset, bytes_to_consume), "Digital inputs")
         bit = 1
-        while bytes_consumed > 0 do
+        while bytes_to_consume > 0 do
           subtree:add(tvb(offset,1), string.format("I%02u-I%02u", bit+7, bit))
           subtree:add(pg_fields.bit0, tvb(offset,1))
           subtree:add(pg_fields.bit1, tvb(offset,1))
@@ -545,7 +540,7 @@ local lookup_function_code = {
           subtree:add(pg_fields.bit7, tvb(offset,1))
           bit = bit + 8
           offset = offset + 1
-          bytes_consumed = bytes_consumed - 1
+          bytes_to_consume = bytes_to_consume - 1
         end
         
         -- function keys
@@ -561,10 +556,10 @@ local lookup_function_code = {
   
         -- digital outputs
         number_of_bits = 16
-        bytes_consumed = 2
-        subtree = datatree:add(tvb(offset, bytes_consumed), "Digital outputs")
+        bytes_to_consume = 2
+        subtree = datatree:add(tvb(offset, bytes_to_consume), "Digital outputs")
         bit = 1
-        while bytes_consumed > 0 do
+        while bytes_to_consume > 0 do
           subtree:add(tvb(offset,1), string.format("Q%02u-Q%02u", bit+7, bit))
           subtree:add(pg_fields.bit0, tvb(offset,1))
           subtree:add(pg_fields.bit1, tvb(offset,1))
@@ -576,15 +571,15 @@ local lookup_function_code = {
           subtree:add(pg_fields.bit7, tvb(offset,1))
           bit = bit + 8
           offset = offset + 1
-          bytes_consumed = bytes_consumed - 1
+          bytes_to_consume = bytes_to_consume - 1
         end
         
         -- digital merkers
         number_of_bits = address_len == 4 and 27 or 24
-        bytes_consumed = address_len == 4 and 4 or 3
-        subtree = datatree:add(tvb(offset, bytes_consumed), "Digital merkers")
+        bytes_to_consume = address_len == 4 and 4 or 3
+        subtree = datatree:add(tvb(offset, bytes_to_consume), "Digital merkers")
         bit = 1
-        while bytes_consumed > 0 do
+        while bytes_to_consume > 0 do
           subtree:add(tvb(offset,1), string.format("M%02u-M%02u", bit+7 > number_of_bits and number_of_bits or bit+7, bit))
           subtree:add(pg_fields.bit0, tvb(offset,1))
           subtree:add(pg_fields.bit1, tvb(offset,1))
@@ -599,7 +594,7 @@ local lookup_function_code = {
             bit = bit + 5
           end
           offset = offset + 1
-          bytes_consumed = bytes_consumed - 1
+          bytes_to_consume = bytes_to_consume - 1
         end
         
         -- shift register
@@ -625,14 +620,14 @@ local lookup_function_code = {
         offset = offset + 1
   
         -- analog inputs
-        bytes_consumed = 16
-        subtree = datatree:add(tvb(offset,bytes_consumed), "Analog inputs")
+        bytes_to_consume = 16
+        subtree = datatree:add(tvb(offset,bytes_to_consume), "Analog inputs")
         local analog = 1
-        while bytes_consumed > 0 do
+        while bytes_to_consume > 0 do
           subtree:add(tvb(offset,2), string.format("AI%u: %d", analog, tvb(offset,2):le_int()))
           analog = analog + 1
           offset = offset + 2
-          bytes_consumed = bytes_consumed - 2
+          bytes_to_consume = bytes_to_consume - 2
         end
   
         -- analog outputs
@@ -643,14 +638,14 @@ local lookup_function_code = {
         offset = offset + 2
   
         -- analog merkers
-        bytes_consumed = 12
-        subtree = datatree:add(tvb(offset,bytes_consumed), "Analog merkers")
+        bytes_to_consume = 12
+        subtree = datatree:add(tvb(offset,bytes_to_consume), "Analog merkers")
         local analog = 1
-        while bytes_consumed > 0 do
+        while bytes_to_consume > 0 do
           subtree:add(tvb(offset,2), string.format("AM%u: %d", analog, tvb(offset,2):le_int()))
           analog = analog + 1
           offset = offset + 2
-          bytes_consumed = bytes_consumed - 2
+          bytes_to_consume = bytes_to_consume - 2
         end
   
         -- ... Extra Bytes + 
@@ -841,7 +836,8 @@ local lookup_ack_response = {
       local function_code = tvb(2,2):uint()
       -- Acknowledgement
       if function_code ~= 0x1111 then return 1 end
-      return lookup_function_code[function_code] and lookup_function_code[function_code].pdu_length(tvb) or 0
+      if lookup_function_code[function_code] == nil then return 0 end
+      return lookup_function_code[function_code].pdu_length(tvb)
     end,
     dissect = function(tvb, pinfo, tree)
       if tvb:len() < 4 then return 0 end
@@ -849,7 +845,8 @@ local lookup_ack_response = {
       local function_code = tvb(2,2):uint()
       -- Acknowledgement
       if function_code ~= 0x1111 then return 1 end
-      return lookup_function_code[function_code] and lookup_function_code[function_code].dissect(tvb, pinfo, tree) or 0
+      if lookup_function_code[function_code] == nil then return 0 end
+      return lookup_function_code[function_code].dissect(tvb, pinfo, tree)
     end
   },
 }
@@ -956,14 +953,16 @@ local lookup_message_type = {
       -- Confirmation Code + Response Code + ...
       if tvb:len() < 2 then return -1 end
       local response_code = tvb(1,1):uint()
-      return lookup_ack_response[response_code] and lookup_ack_response[response_code].pdu_length(tvb) or 1
+      if lookup_ack_response[response_code] == nil then return 1 end
+      return lookup_ack_response[response_code].pdu_length(tvb)
     end,
     dissect = function(tvb, pinfo, tree)
       -- Confirmation Code + Response Code + ...
       if tvb:len() < 2 then return 0 end
       tree:add(pg_fields.message_type, tvb(0,1))
       local response_code = tvb(1,1):uint()
-      return lookup_ack_response[response_code] and lookup_ack_response[response_code].dissect(tvb, pinfo, tree) or 1
+      if lookup_ack_response[response_code] == nil then return 1 end
+      return lookup_ack_response[response_code].dissect(tvb, pinfo, tree)
     end
   },
   [0x15] = {
@@ -1024,7 +1023,8 @@ local lookup_message_type = {
       local function_code = tvb(1,2):uint()
       -- Return 0 (error) if it is a Confirmation Response
       if function_code == 0x1111 then return 0 end
-      return lookup_function_code[function_code] and lookup_function_code[function_code].pdu_length(tvb) or 0
+      if lookup_function_code[function_code] == nil then return 0 end
+      return lookup_function_code[function_code].pdu_length(tvb)
     end, 
     dissect = function(tvb, pinfo, tree)
       -- Control Code + Function Code + ...
@@ -1033,7 +1033,8 @@ local lookup_message_type = {
       local function_code = tvb(1,2):uint()
       -- Return 0 (error) if it is a Confirmation Response
       if function_code == 0x1111 then return 0 end
-      return lookup_function_code[function_code] and lookup_function_code[function_code].dissect(tvb, pinfo, tree) or 0
+      if lookup_function_code[function_code] == nil then return 0 end
+      return lookup_function_code[function_code].dissect(tvb, pinfo, tree)
     end
   },
 }
@@ -1058,12 +1059,11 @@ local lookup_queries = {
 }
 
 --------------------------------------------------------------------------------
--- the following function returns the length of a PDU message
+-- The following function returns the length of a PDU message
 --
 -- This function returns the length of the PDU, or DESEGMENT_ONE_MORE_SEGMENT
 -- if the Tvb doesn't have enough information to get the length, or a 0 for error.
 local function get_pdu_length(tvb, pinfo, offset)
-
   dprint7("get_pdu_length() function called")
 
   local length = 0
@@ -1113,6 +1113,25 @@ local function get_pdu_length(tvb, pinfo, offset)
 end
 
 --------------------------------------------------------------------------------
+-- We need initialization routine, to reset the var(s) whenever a capture
+-- is restarted or a capture file loaded.
+-- The vars would just be local to our whole script. That's why we need to
+-- set or reset it, because Wireshark doesn't provide anything to do that for
+-- us automatically
+--------------------------------------------------------------------------------
+function LOGOPG.init()
+  dprint6("PG (re-)initialise")
+  
+  -- ADU header helper
+  transaction_id  = 0
+  trxn_id_table   = {}
+  ident_number    = default_settings.ident_number
+
+  -- PDU helper
+  address_len     = default_settings.address_len
+end
+
+--------------------------------------------------------------------------------
 -- The following creates the callback function for the PG dissector.
 --
 -- The 'tvb' contains the packet data, 'pinfo' is a packet info object,
@@ -1127,8 +1146,7 @@ end
 --    that belong to this protocol.
 --------------------------------------------------------------------------------
 function LOGOPG.dissector(tvb, pinfo, tree)
-
-  dprint6("PG Protocol dissector called, message id:", packet_helper.message_counter)
+  dprint6("PG Protocol dissector() called, message id:", packet_helper:get_number())
 
   -- "length" is the number of bytes remaining in the Tvb buffer
   local length = tvb:len()
@@ -1163,17 +1181,24 @@ function LOGOPG.dissector(tvb, pinfo, tree)
     -- so we return the length of the Tvb
     return length
   end
-
   -- if we got here, then we have a whole PDU in the Tvb buffer
+
+  -- 1) We start by setting our protocol name, info and tree
   -- set the protocol column to show our protocol name
   pinfo.cols.protocol = LOGOPG.name
 
-  -- We start by adding our protocol to the dissection display tree.
+  -- set the INFO column too, but only if we haven't already set it before for
+  -- this packet, because this function can be called multiple times per packet
+  local message_type = tvb(0,1):uint()
+  if string.find(tostring(pinfo.cols.info), "(0x%d%d)") == nil and MESSAGE_CODES[message_type] ~= nil then
+    pinfo.cols.info:set(string.format("%s (0x%02x)", MESSAGE_CODES[message_type], message_type))
+  end
+  -- add our protocol to the dissection display tree.
   local subtree = tree:add(LOGOPG)
 
-  -- Next, the ADU header will be displayed
-  -- 1) Transaction identifier
+  -- 2) Next, the ADU header will be displayed
 
+  -- 2a) Transaction identifier
   -- since the protocol has no transaction id, we need to generated our own identifier
   if not pinfo.visited and trxn_id_table[pinfo.number] == nil then
     -- if not already available, save the current identifier
@@ -1184,29 +1209,29 @@ function LOGOPG.dissector(tvb, pinfo, tree)
     transaction_id = trxn_id_table[pinfo.number]
   end
 
-  if pdu_length == 1 and length >= 4 and lookup_queries[tvb(0,4):uint()] then
-    -- new transaction id
+  if (pdu_length == 1 and length >= 4 and lookup_queries[tvb(0,4):uint()])
+  or (pdu_length >= 3 and length >= 3 and lookup_queries[tvb(0,3):uint()])
+  or (pdu_length == 1 and length >= 1 and lookup_queries[tvb(0,1):uint()])
+  then
+    -- query: direction DTE > DCE
+    pinfo.cols.src:set("DTE")
+    pinfo.cols.dst:set("DCE")
+    -- set new transaction id
     transaction_id = transaction_id + 1
-    subtree:add(pg_fields.transaction_id, transaction_id):set_generated()
-  elseif pdu_length >= 3 and length >= 3 and lookup_queries[tvb(0,3):uint()] then
-    -- new transaction id
-    transaction_id = transaction_id + 1
-    subtree:add(pg_fields.transaction_id, transaction_id):set_generated()
-  elseif pdu_length == 1 and length >= 1 and lookup_queries[tvb(0,1):uint()] then
-    -- new transaction id
-    transaction_id = transaction_id + 1
-    subtree:add(pg_fields.transaction_id, transaction_id):set_generated()
   else
-    -- display the current transaction id
-    subtree:add(pg_fields.transaction_id, transaction_id):set_generated()
+    -- response: direction DCE > DTE
+    pinfo.cols.src:set("DCE")
+    pinfo.cols.dst:set("DTE")
   end
+  -- display the current transaction id
+  subtree:add(pg_fields.transaction_id, transaction_id):set_generated()
 
-  -- 2) Unit identifier
+  -- 2b) Unit identifier
   if length >= 4 and address_len == 4 and tvb(0,3):uint() == 0x060321 then
     -- if we are here, then it is a Connection Response of a 0ba6
     ident_number = tvb(3,1):uint()
     subtree:add(pg_fields.unit_id, tvb(3,1))
-  elseif length >= 5 and tvb(0,4):uint() == 0x06031F02 then
+  elseif length >= 5 and tvb(0,4):uint() == 0x06031f02 then
     -- if we are here, then it is a Connection Response of a 0ba4 or 0ba5
     ident_number = tvb(4,1):uint()
     subtree:add(pg_fields.unit_id, tvb(4,1))
@@ -1214,19 +1239,31 @@ function LOGOPG.dissector(tvb, pinfo, tree)
     -- display the current ident number
     subtree:add(pg_fields.unit_id, ident_number):set_generated()
   end
-  -- 3) PDU Length
+  -- 2c) PDU Length
   subtree:add(pg_fields.pdu_length, pdu_length):set_generated()
 
-  -- Now, let's dissecting the PDU data
+  -- 3) Now, let's dissecting the PDU data
   local pdutree = subtree:add(tvb(), "Protocol Data Unit (PDU)")
-  local message_type = tvb(0,1):uint()
-  local offset = lookup_message_type[message_type] and lookup_message_type[message_type].dissect(tvb, pinfo, pdutree) or 0
+  local offset = 0
+  if lookup_message_type[message_type] ~= nil then
+    offset = lookup_message_type[message_type].dissect(tvb, pinfo, pdutree)
+  end
 
   -- if we got here, then we have only data bytes in the Tvb buffer
   data:call(tvb(offset, pdu_length - offset):tvb(), pinfo, subtree)
 
   -- we don't need more bytes, so we return the number of bytes of the PDU
   return pdu_length
+end
+
+--------------------------------------------------------------------------------
+-- We need initialization routine, to reset the var(s) whenever a capture
+-- is restarted or a capture file loaded.
+--------------------------------------------------------------------------------
+function LOGOPPI.init()
+  dprint6("PPI (re-)initialise")
+  -- PPI packet helper
+  packet_helper = PacketHelper.new()
 end
 
 --------------------------------------------------------------------------------
@@ -1242,8 +1279,7 @@ end
 -- call this function and pass it these arguments for the packet it's dissecting.
 --------------------------------------------------------------------------------
 function LOGOPPI.dissector(tvb, pinfo, root)
-
-  dprint7("PPI dissector called, length:", tvb:len())
+  dprint7("PPI dissector() called, length:", tvb:len())
 
   -- get the length of the packet tvb
   local length = tvb:len()
@@ -1271,6 +1307,7 @@ function LOGOPPI.dissector(tvb, pinfo, root)
   if packet_helper:fragmented() and packet_helper:more_fragment(pinfo) then
     -- From here we know that the frame is part of a PDU message (but not the last on).
     -- The tvb is a fragment of a PDU message, so display only the message fields and the data to the tree
+    pinfo.cols.info:set("Message Fragment")
     local subtree = root:add(LOGOPPI)
     flags = bit.bor(flags, FL_FRAGMENT)
     subtree:add(ppi_fields.sequence_number, packet_helper:get_number()):set_generated()
@@ -1359,7 +1396,7 @@ end
 --------------------------------------------------------------------------------
 -- We want to have our protocol dissection invoked for a specific USER,
 -- so get the wtap_encap dissector table and add our protocol to it.
-dprint7("Initialization of PPI protocol")
+dprint6("Initialization of PPI protocol")
 
 -- load the wtap_encap table
 local wtap_encap_table = DissectorTable.get("wtap_encap")
@@ -1393,7 +1430,7 @@ LOGOPPI.prefs.debug       = Pref.enum("Debug", default_settings.debug_level,
 --------------------------------------------------------------------------------
 -- the function for handling preferences being changed
 function LOGOPPI.prefs_changed()
-  dprint7("prefs_changed called")
+  dprint6("PPI prefs_changed() called")
 
   default_settings.value = LOGOPPI.prefs.value
   default_settings.subdissect = LOGOPPI.prefs.subdissect
