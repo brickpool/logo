@@ -27,6 +27,7 @@
 --  0.5   26.04.2018      dissection of function code 0x11 and 0x13
 --  0.5.1 27.04.2018      display src, dest and info
 --  0.5.2 27.04.2018      bug fixing 0x00 and 0x05, add checksum
+--  0.5.3 29.04.2018      bug fixing 0x05 and 0x06
 --
 -------------------------------------------------------------------------------
 
@@ -421,7 +422,7 @@ function PacketHelper:desegment(tvb, pinfo)
       dprint6("Read fragment ["..self.message_counter..":"..key.."]")
       reassembled = reassembled .. data
     end
-    -- We're going to our "dissect()" function with a composite buffer buffer
+    -- We're going to our "dissect()" function with a composite tvb buffer
     reassembled = reassembled .. tvb:bytes()
     buffer = reassembled:tvb("Reassembled")
   end
@@ -917,7 +918,7 @@ local lookup_message_type = {
       local pdu_header_len = 1 + address_len + 2
       if tvb:len() < pdu_header_len then return -1 end
       local number_of_bytes = tvb(1+address_len,2):le_uint()
-      -- Data Code + Address (16/32bit) + Byte Count (Little Endian) + Data + Checksum
+      -- Data Code + Address (16/32bit) + Byte Count (Little Endian) + Data Block + Checksum
       return 1 + address_len + 2 + number_of_bytes + 1
     end,
     dissect = function(tvb, pinfo, tree)
@@ -953,50 +954,60 @@ local lookup_message_type = {
   [0x05] = {
     -- Read Block
     pdu_length = function(tvb)
-      if tvb:len() < 2 then return -1 end
-      if tvb(0,2):uint() ~= 0x0506 then
-        -- Data Code + Address (16/32bit) + Byte Count
-        return 1 + address_len + 2
-      else
-        -- Data Code [+ Acknowledge Response] + Address (16/32bit) + Byte Count (Big-Endian)
-        local pdu_header_len = 1 + 1 + address_len + 2
-        if tvb:len() < pdu_header_len then return -1 end
-        local number_of_bytes = tvb(1+1+address_len,2):uint()
-        return 1 + 1 + address_len + 2 + number_of_bytes + 1
+      -- Data Code + Address (16/32bit) + Byte Count (Big-Endian)
+      local query_len = 1 + address_len + 2
+      if tvb:len() < query_len + 1 then return -1 end
+      local offset = 1 + address_len
+      if tvb(1,1):uint() == 0x06 then
+        -- Q:[Data Code] + R:[Acknowledge Response] + Q:[Address + Byte Count] + R:[Data Block + Checksum]
+        -- skip Acknowledge Response
+        offset = offset + 1
       end
+      local number_of_bytes = tvb(offset,2):uint()
+      -- Q:[Data Code + Address + Byte Count] + R:[Acknowledge Response + Data Block + Checksum]
+      local response_len = 1 + number_of_bytes + 1
+      return query_len + response_len
     end,
     dissect = function(tvb, pinfo, tree)
-      if tvb:len() < 2 then return 0 end
-      if tvb(0,2):uint() ~= 0x0506 then
-        -- Data Code + Address (16/32bit value Big-Endian) + Byte Count (Big-Endian)
-        local pdu_header_len = 1 + address_len + 2
-        if tvb:len() < pdu_header_len then return 0 end
-        tree:add(pg_fields.message_type, tvb(0,1))
-        tree:add(pg_fields.address, tvb(1,address_len))
-        tree:add(pg_fields.byte_count, tvb(1+address_len,2))
-        return pdu_header_len
+      -- Q:[Data Code + Address (16/32bit) + Byte Count (Big-Endian)]
+      local query_len = 1 + address_len + 2
+      if tvb:len() < query_len + 1 then return 0 end
+      local offset = 0
+      -- Q:[Data Code + ...
+      tree:add(pg_fields.message_type, tvb(offset,1))
+      offset = offset + 1
+      -- skip Acknowledge Response if present
+      if tvb(1,1):uint() == 0x06 then offset = offset + 1 end
+      -- ... Address (16/32bit) + ...
+      tree:add(pg_fields.address, tvb(offset,address_len))
+      offset = offset + address_len
+      -- ... Byte Count (Big-Endian)]
+      tree:add(pg_fields.byte_count, tvb(offset,2))
+      local number_of_bytes = tvb(offset,2):uint()
+      offset = offset + 2
+
+      -- R:[Acknowledge Response + Data Block + Checksum]
+      local response_len = 1 + number_of_bytes + 1
+      if tvb:len() < query_len + response_len then return offset end
+      -- R:[Acknowledge Response + ...
+      if tvb(1,1):uint() == 0x06 then
+        tree:add(pg_fields.message_type, tvb(1,1))
       else
-        -- Data Code [+ Acknowledge Response] + Address (16/32bit) + Byte Count (Big-Endian) + ...
-        local pdu_header_len = 1 + 1 + address_len + 2
-        if tvb:len() < pdu_header_len then return 0 end
-        tree:add(pg_fields.message_type, tvb(0,1))
-        tree:add(pg_fields.address, tvb(2,address_len))
-        local number_of_bytes = tvb(1+1+address_len,2):uint()
-        tree:add(pg_fields.byte_count, tvb(2+address_len,2))
-        local pdu_length = pdu_header_len + number_of_bytes + 1
-        if tvb:len() < pdu_length then return pdu_header_len end
-        -- ... Data + Checksum
-        tree:add(pg_fields.data, tvb(pdu_header_len, number_of_bytes))
-        local xor_byte = tvb(pdu_length-1, 1):uint()
-        local checksum = checkSum8Xor(tvb(pdu_header_len, number_of_bytes):bytes())
-        if xor_byte == checksum then
-          tree:add(pg_fields.checksum, tvb(pdu_length-1, 1), xor_byte, nil, "[correct]")
-        else
-          local incorrect = string.format("[incorrect, should be 0x%02x]", checksum)
-          tree:add(pg_fields.checksum, tvb(pdu_length-1, 1), xor_byte, nil, incorrect)
-        end
-        return pdu_length
+        tree:add(pg_fields.message_type, tvb(offset,1))
+        offset = offset + 1
       end
+      -- ... Data + Checksum]
+      tree:add(pg_fields.data, tvb(offset, number_of_bytes))
+      offset = offset + number_of_bytes
+      local xor_byte = tvb(offset, 1):uint()
+      local checksum = checkSum8Xor(tvb(query_len + 1, number_of_bytes):bytes())
+      if xor_byte == checksum then
+        tree:add(pg_fields.checksum, tvb(offset, 1), xor_byte, nil, "[correct]")
+      else
+        local incorrect = string.format("[incorrect, should be 0x%02x]", checksum)
+        tree:add(pg_fields.checksum, tvb(offset, 1), xor_byte, nil, incorrect)
+      end
+      return query_len + response_len
     end
   },
   [0x06] = {
@@ -1263,7 +1274,7 @@ function LOGOPG.dissector(tvb, pinfo, tree)
 
   if (pdu_length == 1 and length >= 4 and lookup_queries[tvb(0,4):uint()])
   or (pdu_length >= 3 and length >= 3 and lookup_queries[tvb(0,3):uint()])
-  or (pdu_length == 1 and length >= 1 and lookup_queries[tvb(0,1):uint()])
+  or (pdu_length >= 1 and length >= 1 and lookup_queries[tvb(0,1):uint()])
   then
     -- query: direction DTE > DCE
     pinfo.cols.src:set("DTE")
