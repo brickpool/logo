@@ -28,6 +28,7 @@
 --  0.5.1 27.04.2018      display src, dest and info
 --  0.5.2 27.04.2018      bug fixing 0x00 and 0x05, add checksum
 --  0.5.3 29.04.2018      bug fixing 0x05 and 0x06
+--  0.5.4 29.04.2018      bug fixing 0x04
 --
 -------------------------------------------------------------------------------
 
@@ -917,38 +918,57 @@ local lookup_message_type = {
       -- Data Code + Address (16/32bit) + Byte Count + ...
       local pdu_header_len = 1 + address_len + 2
       if tvb:len() < pdu_header_len then return -1 end
-      local number_of_bytes = tvb(1+address_len,2):le_uint()
-      -- Data Code + Address (16/32bit) + Byte Count (Little Endian) + Data Block + Checksum
-      return 1 + address_len + 2 + number_of_bytes + 1
+      local offset = 1 + address_len
+      if tvb(1,1):uint() == 0x06 then
+        -- Q:[Data Code] + R:[Acknowledge Response] + Q:[Address + Byte Count + Data Block + Checksum]
+        -- skip Acknowledge Response
+        offset = offset + 1
+      end
+      local number_of_bytes = tvb(offset, 2):uint()
+      -- Data Code + Address (16/32bit) + Byte Count (Little Endian) + Data Block + Checksum + Acknowledge Response
+      return 1 + address_len + 2 + number_of_bytes + 1 + 1
     end,
     dissect = function(tvb, pinfo, tree)
-      -- Data Code + Address (16/32bit value Big-Endian) + Byte Count (Little Endian) + ...
+      -- Data Code + Address (16/32bit value Big-Endian) + Byte Count (Little Endian)
       local pdu_header_len = 1 + address_len + 2
-      if tvb:len() < pdu_header_len then return 0 end
+      if tvb:len() < pdu_header_len + 1 then return 0 end
+      -- Data Code + ...
+      local offset = 0
+      tree:add(pg_fields.message_type, tvb(offset,1))
+      offset = offset + 1
+      -- if present skip Acknowledge Response
+      if tvb(1,1):uint() == 0x06 then offset = offset + 1 end
+      -- ... Address (16/32bit) + ...
+      tree:add(pg_fields.address, tvb(offset,address_len))
+      offset = offset + address_len
+      -- ... Byte Count (Big-Endian) + ...
+      tree:add(pg_fields.byte_count, tvb(offset,2))
+      local number_of_bytes = tvb(offset,2):uint()
+      offset = offset + 2
 
-      tree:add(pg_fields.message_type, tvb(0,1))
-      tree:add(pg_fields.address, tvb(1,address_len))
-      local number_of_bytes = tvb(1+address_len,2):le_uint()
-      tree:add_le(pg_fields.byte_count, tvb(1+address_len,2))
-
+      -- PDU Header + ...
       local pdu_length = pdu_header_len + number_of_bytes + 1
-      if tvb:len() < pdu_length then
-        -- ... Data(0..max_length)
-        data:call(tvb(pdu_header_len, tvb:len()-pdu_header_len):tvb(), pinfo, tree)
-        return tvb:len()
+      if tvb:len() < pdu_length + 1 then return offset end
+      -- ... Data + Checksum
+      tree:add(pg_fields.data, tvb(offset, number_of_bytes))
+      local checksum = checkSum8Xor(tvb(offset, number_of_bytes):bytes())
+      offset = offset + number_of_bytes
+      local xor_byte = tvb(offset, 1):uint()
+      if xor_byte == checksum then
+        tree:add(pg_fields.checksum, tvb(offset, 1), xor_byte, nil, "[correct]")
       else
-        -- ... Data + Checksum
-        tree:add(pg_fields.data, tvb(pdu_header_len, number_of_bytes))
-        local xor_byte = tvb(pdu_length-1, 1):uint()
-        local checksum = checkSum8Xor(tvb(pdu_header_len, number_of_bytes):bytes())
-        if xor_byte == checksum then
-          tree:add(pg_fields.checksum, tvb(pdu_length-1, 1), xor_byte, nil, "[correct]")
-        else
-          local incorrect = string.format("[incorrect, should be 0x%02x]", checksum)
-          tree:add(pg_fields.checksum, tvb(pdu_length-1, 1), xor_byte, nil, incorrect)
-        end
-        return pdu_length
+        local incorrect = string.format("[incorrect, should be 0x%02x]", checksum)
+        tree:add(pg_fields.checksum, tvb(offset, 1), xor_byte, nil, incorrect)
       end
+      offset = offset + 1
+
+      -- PDU + Acknowledge Response
+      if tvb(1,1):uint() == 0x06 then
+        tree:add(pg_fields.message_type, tvb(1,1))
+      else
+        tree:add(pg_fields.message_type, tvb(offset,1))
+      end
+      return pdu_length + 1
     end
   },
   [0x05] = {
@@ -976,7 +996,7 @@ local lookup_message_type = {
       -- Q:[Data Code + ...
       tree:add(pg_fields.message_type, tvb(offset,1))
       offset = offset + 1
-      -- skip Acknowledge Response if present
+      -- if present skip Acknowledge Response
       if tvb(1,1):uint() == 0x06 then offset = offset + 1 end
       -- ... Address (16/32bit) + ...
       tree:add(pg_fields.address, tvb(offset,address_len))
@@ -998,9 +1018,9 @@ local lookup_message_type = {
       end
       -- ... Data + Checksum]
       tree:add(pg_fields.data, tvb(offset, number_of_bytes))
+      local checksum = checkSum8Xor(tvb(offset, number_of_bytes):bytes())
       offset = offset + number_of_bytes
       local xor_byte = tvb(offset, 1):uint()
-      local checksum = checkSum8Xor(tvb(query_len + 1, number_of_bytes):bytes())
       if xor_byte == checksum then
         tree:add(pg_fields.checksum, tvb(offset, 1), xor_byte, nil, "[correct]")
       else
