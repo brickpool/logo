@@ -1,7 +1,7 @@
 # Undocumented LOGO! __0BA5__
 ## Aufbau, Funktionsweise und Programmierung
 
-Ausgabe Ao
+Ausgabe Ap
 
 April 2018
 
@@ -63,7 +63,8 @@ Einzelheiten zum _LOGO!_-Adresslayout finden Sie in den folgenden Veröffentlich
   * [Kapitel 5 - Sonstiger Speicher](#Kapitel5)
     * [Speicherbereich 1E00](#1E00)
     * [Speicherbereich 2000](#2000)
-    * [Speicherbereiche 0522, 055E-5F](#0522)
+    * [Speicherbereiche 0522](#0522)
+    * [Schaltprogramm Checksum](#055E)
     * [Erfassbare Daten](#erfassbare-daten)
   * [Anhang](#Anhang)
     * [0BA5 Ressourcen](#Ressourcen)
@@ -348,8 +349,8 @@ Das folgende Adresslayout ist ein Abbild des dekodierten Ladespeichers einer _LO
 |             | [0522](#0522)        | 1     | W |                                                        |
 |             | [0552](#0552)        | 1     |   | Displayinhalt nach Netz-Ein                            |
 | 05 53 00 05 | [0553](#0553) - 0558 | 5     |   | Einstellung des Analogausgangs im Betriebszustand _STOP_ |
-|             | [055E](#0522)        | 1     |   |                                                        |
-|             | [055F](#0522)        | 1     |   |                                                        |
+| 02 05 5E    | [055E](#055E)        | 1     |   | Schaltprogramm Checksum HiByte                         |
+| 02 05 5F    | [055F](#055E)        | 1     |   | Schaltprogramm Checksum LoByte                         |
 | 05 66 00 0A | 0566 - 0570 | 10    |   | Passwortspeicherbereich                                |
 | 05 70 00 10 | [0570](#0570) - 0580 | 16    |   | Programmname                                           |
 |             | 0580 - 05C0 | 64    |   | = 0 (64 = 0040h)                                       |
@@ -1006,7 +1007,8 @@ Befehl:
 send> 55 13 13 00 AA 
 recv< 06 
 recv< 55 11 11 40 00
-6D 0A 11 2A
+6D 0A
+11 2A
 00
 80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 52
 03 00 00 03 00 00 00 00
@@ -1449,7 +1451,7 @@ HEX | BIN       | RAM (Bytes) | Bezeichnung der Grundfunktion
 ## <a name="SF"></a>Sonderfunktionen - SF
 Sonderfunktionen sind ähnlich wir die Grundfunktionen im Speicher abgelegt. Neben den Verknüpfungseingängen beinhalten diese jedoch Zeitfunktionen, Remanenz und verschiedenste Parametriermöglichkeiten.
 
-### Format im Speicher
+### Darstellungsformat im Ladespeicher
 Die Formatlänge ist variabel und hat 8, 12, 20 oder 24 Bytes = 2 Bytes `<SF> <Pa>` + 4 bis 20 Bytes `<Daten>` + 2 Bytes `FF FF`.
 
 SF: Block, siehe Liste Sonderfunktionen<br />
@@ -1641,7 +1643,8 @@ Weitere Beispiele:
 send> 55 13 13 01 0D AA 
 recv< 06 
 recv< 55 11 11 44 00
-F4 5F 11 2A
+F4 5F
+11 2A
 04
 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00
@@ -1793,7 +1796,8 @@ Par: siehe Zeitverhalten
 send> 55 13 13 01 0A AA 
 recv< 06 
 recv< 55 11 11 46 00
-22 8D 11 2A
+22 8D
+11 2A
 06
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 50 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00
@@ -2095,7 +2099,8 @@ Par:
 send> 55 13 13 01 0A AA 
 recv< 06 
 recv< 55 11 11 4A 00
-3E C9 11 2A
+3E C9
+11 2A
 0A
 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
@@ -2189,7 +2194,7 @@ Par:
 
 ## <a name="SF39"></a>Analogwertüberwachung
 
-RAM/Rem/Online: 20/-
+RAM/Rem/Online: 20/-/?
 
 ### Darstellungsformat im Ladespeicher
 ```
@@ -2253,7 +2258,7 @@ send>
 recv< 00 00 00 00 00 00 00 00
 ```
 
-## <a name="0522"></a>Speicherbereiche 0522, 055E-5F
+## <a name="0522"></a>Speicherbereiche 0522
 
 AI7-> AM6-> AQ2 / AI2-> AM6-> AQ2
 
@@ -2262,21 +2267,50 @@ AI7-> AM6-> AQ2 / AI2-> AM6-> AQ2
 00 74 / 00 00
 ```
 
-055E
-```
-53 53 / 4E 4E
-```
-
-055F
-```
-09 09 / 09 09
-```
-
 ```
 74 = 0111 0100
-53 = 0101 0011
-4E = 0100 1110
-09 = 0000 1001
+```
+
+## <a name="055E"></a>Schaltprogramm Checksum
+
+Im Betriebszustand _RUN_ können mittels der _Online-Test_-Funktion aktuelle Werte ausgelesen werden. Bei der Übertragung wird eine Check-Summe mitgesendet, die mit den Werten von Adresse 055E-055F übereinstimmen muss. Sofern die Werte nicht identisch sind, stimmt das Schaltprogramm in der _LOGO!_ SPS nicht mit dem in _LOGO!Soft Comfort_ geladenen Schaltprogramm überein. Üblicherweise fordert _LOGO!Soft Comfort_ den Anwender auf, das Schaltprogramm zu aktualisieren. 
+
+### Darstellungsformat im Ladespeicher
+
+```
+send> 02 05 5E
+recv< 06 03 05 5E
+6D
+send> 02 05 5F
+recv< 06 03 05 5F
+0A
+```
+
+### Format im Online-Test
+
+```
+send> 55 13 13 01 0A AA 
+recv< 06 
+recv< 55 11 11 40 00
+6D 0A
+11 2A
+00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0C 00 00 00 00 00 00 00 00 00 00 0A 02 F1 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00
+AA
+
+55 11 11 40 00 6D 0A 11 2A 00
+55 [11 11] [40 00] [6D 0A] [11 2A] [00]
+Co [Fc   ] [Bc   ] [Crc  ] [     ] [Ex]
+```
+
+```
+Co: Kontrollbefehl = 55
+Fc: PG-Funktion = 1111
+Bc: 16bit-Wert; Anzahl Datenbytes (inkl. Extrabytes)
+Crc: Schaltprogramm Checksum; identisch mit den Werten an Speicheradresse 055E-055F
 ```
 
 ## Erfassbare Daten
