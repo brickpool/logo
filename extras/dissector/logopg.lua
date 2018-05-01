@@ -30,6 +30,7 @@
 --  0.5.3 29.04.2018      bug fixing 0x05 and 0x06
 --  0.5.4 29.04.2018      bug fixing 0x04
 --  0.5.5 30.04.2018      bitcount for data in function code 0x11
+--  0.5.6 01.05.2018      bug fixing
 --
 -------------------------------------------------------------------------------
 
@@ -167,6 +168,7 @@ local FUNCTION_CODES = {
   [0x1414] = "Stop Fetch Data",
   [0x1717] = "Operation Mode",
   [0x1818] = "Start Operating",
+  [0x1b1b] = "Diagnostic",
 }
 
 local LOGICAL_VALUE = {
@@ -536,9 +538,12 @@ local lookup_function_code = {
         local datatree = tree:add(tvb(pdu_header_len, pdu_length - pdu_header_len - 1), "Data bytes")
         datatree:add(tvb(offset,2), string.format("Program checksum: 0x%04x", tvb(offset,2):uint()))
         offset = offset + 2
-        datatree:add(tvb(offset,2), string.format("Device Identifier: 0x%04x", tvb(offset,2):uint()))
-        offset = offset + 2
+        datatree:add(tvb(offset,1), string.format("Block Length: %d", tvb(offset,1):uint()))
+        offset = offset + 1
+        datatree:add(tvb(offset,1), string.format("Constant Length: %d", tvb(offset,1):uint()))
+        offset = offset + 1
         local additional_bytes = tvb(offset,1):uint()
+        datatree:add(tvb(offset, 1), string.format("Additional Length: %d", additional_bytes))
         offset = offset + 1
   
         -- check if it is a Response of a 0ba6 or 0ba4/0ba5
@@ -721,12 +726,9 @@ local lookup_function_code = {
         end
   
         -- ... Extra Bytes + 
+        subtree = datatree:add(tvb(offset, additional_bytes), string.format("Additional bytes [%s]", FLAG_VALUE[flag]))
         if additional_bytes > 0 then
-          subtree = datatree:add(tvb(offset, additional_bytes), "Additional bytes")
           subtree:add(pg_fields.data, tvb(offset, additional_bytes))
-          subtree:add(tvb(pdu_header_len+4, 1), string.format("Length: %d", additional_bytes))
-        else
-          datatree:add(tvb(pdu_header_len+4, 1), string.format("Additional bytes: Null (%d)", additional_bytes))
         end
       end
 
@@ -827,16 +829,36 @@ local lookup_function_code = {
       return 4
     end
   },
+  [0x1b1b] = {
+    -- Diagnostic
+    pdu_length = function(...)
+      -- Control Code + Function Code + End Delimiter
+      return 4
+    end,
+    dissect = function(tvb, pinfo, tree)
+      -- Control Code + Function Code + End Delimiter
+      if tvb:len() < 4 then return 0 end
+      tree:add(pg_fields.function_code, tvb(1,2))
+      tree:add(pg_fields.trailer, tvb(3,1))
+      return 4
+    end
+  },
 }
 
+local lookup_message_type = {}
 local lookup_ack_response = {
   [0x01] = {
     -- Mode RUN
-    pdu_length = function(...)
+    pdu_length = function(tvb)
+      if tvb:len() < 3 then return 0 end
+      local next_message_code = tvb(2,1):uint()
+      if lookup_message_type[next_message_code] == nil then return 1 end
       return 2
     end,
     dissect = function(tvb, pinfo, tree)
-      if tvb:len() < 2 then return 0 end
+      if tvb:len() < 3 then return 0 end
+      local next_message_code = tvb(2,1):uint()
+      if lookup_message_type[next_message_code] == nil then return 1 end
       tree:add(pg_fields.response_code, tvb(1,1))
       return 2
     end
@@ -864,7 +886,7 @@ local lookup_ack_response = {
       -- check if it is a Connection Response of a 0ba6
       if tvb(2,1):uint() == 0x21 then
         tree:add(tvb(2,1), "Connection Response (0x21)")
-        tree:add(tvb(3,1), string.format("Unit identifierer: 0BA6 (0x%02x)", tvb(3,1):unit()))
+        tree:add(tvb(3,1), string.format("Unit identifierer: 0BA6 (0x%02x)", tvb(3,1):uint()))
         return 4
       else
         -- Confirmation Code + Data Response + Address (16/32bit) + ...
@@ -923,7 +945,7 @@ local lookup_ack_response = {
   },
 }
 
-local lookup_message_type = {
+lookup_message_type = {
   [0x00] = {
     -- No Operation
     pdu_length = function(...)
@@ -1180,6 +1202,7 @@ local lookup_message_type = {
 }
 
 local lookup_queries = {
+  [0x00] = true, -- No Operation
   -- Data Commands
   [0x01] = true, -- Write Byte
   [0x02] = true, -- Read Byte
@@ -1195,6 +1218,7 @@ local lookup_queries = {
   [0x551414] = true, -- Stop Fetch Data
   [0x551717] = true, -- Operation Mode
   [0x551818] = true, -- Start Operating
+  [0x551b1b] = true, -- Diagnostic
   [0x06065511] = true, -- Data Request (with Fetch Data Response)
 }
 
