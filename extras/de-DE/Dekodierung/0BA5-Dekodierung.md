@@ -1,9 +1,9 @@
 # Undocumented LOGO! __0BA5__
 ## Aufbau, Funktionsweise und Programmierung
 
-Ausgabe Ap
+Ausgabe Aq
 
-April 2018
+Mai 2018
 
 ## Vorwort
 Dieses Handbuch beschreibt die Interna einer _LOGO!_ Kleinsteuerung Version __0BA5__, um unter Nutzung der PG-Schnittstelle darauf zuzugreifen. Die PG-Schnittstelle verwendet hierzu ein nicht dokumentiertes Protokoll zum Programm laden, lesen und zur Diagnose. 
@@ -383,17 +383,19 @@ Das folgende Adresslayout ist ein Abbild des dekodierten Ladespeichers einer _LO
 ### Firmware
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
-|             | 1F00        | 1     |   |                                                        |
-|             | 1F01        | 1     |   |                                                        |
+| 02 1F 00    | 1F00        | 1     |   |                                                        |
+| 02 1F 01    | 1F01        | 1     |   |                                                        |
 | 02 1F 02    | [1F02](#1F02)        | 1     | R | Ident Nummer                                           |
-| 02 1F 03    | [1F03](#1F02) - 1F09 | 6     | R | Revision der Firmware                                  |
+| 02 1F 03    | [1F03](#1F02) - 1F08 | 5     | R | Revision der Firmware                                  |
 
 ### Systemfunktion Echtzeituhr, S/W
 | Beispiel    | Adresse     | Länge |   |                                                        |
 |-------------|-------------|-------|---|--------------------------------------------------------|
 |             | 4100        | 1     | W |                                                        |
-| 01 43 00 00 | [4300](#FB00)        | 1     | W | Werte speichern: RTC=00, S/W=01                        |
-| 01 44 00 00 | [4400](#FB00)        | 1     | W | Werte laden: RTC=00, S/W=01                            |
+| 01 43 00 00 | [4300](#FB00)        | 1     | W | Werte speichern: RTC=00                                |
+| 01 43 01 00 | [4301](#FB00)        | 1     | W | Werte speichern: S/W=00                                |
+| 01 44 00 00 | [4400](#FB00)        | 1     | W | Werte laden: RTC=00                                    |
+| 01 44 01 00 | [4400](#FB00)        | 1     | W | Werte laden: S/W=00                                    |
 
 ### Systemfunktion Passwort
 | Beispiel    | Adresse     | Länge |   |                                                        |
@@ -725,21 +727,36 @@ __Hinweis:__ _LOGO!_ prüft nicht, ob der Wochentag mit dem Datum übereinstimmt
 Im LOGO! kann eine automatische Sommer-/Winterzeitumstellung (S/W) aktivieren werden. Zusätzlich können Beginn und Ende der Sommerzeit parametrisiert werden. Entweder über vordefinierte Profile (EU, UK, US, AUS, AUS-TAS, NZ) und manuell. Die Profile haben einen Zeitunterscheid von 60 Minuten. Bei der manuellen Eingabe kann eine minutengenaue Angabe von bis zu 180 Minuten hinterlegt werden. 
 
 ### Übergabespeicher
-Die jeweilige Systemfunktion (SFC) für die Echtzeituhr und Sommer/Winterzeitumstellung wird über einen Schreibbefehl unter Angabe eines Parameters (1 Byte) auf eine vordefinierte Adresse (_PC->LOGO_: `4300`, _LOGO->PC_: `4400`) aufgerufen. Die Werte der Echtzeituhr bzw. die S/W-Parameter werden in einem dafür reservierten Speicherbereich zwischen dem Programmiergerät (_PG/PC_) und den internen _LOGO!_ Ressourcen ausgetauscht (sog. Übergabespeicher).
+Die jeweilige Systemfunktion (SFC) für die Echtzeituhr und Sommer/Winterzeitumstellung wird über einen Schreibbefehl unter Angabe eines Parameters (1 Byte) auf eine vordefinierte Adresse (_PC->LOGO_: `4300`,`4301` / _LOGO->PC_: `4400`,`4401`) aufgerufen. Die Werte der Echtzeituhr bzw. die S/W-Parameter werden in einem dafür reservierten Speicherbereich zwischen dem Programmiergerät (_PG/PC_) und den internen _LOGO!_ Ressourcen ausgetauscht (sog. Übergabespeicher).
 
 Speicherbereich: `FB00`, 6*1 Byte
 
-Adresse | RTC-Wert      | S/W-Wert
---------|---------------|---------
-FB00    | Tag           | ?
-FB01    | Monat         | ?
-FB02    | Jahr          | ?
-FB03    | Minuten       | ?
-FB04    | Stunden       | ?
-FB05    | Wochentag \*) | ?
+Adresse | RTC-Wert       | S/W-Wert
+--------|----------------|-----------------
+FB00    | Tag            | Länderauswahl \*)
+FB01    | Monat          | Ende Monat
+FB02    | Jahr           | Ende Tag
+FB03    | Minuten        | Beginn Monat
+FB04    | Stunden        | Beginn Tag
+FB05    | Wochentag \**) | Zeitverschiebung
 >Tab: Übergabespeicher von Echtzeituhr und Sommer/Winterzeitumstellung
 
-\*) 1=Sonntag, 7=Samstag
+\*) 0=deaktiviert<br />
+\**) 1=Sonntag, 7=Samstag
+
+Wert | Länderauswahl
+-----|-----------------------------------
+00   | deaktiviert
+01   | EU: Europäische Union
+02   | UK: Großbritannien und Nordirland
+03   | US: Vereinigte Staaten von Amerika
+04   | Frei einstellbar \*)
+05   | AUS: Australien
+06   | AUS-TAS: Tasmanien
+07   | NZ: Neuseeland
+>Tab: Übergabespeicher FB00, Länderauswahl 
+
+\*) `FB01..FB05` hat benutzerdefinierte Daten und Uhrzeiten für die Umstellung
 
 ### Echtzeituhr auslesen (LOGO->PC)
 Die Systemfunktion _Echtzeituhr lesen_ (Byte `00` an Adresse `4400` schreiben) liest die aktuelle Uhrzeit und das aktuelle Datum aus der Hardware-Uhr und lädt die Werte in einen 6-Byte-Übergabespeicher, welcher an Adresse `FB00` beginnt.
@@ -759,7 +776,17 @@ Die Systemfunktion _Echtzeituhr setzen_ (Byte `00` an Adresse `4300` schreiben) 
 
 Befehlsfolge:
 ```
-send> 01 FB XX YY     // XX = [00-05], YY = Wert
+send> 01 FB 00 01     // Tag = 01
+recv< 06              // OK
+send> 01 FB 01 02     // Monat = 02 (Februar)
+recv< 06              // OK
+send> 01 FB 02 12     // Jahr = 18 (2018)
+recv< 06              // OK
+send> 01 FB 03 1E     // Minuten = 30
+recv< 06              // OK
+send> 01 FB 04 0C     // Stunden = 12
+recv< 06              // OK
+send> 01 FB 05 01     // Wochentag = 01 (Sonntag)
 recv< 06              // OK
 send> 01 43 00 00     // Werte in Echtzeituhr übernehmen
 recv< 06              // OK
@@ -768,17 +795,36 @@ recv< 06              // OK
 __Hinweis:__ Der Befehl ist nicht erfolgreich, sofern _LOGO!_ nicht mit einer Echtzeituhr ausgestattet ist (6ED1052-xCC00-0BA5).
 
 ### Sommer-/Winterzeitumstellung auslesen (LOGO->PC)
-Die Systemfunktion _S/W-Umstellung lesen_  (Byte `01` an Adresse `4400` schreiben) liest die Werte für die Sommer-/Winterzeitumstellung aus der Hardware-Uhr und lädt diese in den Übergabespeicher (Adresse `FB00..FB05`).
+Die Systemfunktion _S/W-Umstellung lesen_  (Byte `00` an Adresse `4401` schreiben) liest die Werte für die Sommer-/Winterzeitumstellung aus der Hardware-Uhr und lädt diese in den Übergabespeicher (Adresse `FB00..FB05`).
 
 Befehlsfolge:
 ```
-send> 01 44 00 01     // Parameter S/W-Umstellung laden
+send> 01 44 01 00     // Parameter S/W-Umstellung laden
 recv< 06              // OK
 send> 02 FB XX        // XX = [00-05]
 recv< 06 03 FB XX YY  // YY = Wert
 ```
 
-__Hinweis:__ Der Befehl ist nicht erfolgreich, sofern _LOGO!_ nicht mit einer Echtzeituhr ausgestattet ist (`6ED1052-xCC00-0BA5`).
+### Sommer-/Winterzeitumstellung setzen (PC->LOGO)
+Die Systemfunktion _S/W-Umstellung setzen_ (Byte `00` an Adresse `4301` schreiben) schreibt die Werte für die Sommer-/Winterzeitumstellung der Hardware-Uhr in den 6-Byte-Übergabespeicher (Adresse `FB00..FB05`).
+
+Befehlsfolge:
+```
+send> 01 FB 00 04     // 04 = Frei einstellbar
+recv< 06              // OK
+send> 01 FB 01 0A     // Sommerzeit Ende Monat = 10 (Oktober)
+recv< 06              // OK
+send> 01 FB 02 19     // Sommerzeit Ende Tag = 25
+recv< 06              // OK
+send> 01 FB 03 03     // Sommerzeit Anfang Monat = 03 (März)
+recv< 06              // OK
+send> 01 FB 04 05     // Sommerzeit Anfang Tag = 05
+recv< 06              // OK
+send> 01 FB 04 3C     // Zeitverschiebung 60 Minuten
+recv< 06              // OK
+send> 01 43 01 00     // Parameter S/W-Umstellung übernehmen
+recv< 06              // OK
+```
 
 ----------
 
@@ -986,7 +1032,7 @@ Darstellungsformat:
 `X<n>a X<n>b`: _n_ = Element 1-16
 
 ## Format im Online-Test
-Die Zustände der Klemmen Eingänge _I1_ bis _I24_, Ausgänge _Q1_ bis _Q16_, _AQ1_ und _AQ2_, Merker _M1_ bis _M24_ und _AM1_ bis _AM6_ können im Betriebszustand _RUN_ über die PG-Schnittstelle ausgelesen werden. 
+Die Zustände der Klemmen - Eingänge _I1_ bis _I24_, Ausgänge _Q1_ bis _Q16_, _AQ1_ und _AQ2_, Merker _M1_ bis _M24_ und _AM1_ bis _AM6_ - können im Betriebszustand _RUN_ über die PG-Schnittstelle ausgelesen werden. 
 
 Beispielschaltprogramm:
 ```
@@ -1008,7 +1054,8 @@ send> 55 13 13 00 AA
 recv< 06 
 recv< 55 11 11 40 00
 6D 0A
-11 2A
+11
+2A
 00
 80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 52
 03 00 00 03 00 00 00 00
@@ -1654,8 +1701,8 @@ F4 5F
 AA 
 
 55 11 11 44 00 F4 5F 11 2A 04
-55 [11 11] [44 00] [F4 5F] [11 2A] [04]
-Co [Fc   ] [Bc   ] [     ] [     ] [Ex]
+55 [11 11] [44 00] [F4 5F] 11 2A 04
+Co [Fc   ] [Bc   ] [Chk  ] C1 C2 C3
 -----------------------------------
 01 00 0B 80 AA
 01 00 [0B 80] AA
@@ -1672,7 +1719,10 @@ Bc: 16bit-Wert; Anzahl Datenbytes (inkl. Extrabytes)
   B1 B2
   00 4A = 74 (DEC)
 
-Ex: Anzahl Extrabytes
+Chk: Schaltprogramm Checksum
+C1: Anzahl Bytes für Blöcke
+C2: Anzahl Bytes für Klemmen
+C3: Anzahl Extrabytes
 Pa: Funktionsbeschreibung Ta
     Pa = 0; Ta stop; Ta = 0 (Standard)
     Pa = 1: Ta läuft; Ta < T
@@ -1699,7 +1749,9 @@ Abfrage von Block B004:
 send> 55 13 13 01 0D AA 
 recv< 06 
 recv< 55 11 11 44 00
-F4 5F 11 2A
+F4 5F
+11
+2A
 04
 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00
@@ -1713,10 +1765,11 @@ Auswertung:
 ```
 55 11 11    // Kontrollbefehl; Antwort Online-Test
 44 00       // 68 Bytes folgen (exkl. AA)
-F4 5F       // Prüfsumme ??
-11 2A       // ??
+F4 5F       // Schaltprogramm Prüfsumme
+11          // 17 Bytes für Blöcke im Datenfeld
+2A          // 42 Bytes für Klemmen im Datenfeld
 04          // 4 Extra Bytes im Datenfeld
-04 00....00 // I,M,Q,C,S,AI,AM,AQ
+04 00....00 // B,I,M,Q,C,S,AI,AM,AQ (17+42 Bytes)
 01          // Ta läuft; Ta < T
 00          // VB = 0
 0B 80       // Ta = 11s; Zeitbasis (m:s)
@@ -1807,8 +1860,8 @@ recv< 55 11 11 46 00
 AA
 
 55 11 11 46 00 22 8D 11 2A 06
-55 [11 11] [4A 00] [22 8D] [11 2A] [06]
-Co [Fc   ] [Bc   ] [     ] [     ] [Ex]
+55 [11 11] [4A 00] [22 8D] 11 2A 06
+Co [Fc   ] [Bc   ] [Chk  ] C1 C2 C3
 -----------------------------------
 04 00 00 00 01 80 AA
 04 00 00 00 [01 80] AA
@@ -1825,7 +1878,10 @@ Bc: 16bit-Wert; Anzahl Datenbytes (inkl. Extrabytes)
   B1 B2
   00 4A = 74 (DEC)
 
-Ex: Anzahl Extrabytes
+Chk: Schaltprogramm Checksum
+C1: Anzahl Bytes für Blöcke
+C2: Anzahl Bytes für Klemmen
+C3: Anzahl Extrabytes
 Pa: Funktionsbeschreibung Ta
     Pa = 0; Ta stop; Ta = 0 (Standard)
     Pa = 2: Ta stop; Ta = TH
@@ -1841,10 +1897,11 @@ Auswertung:
 ```
 55 11 11    // Kontrollbefehl; Antwort Online-Test
 46 00       // 70 Bytes folgen (exkl. AA)
-22 8D       // Prüfsumme ??
-11 2A       // ??
+22 8D       // Schaltprogramm Prüfsumme
+11          // 17 Bytes für Blöcke im Datenfeld
+2A          // 42 Bytes für Klemmen im Datenfeld
 06          // 6 Extra Bytes im Datenfeld
-00 00....00 // I,M,Q,C,S,AI,AM,AQ
+00 00....00 // B,I,M,Q,C,S,AI,AM,AQ (17+42 Bytes)
 04          // Ta läuft; Ta < TH
 00 00 00    // VB = 0; VW = 0;
 01 80       // Ta = 1s; Zeitbasis (m:s)
@@ -2110,8 +2167,8 @@ recv< 55 11 11 4A 00
 AA 
 
 55 11 11 4A 00 3E C9 11 2A 0A
-55 [11 11] [4A 00] [3E C9] [11 2A] [0A]
-Co [Fc   ] [Bc   ] [     ] [     ] [Ex]
+55 [11 11] [4A 00] [3E C9] 11 2A 0A
+Co [Fc   ] [Bc   ] [Chk  ] C1 C2 C3
 -----------------------------------
 03 00 00 00 02 00 00 00 00 00 AA
 [03 00 00 00] [02] 00 00 00 00 00 AA
@@ -2128,7 +2185,10 @@ Bc: 16bit-Wert; Anzahl Datenbytes (inkl. Extrabytes)
   B1 B2
   00 4A = 74 (DEC)
 
-Ex: Anzahl Extrabytes
+Chk: Schaltprogramm Checksum
+C1: Anzahl Bytes für Blöcke
+C2: Anzahl Bytes für Klemmen
+C3: Anzahl Extrabytes
 Cv: 32bit-Wert; Aktueller Zählerstand
   C1 C2 C3 C4
       \ /
@@ -2150,10 +2210,11 @@ Auswertung:
 ```
 55 11 11    // Kontrollbefehl; Antwort Online-Test
 4A 00       // 74 Bytes folgen (excl. AA)
-3E C9       // Prüfsumme ??
-11 2A       // ??
+3E C9       // Schaltprogramm Prüfsumme
+11          // 17 Bytes für Blöcke im Datenfeld
+2A          // 42 Bytes für Klemmen im Datenfeld
 0A          // 10 Extra Bytes im Datenfeld
-01 00....00 // I,M,Q,C,S,AI,AM,AQ
+01 00....00 // B,I,M,Q,C,S,AI,AM,AQ (17+42 Bytes)
 03 00 00 00 // akt. Zählerstand Cv = 3
 02          // Ausgang Q = 1; Eingang Cnt = 0
 00 00 00 00 // VD = 0; ??
@@ -2302,15 +2363,18 @@ recv< 55 11 11 40 00
 AA
 
 55 11 11 40 00 6D 0A 11 2A 00
-55 [11 11] [40 00] [6D 0A] [11 2A] [00]
-Co [Fc   ] [Bc   ] [Crc  ] [     ] [Ex]
+55 [11 11] [40 00] [6D 0A] 11 2A 00
+Co [Fc   ] [Bc   ] [Chk  ] C1 C2 C3
 ```
 
 ```
 Co: Kontrollbefehl = 55
 Fc: PG-Funktion = 1111
 Bc: 16bit-Wert; Anzahl Datenbytes (inkl. Extrabytes)
-Crc: Schaltprogramm Checksum; identisch mit den Werten an Speicheradresse 055E-055F
+Chk: Schaltprogramm Checksum; identisch mit den Werten an Speicheradresse 055E-055F
+C1: Anzahl Bytes für Blöcke
+C2: Anzahl Bytes für Klemmen
+C3: Anzahl Extrabytes
 ```
 
 ## Erfassbare Daten
