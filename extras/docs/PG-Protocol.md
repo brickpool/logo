@@ -54,7 +54,7 @@ Refer to the following publication for details about the RS232 specifications an
     * [Stop Fetch Data `14`](#stop-fetch-data-14)
     * [Operating Mode `17`](#operating-mode-17)
     * [Start Operating `18`](#start-operating-18)
-    * [Diagnostic `1b`](#disgnostic-1b)
+    * [Diagnostic `1b`](#diagnostic-1b)
   * [Chapter 4 - Tool Commands](#chapter-4---tool-commands)
     * [Message Frame](#message-frame-2)
     * [Tool Commands Supported by LOGO](#tool-commands-supported-by-logo)
@@ -563,7 +563,7 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `40 00` | Number of bytes 64 (dec)
-Data | `7f 66` `11 2a` `00` `80 01 10 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `7f 66` `11 2a 00` `80 01 10 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 a8` `00 00 00` `00 00` `00 00 00` `00` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
@@ -577,7 +577,7 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `40 00` | Number of bytes 64 (dec)
-Data | `35 08` `11 2a` `00` `00 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `35 08` `11 2a 00` `00 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 0C` `09 00 00` `01 00` `00 00 00` `00` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
@@ -591,7 +591,7 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `44 00` | Number of bytes 68 (dec)
-Data | `f4 5f` `11 2a` `04` `04 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `f4 5f` `11 2a 04` `04 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 00` `00 00 00` `00 00` `00 00 00` `01` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
@@ -606,7 +606,7 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `4a 00` | Number of bytes 74 (dec)
-Data | `b7 c4` `19 2c` `00` `10 84 6b 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `b7 c4` `19 2c 00` `10 84 6b 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00` `00 00` | Data Block 10-1f
 Data | `00` `00` `00 00` `00 00 00 00` `00` `00` `00 00 00 00` `00 00`| Data Block 20-2f
 Data | `00 00 00 00 00 00 00 00 00 00` `00 00 00 00` `00 00` | Data Block 30-3f
