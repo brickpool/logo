@@ -1,8 +1,8 @@
 # LOGO! PG Protocol Reference Guide
 
-Rev. Bw
+Rev. Bx
 
-April 2018
+Mai 2018
 
 ## Preface
 This guide is written for persons who will communicate with a Siemens (TM) _LOGO!_ __0BA4__, __0BA5__ or __0BA6__ using the PG Interface. The PG Interface used an undocumented protocol for program loading, diagnostics, etc. which is referred to here as PG protocol. This guide describes how messages are constructed, and how transactions take place by using the PG protocol. 
@@ -54,6 +54,7 @@ Refer to the following publication for details about the RS232 specifications an
     * [Stop Fetch Data `14`](#stop-fetch-data-14)
     * [Operating Mode `17`](#operating-mode-17)
     * [Start Operating `18`](#start-operating-18)
+    * [Diagnostic `1b`](#disgnostic-1b)
   * [Chapter 4 - Tool Commands](#chapter-4---tool-commands)
     * [Message Frame](#message-frame-2)
     * [Tool Commands Supported by LOGO](#tool-commands-supported-by-logo)
@@ -454,6 +455,7 @@ Function | Name | __0BA4__ | __0BA5__ | __0BA6__
 `14` | Stop Fetch Data | ? | Y | Y
 `17` | Operation Mode | Y | Y | Y
 `18` | Start Operating | Y | Y | Y
+`1b` | Diagnostic | N | N | N
 
 ## Stop Operating `12`
 
@@ -561,7 +563,7 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `40 00` | Number of bytes 64 (dec)
-Data | `7f 66 11 2a` `00` `80 01 10 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `7f 66` `11 2a` `00` `80 01 10 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 a8` `00 00 00` `00 00` `00 00 00` `00` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
@@ -575,7 +577,7 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `40 00` | Number of bytes 64 (dec)
-Data | `35 08 11 2a` `00` `00 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `35 08` `11 2a` `00` `00 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 0C` `09 00 00` `01 00` `00 00 00` `00` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
@@ -589,7 +591,7 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `44 00` | Number of bytes 68 (dec)
-Data | `f4 5f 11 2a` `04` `04 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `f4 5f` `11 2a` `04` `04 00 00 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 00` `00 00 00` `00 00` `00 00 00` `01` `00` | Data Block 10-1f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 20-2f
 Data | `00 00 00 00` `00 00 00 00 00 00 00 00 00 00 00 00` | Data Block 30-3f
@@ -604,7 +606,7 @@ Confirmation | `06` | Acknowledgment
 Command | `55` | Control
 Function | `11 11` | Data Response
 Byte Count | `4a 00` | Number of bytes 74 (dec)
-Data | `b7 c4 19 2c` `00` `10 84 6b 00 00 00 00 00 00 00 00` | Data Block 00-0f
+Data | `b7 c4` `19 2c` `00` `10 84 6b 00 00 00 00 00 00 00 00` | Data Block 00-0f
 Data | `00 00 00 00 00 00 00 00 00 00 00 00 00 00` `00 00` | Data Block 10-1f
 Data | `00` `00` `00 00` `00 00 00 00` `00` `00` `00 00 00 00` `00 00`| Data Block 20-2f
 Data | `00 00 00 00 00 00 00 00 00 00` `00 00 00 00` `00 00` | Data Block 30-3f
@@ -688,6 +690,8 @@ Field Name | Code \(hex\) | Meaning
 Command | `06` | Acknowledgment
 >Figure Example _Start Operating_ Response
 
+## Diagnostic `1b`
+Diagnostic is only supportet by _LOGO!_ 0BA7 and above.
 
 ----------
 
@@ -709,6 +713,21 @@ Code | Name | __0BA4__ | __0BA5__ | __0BA6__
 
 ## Clear Program `20`
 This command allows you to clear the circuit program in the connected _LOGO!_ device and the program password if a password exists. The circuit program and password (if configured) remain in the _LOGO!_ device. _LOGO!_ devices prior to version __0BA6__ do not support this function. 
+
+Here is an example of a request to read the current _Clear Program_:
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Command | `20` | Control
+>Figure Example _Clear Program_ Query
+
+Here is an example of a response to the query above:
+
+Field Name | Code \(hex\) | Meaning
+--- | --- | ---
+Confirmation Code | `06` | Acknowledgment
+Data | `20` | Current Operating Mode is EDIT
+>Figure Example _Acknowledge_ Response
 
 ## Connection Request `21`
 Send to _LOGO!_ a _Connection Request_ `21`:
@@ -831,8 +850,8 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 --          | --  | --  | --  | --
 0553 - 0557 | 5   |     | Analog output in mode _STOP_ | `05 05 53 00 05`
 --          | --  | --  | --  | --
-055E        | 1   | W   |     | `02 05 5E`
-055F        | 1   | W   |     | `02 05 5F`
+055E        | 1   | W   | Program Checksum Hi-Byte | `02 05 5E`
+055F        | 1   | W   | Program Checksum Lo-Byte | `02 05 5F`
 --          | --  | --  | --  | --
 0566 - 056F | 10  |     | Password memory area | `05 05 66 00 0A`
 0570 - 057F | 16  |     | Program Name | `05 05 70 00 10`
@@ -852,11 +871,15 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 --          | --  | --  | --  | --
 4100        | 1   | W   |     | `01 41 00 00`
 --          | --  | --  | --  | --
-4300        | 1   | W   | Write RTC (DT = `00`, SW = `01`) | `01 43 00 00`
+4300        | 1   | W   | Write RTC DT = `00` | `01 43 00 00`
+4301        | 1   | W   | Write RTC S/W = `00` | `01 43 01 00`
 --          | --  | --  | --  | --
-4400        | 1   | W   | Load RTC (DT = `00`, SW = `01`) | `01 44 00 00`
+4400        | 1   | W   | Load RTC DT = `00` | `01 44 00 00`
+4401        | 1   | W   | Load RTC S/W = `00` | `01 44 01 00`
 --          | --  | --  | --  | --
 4740        | 1   | W   | Password R/W initialization; Data Byte = `00` | `01 47 40 00`
+--          | --  | --  | --  | --
+4800        | 1   | W   |     | `01 48 00 00`
 --          | --  | --  | --  | --
 48FF        | 1   | W   | Password set? yes = `40`; no = `00` | `02 48 FF`
 --          | --  | --  | --  | --
@@ -864,7 +887,7 @@ Base Address | Byte Count (dec) | Access | Meaning | Example
 1F01        | 1   |     |     | `02 1F 01`
 1F02        | 1   | R   | Ident Number | `02 1F 02`
 1F03        | 1   |     | Version character = `V`| `02 1F 03`
-1F04 - 1F09 | 6   |     | Firmware | `02 1F 04` `..`
+1F04 - 1F08 | 5   |     | Firmware | `02 1F 04` `..`
 --          | --  | --  | --  | --
 FB00 - FB05 | 6   | W   | Clock memory area | `01 FB 00 03` `..`
 
@@ -927,7 +950,7 @@ Command | Description | Query | Response
 `15` | Exception Response | N | 2
 `17` | Operating Mode | 4 | 2
 `18` | Start Operating | 4 | 1
-`20` | Clear Program | 1 | 1
+`20` | Clear Program | 1 | 2
 `21` | Connection Request | 1 | 6
 `22` | Restart | 1 | 1
 >Figure Maximum Q/R Parameters __0BA6__
