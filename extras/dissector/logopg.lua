@@ -30,7 +30,7 @@
 --  0.5.3 29.04.2018      bug fixing 0x05 and 0x06
 --  0.5.4 29.04.2018      bug fixing 0x04
 --  0.5.5 30.04.2018      bitcount for data in function code 0x11
---  0.5.6 01.05.2018      bug fixing
+--  0.5.6 01-02.05.2018   bug fixing
 --
 -------------------------------------------------------------------------------
 
@@ -726,6 +726,7 @@ local lookup_function_code = {
         end
   
         -- ... Extra Bytes + 
+		flag = additional_bytes > 0 and 1 or 0
         subtree = datatree:add(tvb(offset, additional_bytes), string.format("Additional bytes [%s]", FLAG_VALUE[flag]))
         if additional_bytes > 0 then
           subtree:add(pg_fields.data, tvb(offset, additional_bytes))
