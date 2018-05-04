@@ -513,11 +513,11 @@ local lookup_function_code = {
     -- Fetch Data Response
     pdu_length = function(tvb)
       if tvb:len() < 5 then return -1 end
-      -- Confirmation Code + Control Code + Function Code + Byte Count + Data + End Delimiter
+      -- Confirmation Code + Control Code + Function Code + Byte Count (16bit Little Endian) + Data + End Delimiter
       return 1 + 1 + 2 + 2 + tvb(4,2):le_uint() + 1
     end,
     dissect = function(tvb, pinfo, tree)
-      -- Header: Confirmation Code + Control Code + Function Code + Byte Count + ...
+      -- Header: Confirmation Code + Control Code + Function Code + Byte Count (16bit Little Endian) + ...
       local pdu_header_len = 1 + 1 + 2 + 2
       if tvb:len() < pdu_header_len then return 0 end
       tree:add(pg_fields.response_code, tvb(1,1))
@@ -538,7 +538,8 @@ local lookup_function_code = {
         local datatree = tree:add(tvb(pdu_header_len, pdu_length - pdu_header_len - 1), "Data bytes")
         datatree:add(tvb(offset,2), string.format("Program checksum: 0x%04x", tvb(offset,2):uint()))
         offset = offset + 2
-        datatree:add(tvb(offset,1), string.format("Block Length: %d", tvb(offset,1):uint()))
+        local block_length = tvb(offset,1):uint()
+        datatree:add(tvb(offset,1), string.format("Block Length: %d", block_length))
         offset = offset + 1
         datatree:add(tvb(offset,1), string.format("Constant Length: %d", tvb(offset,1):uint()))
         offset = offset + 1
@@ -547,7 +548,10 @@ local lookup_function_code = {
         offset = offset + 1
   
         -- check if it is a Response of a 0ba6 or 0ba4/0ba5
-        address_len = (number_of_bytes - additional_bytes) > 64 and 4 or 2
+        local end_delimiter = tvb(pdu_length-1, 1):uint()
+        if end_delimiter == 0xAA then
+          address_len = block_length > 17 and 4 or 2
+        end
 
         -- block outputs
         local number_of_bits = address_len == 4 and 200 or 130
@@ -675,7 +679,7 @@ local lookup_function_code = {
         subtree:add(pg_fields.bit3, tvb(offset,1))
         offset = offset + 1
   
-        -- analog inputs
+        -- analog inputs (16bit Little Endian)
         bytes_to_consume = 16
 		local flag = 0
 		for i = offset, offset+bytes_to_consume-1 do
@@ -693,7 +697,7 @@ local lookup_function_code = {
           bytes_to_consume = bytes_to_consume - 2
         end
   
-        -- analog outputs
+        -- analog outputs (16bit Little Endian)
 		flag = 0
 		for i = offset, offset+4-1 do
 		  if tvb(i,1):uint() ~= 0 then
@@ -707,7 +711,7 @@ local lookup_function_code = {
         subtree:add(tvb(offset,2), string.format("AQ2: %d", tvb(offset,2):le_int()))
         offset = offset + 2
   
-        -- analog merkers
+        -- analog merkers (16bit Little Endian)
         bytes_to_consume = 12
 		flag = 0
 		for i = offset, offset+bytes_to_consume-1 do
@@ -756,11 +760,11 @@ local lookup_function_code = {
     -- Start Fetch Data
     pdu_length = function(tvb)
       if tvb:len() < 4 then return -1 end
-      -- Control Code + Function Code + Byte Count + Data + End Delimiter
+      -- Control Code + Function Code + Byte Count (8bit) + Data + End Delimiter
       return 1 + 2 + 1 + tvb(3,1):uint() + 1
     end,
     dissect = function(tvb, pinfo, tree)
-      -- Control Code + Function Code + Byte Count + ...
+      -- Control Code + Function Code + Byte Count (8bit) + ...
       local pdu_header_len = 1 + 2 + 1
       if tvb:len() < pdu_header_len then return 0 end
       local function_code = tvb(1,2):uint()
@@ -851,16 +855,20 @@ local lookup_ack_response = {
   [0x01] = {
     -- Mode RUN
     pdu_length = function(tvb)
-      if tvb:len() < 3 then return 0 end
-      local next_message_code = tvb(2,1):uint()
-      if lookup_message_type[next_message_code] == nil then return 1 end
+      if tvb:len() < 2 then return -1 end
+      if tvb:len() > 2 then
+		local next_code = tvb(2,1):uint()
+		if lookup_message_type[next_code] == nil then return 1 end
+	  end
       return 2
     end,
     dissect = function(tvb, pinfo, tree)
-      if tvb:len() < 3 then return 0 end
-      local next_message_code = tvb(2,1):uint()
-      if lookup_message_type[next_message_code] == nil then return 1 end
-      tree:add(pg_fields.response_code, tvb(1,1))
+      if tvb:len() < 2 then return 0 end
+      if tvb:len() > 2 then
+		local next_code = tvb(2,1):uint()
+		if lookup_message_type[next_code] == nil then return 1 end
+	  end
+	  tree:add(pg_fields.response_code, tvb(1,1))
       return 2
     end
   },
@@ -967,7 +975,7 @@ lookup_message_type = {
       return 1 + address_len + 1
     end,
     dissect = function(tvb, pinfo, tree)
-      -- Data Code + Address (16/32bit value Big-Endian) + Data Byte
+      -- Data Code + Address (16/32bit) + Data Byte
       local pdu_header_len = 1 + address_len
       local pdu_length = pdu_header_len + 1
       if tvb:len() < pdu_length then return 0 end
@@ -984,7 +992,7 @@ lookup_message_type = {
       return 1 + address_len
     end,
     dissect = function(tvb, pinfo, tree)
-      -- Data Code + Address (16/32bit value Big-Endian)
+      -- Data Code + Address (16/32bit)
       local pdu_header_len = 1 + address_len
       if tvb:len() < pdu_header_len then return 0 end
       tree:add(pg_fields.message_type, tvb(0,1))
@@ -995,7 +1003,7 @@ lookup_message_type = {
   [0x04] = {
     -- Write Block
     pdu_length = function(tvb)
-      -- Data Code + Address (16/32bit) + Byte Count + ...
+      -- Data Code + Address (16/32bit) + Byte Count (16bit Big Endian) + ...
       local pdu_header_len = 1 + address_len + 2
       if tvb:len() < pdu_header_len then return -1 end
       local offset = 1 + address_len
@@ -1005,11 +1013,11 @@ lookup_message_type = {
         offset = offset + 1
       end
       local number_of_bytes = tvb(offset, 2):uint()
-      -- Data Code + Address (16/32bit) + Byte Count (Little Endian) + Data Block + Checksum + Acknowledge Response
+      -- Data Code + Address (16/32bit) + Byte Count (16bit Big Endian) + Data Block + Checksum + Acknowledge Response
       return 1 + address_len + 2 + number_of_bytes + 1 + 1
     end,
     dissect = function(tvb, pinfo, tree)
-      -- Data Code + Address (16/32bit value Big-Endian) + Byte Count (Little Endian)
+      -- Data Code + Address (16/32bit) + Byte Count (16bit Big Endian)
       local pdu_header_len = 1 + address_len + 2
       if tvb:len() < pdu_header_len + 1 then return 0 end
       -- Data Code + ...
@@ -1021,7 +1029,7 @@ lookup_message_type = {
       -- ... Address (16/32bit) + ...
       tree:add(pg_fields.address, tvb(offset,address_len))
       offset = offset + address_len
-      -- ... Byte Count (Big-Endian) + ...
+      -- ... Byte Count (16bit Big-Endian) + ...
       tree:add(pg_fields.byte_count, tvb(offset,2))
       local number_of_bytes = tvb(offset,2):uint()
       offset = offset + 2
@@ -1054,7 +1062,7 @@ lookup_message_type = {
   [0x05] = {
     -- Read Block
     pdu_length = function(tvb)
-      -- Data Code + Address (16/32bit) + Byte Count (Big-Endian)
+      -- Data Code + Address (16/32bit) + Byte Count (16bit Big-Endian)
       local query_len = 1 + address_len + 2
       if tvb:len() < query_len + 1 then return -1 end
       local offset = 1 + address_len
@@ -1069,7 +1077,7 @@ lookup_message_type = {
       return query_len + response_len
     end,
     dissect = function(tvb, pinfo, tree)
-      -- Q:[Data Code + Address (16/32bit) + Byte Count (Big-Endian)]
+      -- Q:[Data Code + Address (16/32bit) + Byte Count (16bit Big-Endian)]
       local query_len = 1 + address_len + 2
       if tvb:len() < query_len + 1 then return 0 end
       local offset = 0
@@ -1081,7 +1089,7 @@ lookup_message_type = {
       -- ... Address (16/32bit) + ...
       tree:add(pg_fields.address, tvb(offset,address_len))
       offset = offset + address_len
-      -- ... Byte Count (Big-Endian)]
+      -- ... Byte Count (16bit Big-Endian)]
       tree:add(pg_fields.byte_count, tvb(offset,2))
       local number_of_bytes = tvb(offset,2):uint()
       offset = offset + 2
@@ -1220,7 +1228,6 @@ local lookup_queries = {
   [0x551717] = true, -- Operation Mode
   [0x551818] = true, -- Start Operating
   [0x551b1b] = true, -- Diagnostic
-  [0x06065511] = true, -- Data Request (with Fetch Data Response)
 }
 
 --------------------------------------------------------------------------------
@@ -1369,20 +1376,20 @@ function LOGOPG.dissector(tvb, pinfo, tree)
     -- if not already available, save the current identifier
     dprint7("Store identifier:", transaction_id, "to packet number:", pinfo.number)
     trxn_id_table[pinfo.number] = transaction_id
-  elseif trxn_id_table[pinfo.number] ~= nil then
+  end
+  if trxn_id_table[pinfo.number] ~= nil then
     -- load the saved identifier if available
     transaction_id = trxn_id_table[pinfo.number]
   end
 
-  if (pdu_length == 1 and length >= 4 and lookup_queries[tvb(0,4):uint()])
-  or (pdu_length >= 3 and length >= 3 and lookup_queries[tvb(0,3):uint()])
+  if (pdu_length >= 3 and length >= 3 and lookup_queries[tvb(0,3):uint()])
   or (pdu_length >= 1 and length >= 1 and lookup_queries[tvb(0,1):uint()])
   then
     -- query: direction DTE > DCE
     pinfo.cols.src:set("DTE")
     pinfo.cols.dst:set("DCE")
     -- set new transaction id
-    transaction_id = transaction_id + 1
+    if message_type > 0 then transaction_id = transaction_id + 1 end
   else
     -- response: direction DCE > DTE
     pinfo.cols.src:set("DCE")
