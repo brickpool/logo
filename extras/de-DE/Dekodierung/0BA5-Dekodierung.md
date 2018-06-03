@@ -1,9 +1,9 @@
 # Undocumented LOGO! __0BA5__
 ## Aufbau, Funktionsweise und Programmierung
 
-Ausgabe Aq
+Ausgabe As
 
-Mai 2018
+Juni 2018
 
 ## Vorwort
 Dieses Handbuch beschreibt die Interna einer _LOGO!_ Kleinsteuerung Version __0BA5__, um unter Nutzung der PG-Schnittstelle darauf zuzugreifen. Die PG-Schnittstelle verwendet hierzu ein nicht dokumentiertes Protokoll zum Programm laden, lesen und zur Diagnose. 
@@ -66,7 +66,7 @@ Einzelheiten zum _LOGO!_-Adresslayout finden Sie in den folgenden Veröffentlich
     * [Speicherbereiche 0522](#0522)
     * [Schaltprogramm Checksum](#055E)
     * [Erfassbare Daten](#erfassbare-daten)
-  * [Anhang](#Anhang)
+  * [Anhang](#anhang)
     * [0BA5 Ressourcen](#Ressourcen)
     * [Verwendete Abkürzungen](#Abk)
 
@@ -107,7 +107,7 @@ Innerhalb des Basismoduls sind verschiedene Systembereiche untergebracht, damit 
             '------------------------'
 
 ```
->Abbild: Schema Systembereiche
+>Abb: Schema Systembereiche
 
 Zu den Systembereichen eines Basismoduls gehören:
 - Steuereinheit
@@ -290,7 +290,7 @@ Die Programmbearbeitung erfolgt ausschließlich im Bereich von Arbeitsspeicher u
 |                 |     |               |     | ...               |
 '-----------------'     '---------------'     '-------------------'
 ```
-> Abb. Speicher Blockdiagramm
+>Abb: Speicher Blockdiagramm
 
 ### Festwertspeicher
 Der Festwertspeicher ist ein Nur-Lese-Speicher (engl. Read Only Memory, kurz _ROM_). Hierauf befindet sich die _LOGO!_ Firmware, welche vom Hersteller Siemens stammt. _Read Only_ deshalb, weil der Speicher nicht gelöscht oder geändert werden kann und zudem nicht flüchtig ist. Bei Spannungsausfall bleiben die Daten erhalten. 
@@ -1626,6 +1626,9 @@ Maximaler Zählerwert F423F:
 ## <a name="SF21"></a>Einschaltverzögerung
 Mit der Funktion _Einschaltverzögerung_ wird das Setzen des Ausgangs _Q_ um die programmierte Zeitdauer _T_ verzögert. Die Zeit _Ta_ startet (_Ta_ ist die in _LOGO!_ aktuelle Zeit vom Datentyp _TW_), wenn das Eingangssignal _Trg_ von `0` auf `1` wechselt (positive Signalflanke). Wenn die Zeitdauer abgelaufen ist (_Ta_ > _T_), liefert der Ausgang _Q_ den Signalzustand `1`. Der Ausgang _Q_ bleibt so lange gesetzt, wie der Triggereingang die `1` führt. Wenn der Signalzustand am Triggereingang von `1` auf `0` wechselt, wird der Ausgang _Q_ zurückgesetzt. Die Zeitfunktion wird wieder gestartet, wenn eine neue positive Signalflanke am Starteingang erfasst wird. 
 
+![alt text][Einschaltverzoegerung]
+>Abb: Dialog _Einschaltverzögerung_
+
 Die Flags für Remananz und Parameterschutz sowie die Beschaltung von Eingang _Trg_ und der Parameter _T_ werden im Mode _STOP_ abgefragt. Der Zeitoperand _Ta_ und der Signalzustand am Ausgang _Q_ sind im Mode _RUN_ abfragbar. 
 
 RAM/Rem/Online: 8/3/4
@@ -1779,6 +1782,9 @@ AA          // Befehlsende Trennzeichen
 ## <a name="SF22"></a>Ausschaltverzögerung
 Mit der Funktion _Ausschaltverzögerung_ wird das Zurücksetzen des Ausgangs _Q_ um die parametrierte Zeitdauer _T_ verzögert. Der Ausgang _Q_ wird mit positiver Signalflanke gesetzt (Eingang _Trg_ wechselt von `0` auf `1`). Wenn der Signalzustand am Eingang _Trg_ wieder auf `0` wechselt (negative Signalflanke), läuft die parametrierte Zeitdauer _T_ ab. Der Ausgang _Q_ bleibt gesetzt, solange die Zeitdauer _Ta_ läuft (_Ta_ < _T_). Nach dem Ablauf der Zeitdauer _T_ (_T_ > _Ta_) wird der Ausgang _Q_ zurückgesetzt. Falls der Signalzustand am Eingang _Trg_ auf `1` wechselt, bevor die Zeitdauer _T_ abgelaufen ist, wird die Zeit zurückgesetzt. Der Signalzustand am Ausgang _Q_ bleibt weiterhin auf `1` gesetzt. 
 
+![alt text][Auschaltverzoergerung]
+>Abb: Dialog _Auschaltverzörgerung_
+
 Die Flags für Remanenz und Parameterschutz sowie die Beschaltung von Eingang _Trg_ und der Parameter _T_ werden im Mode _STOP_ abgefragt. Der Zeitoperand _Ta_ und der Signalzustand am Ausgang _Q_ sind im Mode _RUN_ abfragbar. 
 
 RAM/Rem/Online: 12/3/?
@@ -1814,8 +1820,10 @@ Mit der Funktion _Ein-/Ausschaltverzögerung_  wird das Setzen sowie das Zurück
 
 Wenn der Signalzustand am Eingang _Trg_ wieder auf `0` wechselt (negative Signalflanke), läuft die parametrierte Zeitdauer _TL_ ab. Der Ausgang _Q_ bleibt gesetzt, solange die Zeitdauer _Ta_ läuft. Nach dem Ablauf der Zeitdauer _TL_ (Ta > TL) wird der Ausgang _Q_ zurückgesetzt. 
 
-Die Flags für Remanenz und Parameterschutz sowie die Beschaltung von Eingang _Trg_ und die Zeit-Parameter _TH_ und _TL_ werden im Mode _STOP_ abgefragt. Der Zeitoperand _Ta_ und der Signalzustand am Ausgang _Q_ sind im Mode _RUN_ abfragbar. 
+![alt text][Ein-Ausschaltverzoegerung]
+>Abb: Dialog _Ein-/Ausschaltverzögerung_
 
+Die Flags für Remanenz und Parameterschutz sowie die Beschaltung von Eingang _Trg_ und die Zeit-Parameter _TH_ und _TL_ werden im Mode _STOP_ abgefragt. Der Zeitoperand _Ta_ und der Signalzustand am Ausgang _Q_ sind im Mode _RUN_ abfragbar. 
 
 RAM/Rem/Online: 12/3/6
 
@@ -1943,6 +1951,9 @@ Par:
 
 ## <a name="SF24"></a>Wochenschaltuhr
 Der Ausgang _Q_ wird über drei parametrierbares Ein- und Ausschaltzeiten (Einstellnocken _No1_, _No2_, _No3_) gesteuert. Der Wertebereich für die Schaltzeitpunkte (Ein- oder Ausschaltzeit) liegt zwischen `00:00` und `23:59` Uhr. In Summe können 6 Schaltzeitpunkte vom Datentyp _TW_ angegeben sein. Die Auswahl der Wochentage erfolgt durch Aktivierung der zugeordneten Tage, wobei jeder Tag einem Speicher-Bit innerhalb eines Bytes zugeordnet ist. Wenn das zugehörige Bit auf `1` gesetzt ist, ist der Tag festgelegt. 
+
+![alt text][Wochenschaltuhr]
+>Abb: Dialog _Wochenschaltuhr_
 
 __Hinweis:__ Da die _LOGO!_ Kleinsteuerung Typ 24/24o keine Uhr besitzt, ist die Wochenschaltuhr bei dieser Variante nicht nutzbar. 
 
@@ -2074,6 +2085,9 @@ R: Eingang R (Co oder GF/SF)
 
 ## <a name="SF27"></a>Speichernde Einschaltverzögerung
 
+![alt text][Speichernde_Einschaltverzoegerung]
+>Abb: Dialog _Speichernde Einschaltverzögerung_
+
 RAM/Rem/Online: 12/3/?
 
 ### Darstellungsformat im Ladespeicher
@@ -2105,6 +2119,9 @@ Remanenz aktiv, Parameterschutz aktiv, Trg = I3, R = -, 05:10 (h:m)
 
 ## <a name="SF2B"></a>Vor-/Rückwärtszähler
 Der Zähler erfasst binäre Impulse am Eingang _Cnt_ und zählt den internen Zähler _Cv_ hoch oder runter. Über den Eingang _Dir_ (`0`:Cv=Cv+1, `1`:Cv=Cv-1) wird zwischen Vorwärts- und Rückwärtszählen umgeschaltet. Der interne Zähler _Cv_ kann durch den Rücksetzeingang _R_ auf den Wert `0` zurückgesetzt werden. Über den Parameter _On_ oder _Off_ wird die Schaltschwelle für den Ausgang _Q_ definiert. Sofern der Zähler _Cv_ die obere Schaltschwelle (_Cv_ > _On_) erreicht bzw. überschreitet wird der Ausgang _Q_ auf `1` und bei erreichen bzw. unterschreiten der unteren Schaltschwelle (_Cv_ < _Off_) wird _Q_ auf `0` gesetzt. Der Wertebereich für _On_, _Off_ und _Cv_ ist von 0 bis 999999.
+
+![alt text][Vor-Rueckwaertszaehler]
+>Abb: Dialog _Vor-/Rückwärtszähler_
 
 Mit dem Rücksetzeingang _R_ kann der internen Zählwert _Cv_ auf 0 zurückgestellt werden. Solange _R_ gleich `1` ist, ist auch der Ausgang Q auf `0` zurückgesetzt. 
 
@@ -2223,7 +2240,10 @@ AA          // Befehlsende Trennzeichen
 ```
 
 ## <a name="SF2D"></a>Asynchroner Impulsgeber
-Mit der Funktion _Asynchroner Impulsgeber_ können wird der Ausgang _Q_ für eine vorprogrammierte Zeitdauer _TH_ gesetzt und für eine vorprogrammierte Zeitdauer _TL_ zurückgesetzt. Die Funktion startet, wenn das Signal am Eingang _En_ von `0` auf `1` (positive Flanke) wechselt. Mit dem Start läuft die programmierte Zeitdauer _TH_ bzw. _TL_ ab. Der Ausgang _Q_ wird für die Zeitdauer _TH_ gesetzt und für _TL_ zurückgesetzt. Über den Eingang _Inv_ lässt sich der Ausgang _Q_ des Impulsgeber invertieren. Eingang _En_ und _Inv_, Ausgang _Q_ sowie die Parameter _TH und _TL_ können im Betriebszustand _STOP_ ausgelesen werden.
+Mit der Funktion _Asynchroner Impulsgeber_ können wird der Ausgang _Q_ für eine vorprogrammierte Zeitdauer _TH_ gesetzt und für eine vorprogrammierte Zeitdauer _TL_ zurückgesetzt. Die Funktion startet, wenn das Signal am Eingang _En_ von `0` auf `1` (positive Flanke) wechselt. Mit dem Start läuft die programmierte Zeitdauer _TH_ bzw. _TL_ ab. Der Ausgang _Q_ wird für die Zeitdauer _TH_ gesetzt und für _TL_ zurückgesetzt. Über den Eingang _Inv_ lässt sich der Ausgang _Q_ des Impulsgeber invertieren. Eingang _En_ und _Inv_, Ausgang _Q_ sowie die Parameter _TH_ und _TL_ können im Betriebszustand _STOP_ ausgelesen werden.
+
+![alt text][Impulsgeber]
+>Abb: Dialog _Asynchroner Impulsgeber_
 
 Die aktuelle Zeit _Ta_ benennt die Zeitdauer des letzten Flankenwechsels (Wechsel von `1` auf `0` bzw. von `0` auf `1`) von Ausgang _Q_. Ser Signalzustand am Ausgang _Q_, sowie die Variable _Ta_ könne im Betriebszustand _RUN_ ausgelsen werden. 
 
@@ -2544,3 +2564,25 @@ Pure     | _LOGO!_ 230 RCo      | 6ED1052-2FB00-0BA5
 - __Trg__ (_Trigger_): Ablauf einer Funktion wird gestartet
 - __X__: Offene Klemme
 - __XOR__: Exklusiv-Oder-Verknüpfung
+
+[Auschaltverzoergerung]: https://github.com/brickpool/logo/blob/master/extras/images/Auschaltverzoergerung.jpg "Auschaltverzörgerung"
+
+[Betriebsstundenzaehler]: https://github.com/brickpool/logo/blob/master/extras/images/Betriebsstundenzaehler.jpg "Betriebsstundenzaehler"
+
+[Ein-Ausschaltverzoegerung]: https://github.com/brickpool/logo/blob/master/extras/images/Ein-Ausschaltverzoegerung.jpg "Ein-/Ausschaltverzögerung"
+
+[Einschaltverzoegerung]: https://github.com/brickpool/logo/blob/master/extras/images/Einschaltverzoegerung.jpg "Einschaltverzögerung"
+
+[Flankengetriggertes_Wischrelais]: https://github.com/brickpool/logo/blob/master/extras/images/Flankengetriggertes_Wischrelais.jpg "Flankengetriggertes Wischrelais"
+
+[Impulsgeber]: https://github.com/brickpool/logo/blob/master/extras/images/Impulsgeber.jpg "Asynchroner Impulsgeber"
+
+[Speichernde_Einschaltverzoegerung]: https://github.com/brickpool/logo/blob/master/extras/images/Speichernde_Einschaltverzoegerung.jpg "Speichernde Einschaltverzögerung"
+
+[Vor-Rueckwaertszaehler]: https://github.com/brickpool/logo/blob/master/extras/images/Vor-Rueckwaertszaehler.jpg "Vor-/Rückwärtszähler"
+
+[Wischrelais]: https://github.com/brickpool/logo/blob/master/extras/images/Wischrelais.jpg "Wischrelais"
+
+[Wochenschaltuhr]: https://github.com/brickpool/logo/blob/master/extras/images/Wochenschaltuhr.jpg "Wochenschaltuhr"
+
+[Zufallsgenerator]: https://github.com/brickpool/logo/blob/master/extras/images/Zufallsgenerator.jpg "Zufallsgenerator"
