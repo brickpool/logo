@@ -15,6 +15,7 @@
 --
 -- History:
 --  0.1   03-04.06.2018   inital version
+--  0.1.1 04.06.2018      bug fixing
 --
 -------------------------------------------------------------------------------
 
@@ -29,20 +30,18 @@ local debug_level = {
   LEVEL_7   = 7,  -- debug
 }
 
--- set this DEBUG to debug_level.LEVEL_6 to enable printing debug_level info
--- set it to debug_level.LEVEL_7 to enable really verbose printing
--- note: this will be overridden by user's preference settings
+-- set this DEBUG to debug_level.LEVEL_6 to enable printing debug_level info set
+-- it to debug_level.LEVEL_7 to enable really verbose printing note: this will
+-- be overridden by user's preference settings
 local DEBUG = debug_level.LEVEL_4
 
--- a table of our default settings - these can be changed by changing
--- the preferences through the GUI or command-line; the Lua-side of that
--- preference handling is at the end of this script file
+-- a table of our default settings - these can be changed by changing the
+-- preferences through the GUI or command-line; the Lua-side of that preference
+-- handling is at the end of this script file
 local default_settings = {
   debug_level       = DEBUG,
   subdissect        = true,   -- display data as tree info in wireshark
   max_telegram_len  = 249,    -- this is the maximum size of a telegram
-  address_len       = 2,      -- address field is 2 bytes
-  ident_number      = 0,      -- ident_number is unknown (0)
   value             = 1,      -- start value for telegram counting
 }
 
@@ -116,32 +115,55 @@ local ED_CODES = {
   [0x16] = "ED"
 }
 
-fdl_fields.telegram_number  = ProtoField.uint32("PROFIBUS.telegram_number", "Telegram number")
-fdl_fields.flags            = ProtoField.uint8 ("PROFIBUS.flags",           "Flags",                              base.HEX)
-fdl_fields.fragmented       = ProtoField.uint8 ("PROFIBUS.fragmented",      "More Fragment",                      base.DEC, FLAG_VALUE, FL_FRAGMENT)
-fdl_fields.telegram         = ProtoField.uint8 ("PROFIBUS.Telegram",        "Telegram",                           base.HEX, FDL_CODES)
-fdl_fields.le               = ProtoField.uint16("PROFIBUS.LE",              "Length",                             base.DEC)
-fdl_fields.ler              = ProtoField.uint16("PROFIBUS.LEr",             "Length repeated",                    base.DEC)
-fdl_fields.telegram2        = ProtoField.uint8 ("PROFIBUS.Telegram2",       "Telegram repeated",                  base.HEX, FDL_CODES)
-fdl_fields.da               = ProtoField.uint8 ("PROFIBUS.DA",              "Destination Address",                base.HEX, ADDRESS_VALUE)
-fdl_fields.sa               = ProtoField.uint8 ("PROFIBUS.SA",              "Source Address",                     base.HEX, ADDRESS_VALUE)
-fdl_fields.fc               = ProtoField.uint8 ("PROFIBUS.FC",              "Frame Control",                      base.HEX, FC_CODES)
-fdl_fields.dsap             = ProtoField.uint8 ("PROFIBUS.DSAP",            "Destination Service Access Points",  base.HEX, SAP_VALUE)
-fdl_fields.ssap             = ProtoField.uint8 ("PROFIBUS.SSAP",            "Source Service Access Points",       base.HEX, SAP_VALUE)
-fdl_fields.fcs              = ProtoField.uint8 ("PROFIBUS.FCS",             "Frame Check Sequence",               base.HEX)
-fdl_fields.ed               = ProtoField.uint8 ("PROFIBUS.ED",              "End Delimiter",                      base.HEX, ED_CODES)
+-- this is the size of the FDL header (SD+LE+LEr+SD = 6 bytes)
+local PBUS_FDL_HDR_LEN = 1 + 2 + 2 + 1
+-- size of the SD2 header (SD2+LE+LEr+SD2+DA+SA+FC = 9 bytes)
+local PBUS_SD2_HDR_LEN = PBUS_FDL_HDR_LEN + 1 + 1 + 1
+-- size of the SAP fields (DSAP+SSAP = 2 bytes)
+local PBUS_DDLM_HDR_LEN = 1 + 1
+-- size of the FDL trailer (DCS+ED = 2 bytes)
+local PBUS_TRAILER_LEN = 1 + 1
+
+fdl_fields.telegram_number  = ProtoField.uint32("PROFIBUS.number",        "Telegram number")
+fdl_fields.flags            = ProtoField.uint8 ("PROFIBUS.flags",         "Flags",                              base.HEX)
+fdl_fields.fragmented       = ProtoField.uint8 ("PROFIBUS.fragmented",    "More Fragment",                      base.DEC, FLAG_VALUE, FL_FRAGMENT)
+fdl_fields.telegram         = ProtoField.uint8 ("PROFIBUS.type",          "Telegram",                           base.HEX, FDL_CODES)
+fdl_fields.le               = ProtoField.uint16("PROFIBUS.LE",            "Length",                             base.DEC)
+fdl_fields.ler              = ProtoField.uint16("PROFIBUS.LEr",           "Length repeated",                    base.DEC)
+fdl_fields.telegram2        = ProtoField.uint8 ("PROFIBUS.type_repeated", "Telegram repeated",                  base.HEX, FDL_CODES)
+fdl_fields.da               = ProtoField.uint8 ("PROFIBUS.DA",            "Destination Address",                base.HEX, ADDRESS_VALUE)
+fdl_fields.sa               = ProtoField.uint8 ("PROFIBUS.SA",            "Source Address",                     base.HEX, ADDRESS_VALUE)
+fdl_fields.fc               = ProtoField.uint8 ("PROFIBUS.FC",            "Frame Control",                      base.HEX, FC_CODES)
+fdl_fields.dsap             = ProtoField.uint8 ("PROFIBUS.DSAP",          "Destination Service Access Points",  base.HEX, SAP_VALUE)
+fdl_fields.ssap             = ProtoField.uint8 ("PROFIBUS.SSAP",          "Source Service Access Points",       base.HEX, SAP_VALUE)
+fdl_fields.fcs              = ProtoField.uint8 ("PROFIBUS.FCS",           "Frame Check Sequence",               base.HEX)
+fdl_fields.ed               = ProtoField.uint8 ("PROFIBUS.ED",            "End Delimiter",                      base.HEX, ED_CODES)
 
 ----------------------------------------
 -- a table of fields for ALI
 local ali_fields = LOGOTD.fields
 
-local transaction_id = 0
-local ident_number = default_settings.ident_number
-local address_len = default_settings.address_len
-
 local FUNCTION_CODES = {
-  [0x08] = "Get/Read",
-  [0x09] = "Set/Write",
+  [0x01] = "? (Init Start)",
+  [0x02] = "? (Init Complete)",
+  [0x03] = "? (Keep Alive)",
+  [0x04] = "Stop",
+  [0x05] = "Start",
+  [0x08] = "Online Test",
+  [0x09] = "Function Key",
+  [0x10] = "Clock",
+  [0x14] = "?",
+  [0x18] = "? (Clear Screen)",
+  [0x3c] = "?",
+  [0x3d] = "?",
+  [0x40] = "?",
+  [0x5a] = "?",
+  [0x5b] = "?",
+  [0x61] = "?",
+  [0x70] = "?",
+  [0x77] = "? (Update Display)",
+  [0x78] = "?",
+  [0x81] = "?",
 }
 
 local LOGICAL_VALUE = {
@@ -149,18 +171,17 @@ local LOGICAL_VALUE = {
   [1] = "High",
 }
 
-ali_fields.address        = ProtoField.bytes ("LOGOTD.address",         "Address")
-ali_fields.byte_count     = ProtoField.uint16("LOGOTD.byte_count",      "Byte Count",     base.DEC)
-ali_fields.function_code  = ProtoField.uint8 ("LOGOTD.function_code",   "Function Code",  base.HEX, FUNCTION_CODES)
-ali_fields.data           = ProtoField.bytes ("LOGOTD.data",            "Data")
-ali_fields.bit0           = ProtoField.uint8 ("LOGOTD.bit0",            "b0",             base.DEC, LOGICAL_VALUE, 0x01)
-ali_fields.bit1           = ProtoField.uint8 ("LOGOTD.bit1",            "b1",             base.DEC, LOGICAL_VALUE, 0x02)
-ali_fields.bit2           = ProtoField.uint8 ("LOGOTD.bit2",            "b2",             base.DEC, LOGICAL_VALUE, 0x04)
-ali_fields.bit3           = ProtoField.uint8 ("LOGOTD.bit3",            "b3",             base.DEC, LOGICAL_VALUE, 0x08)
-ali_fields.bit4           = ProtoField.uint8 ("LOGOTD.bit4",            "b4",             base.DEC, LOGICAL_VALUE, 0x10)
-ali_fields.bit5           = ProtoField.uint8 ("LOGOTD.bit5",            "b5",             base.DEC, LOGICAL_VALUE, 0x20)
-ali_fields.bit6           = ProtoField.uint8 ("LOGOTD.bit6",            "b6",             base.DEC, LOGICAL_VALUE, 0x40)
-ali_fields.bit7           = ProtoField.uint8 ("LOGOTD.bit7",            "b7",             base.DEC, LOGICAL_VALUE, 0x80)
+ali_fields.byte_count     = ProtoField.uint16("LOGOTD.BC",    "Byte Count",     base.DEC)
+ali_fields.function_code  = ProtoField.uint8 ("LOGOTD.CMD",   "Function Code",  base.HEX, FUNCTION_CODES)
+ali_fields.data           = ProtoField.bytes ("LOGOTD.data",  "Data")
+ali_fields.bit0           = ProtoField.uint8 ("LOGOTD.bit0",  "b0",             base.DEC, LOGICAL_VALUE, 0x01)
+ali_fields.bit1           = ProtoField.uint8 ("LOGOTD.bit1",  "b1",             base.DEC, LOGICAL_VALUE, 0x02)
+ali_fields.bit2           = ProtoField.uint8 ("LOGOTD.bit2",  "b2",             base.DEC, LOGICAL_VALUE, 0x04)
+ali_fields.bit3           = ProtoField.uint8 ("LOGOTD.bit3",  "b3",             base.DEC, LOGICAL_VALUE, 0x08)
+ali_fields.bit4           = ProtoField.uint8 ("LOGOTD.bit4",  "b4",             base.DEC, LOGICAL_VALUE, 0x10)
+ali_fields.bit5           = ProtoField.uint8 ("LOGOTD.bit5",  "b5",             base.DEC, LOGICAL_VALUE, 0x20)
+ali_fields.bit6           = ProtoField.uint8 ("LOGOTD.bit6",  "b6",             base.DEC, LOGICAL_VALUE, 0x40)
+ali_fields.bit7           = ProtoField.uint8 ("LOGOTD.bit7",  "b7",             base.DEC, LOGICAL_VALUE, 0x80)
 
 --------------------------------------------------------------------------------
 -- https://www.lua.org/pil/19.3.html
@@ -236,9 +257,9 @@ end
 --    as the header is preceded by a variable length delimiter
 -- 5. There are no sequence numbers or other ways of uniquely identifying a
 --    Telegram
--- 6. There is no flag indicating whether a Telegram will be fragmented,
---    or whether multiple Telegrams will appear in a packet,
---    other than by reading the length
+-- 6. There is no flag indicating whether a Telegram will be fragmented, or
+--    whether multiple Telegrams will appear in a packet, other than by reading
+--    the length
 -- 7. All communications are between a single sender and receiver
 --------------------------------------------------------------------------------
 local PacketHelper = {}
@@ -428,8 +449,8 @@ end
   
 --------------------------------------------------------------------------------
 -- reference to #1
--- The correct way to process information in earlier Telegrams is to save it in a
--- data structure for future reference.
+-- The correct way to process information in earlier Telegrams is to save it in
+-- a data structure for future reference.
 --------------------------------------------------------------------------------
 function PacketHelper:set_fragment(tvb, pinfo)
   dprint7("PacketHelper:set_fragment() function called, parameter:", type(tvb), type(pinfo))
@@ -489,8 +510,9 @@ lookup_function_code = {
 --------------------------------------------------------------------------------
 -- The following function returns the length of the PROFIBUS-DP FDL (Layer 2)
 --
--- This function returns the length of the telegram, or DESEGMENT_ONE_MORE_SEGMENT
--- if the Tvb doesn't have enough information to get the length, or a 0 for error.
+-- This function returns the length of the telegram, or
+-- DESEGMENT_ONE_MORE_SEGMENT if the Tvb doesn't have enough information to get
+-- the length, or a 0 for error.
 local function get_fdl_length(tvb, pinfo, offset)
   dprint7("get_fdl_length() function called")
 
@@ -547,8 +569,9 @@ end
 --------------------------------------------------------------------------------
 -- The following function returns the length of the PROFIBUS-DP ALI (Layer 7)
 --
--- This function returns the length of the telegram, or DESEGMENT_ONE_MORE_SEGMENT
--- if the Tvb doesn't have enough information to get the length, or a 0 for error.
+-- This function returns the length of the telegram, or
+-- DESEGMENT_ONE_MORE_SEGMENT if the Tvb doesn't have enough information to get
+-- the length, or a 0 for error.
 local function get_ali_length(tvb, pinfo, offset)
   dprint7("get_ali_length() function called")
 
@@ -587,20 +610,6 @@ local function get_ali_length(tvb, pinfo, offset)
 end
 
 --------------------------------------------------------------------------------
--- We need initialization routine, to reset the var(s) whenever a capture
--- is restarted or a capture file loaded.
--- The vars would just be local to our whole script. That's why we need to
--- set or reset it, because Wireshark doesn't provide anything to do that for
--- us automatically
---------------------------------------------------------------------------------
-function LOGOTD.init()
-  dprint6("TD (re-)initialise")
-  
-  -- TD helper
-  address_len = default_settings.address_len
-end
-
---------------------------------------------------------------------------------
 -- The following creates the callback function for the TD dissector.
 --
 -- The 'tvb' contains the packet data, 'pinfo' is a packet info object,
@@ -611,7 +620,7 @@ end
 --    We must not set the Pinfo's "desegment_len" nor the "desegment_offset". 
 -- 2. If we need more bytes, we set the Pinfo's "desegment_len/desegment_offset"
 ---   and return the length of the Tvb.
--- 3. If we don't need more bytes, we return the number of bytes of the tvb
+-- 3. If we don't need more bytes, we return the number of bytes of the Tvb
 --    that belong to this protocol.
 --------------------------------------------------------------------------------
 function LOGOTD.dissector(tvb, pinfo, tree)
@@ -622,16 +631,16 @@ function LOGOTD.dissector(tvb, pinfo, tree)
   -- return 0, if the packet does not have a valid length
   if length == 0 then return 0 end
 
-  -- "ali_length" is the number of bytes for the TD-Protocol (ALI)
+  -- "ali_length" is the number of bytes for the ALI
   local ali_length = get_ali_length(tvb, pinfo, 0)
   -- return 0, if the packet does not belong to your dissector
   if ali_length == 0 then return 0 end
 
   if length < ali_length then
-    -- print Tvb as data, because we don't have the full TD-Protocol (ALI)
+    -- print Tvb as data, because we don't have the full ALI
     data:call(tvb, pinfo, tree)
 
-    -- we need more bytes to get the full TD-Protocol (ALI)
+    -- we need more bytes to get the full ALI
     dprint6("Need more bytes to desegment TD-Protocol")
 
     if ali_length == DESEGMENT_ONE_MORE_SEGMENT then
@@ -639,7 +648,7 @@ function LOGOTD.dissector(tvb, pinfo, tree)
       -- set the Pinfo "desegment_len" to the predefined value "DESEGMENT_ONE_MORE_SEGMENT"
       pinfo.desegment_len = DESEGMENT_ONE_MORE_SEGMENT
     else
-      -- set Pinfo's "desegment_len" to how many more bytes we need to decode the full ali
+      -- set Pinfo's "desegment_len" to how many more bytes we need to decode the full ALI
       pinfo.desegment_len = ali_length - length
     end
     -- We also need to set the "dessegment_offset",
@@ -650,16 +659,26 @@ function LOGOTD.dissector(tvb, pinfo, tree)
     -- so we return the length of the Tvb
     return length
   end
-  -- if we got here, then we have a whole PDU in the Tvb buffer
+  -- if we got here, then we have a whole ALI in the Tvb buffer
 
-  -- 1) We start by setting our protocol name, info and tree
+  -- We start by setting our protocol name, info and tree
   -- set the protocol column to show our protocol name
   pinfo.cols.protocol = LOGOTD.name
 
+  -- append the INFO column
+  if string.find(tostring(pinfo.cols.info), "ALI") == nil then
+    pinfo.cols.info:append(string.format(", ALI length %d", ali_length))
+  end
+  
   -- add our protocol to the dissection display tree.
   local subtree = tree:add(LOGOTD)
 
-  local offset = 0
+  local offset = 2
+  subtree:add(ali_fields.byte_count, tvb(offset, 1))
+  offset = offset + 1
+  subtree:add(ali_fields.function_code, tvb(offset, 1))
+  offset = offset + 1
+  
 --  if lookup_function_code[cmd] ~= nil then
 --    offset = lookup_function_code[cmd].dissect(tvb, pinfo, subtree)
 --  end
@@ -667,13 +686,13 @@ function LOGOTD.dissector(tvb, pinfo, tree)
   -- if we got here, then we have only data bytes in the Tvb buffer
   data:call(tvb(offset, ali_length - offset):tvb(), pinfo, subtree)
 
-  -- we don't need more bytes, so we return the number of bytes of the PDU
+  -- we don't need more bytes, so we return the number of bytes of the ALI
   return ali_length
 end
 
 --------------------------------------------------------------------------------
--- We need initialization routine, to reset the var(s) whenever a capture
--- is restarted or a capture file loaded.
+-- We need initialization routine, to reset the var(s) whenever a capture is
+-- restarted or a capture file loaded.
 --------------------------------------------------------------------------------
 function PROFIBUS.init()
   dprint6("PROFIBUS (re-)initialise")
@@ -682,16 +701,110 @@ function PROFIBUS.init()
 end
 
 --------------------------------------------------------------------------------
+-- The following is a local function used for dissecting our PROFIBUS-DP
+-- telegrams inside the PROFIBUS frames using the desegment_offset/desegment_len
+-- method. It's a separate function because we run over a Serial Interface and
+-- thus might need to parse multiple messages in a single segment/packet. So we
+-- invoke this function only dissects one PROFIBUS-DP message and we invoke it
+-- in a while loop from the Proto's main disector function.
+--
+-- This function is passed in the original Tvb, Pinfo, and TreeItem from the
+-- Proto's dissector function, as well as the offset in the Tvb that this
+-- function should start dissecting from.
+--
+-- This function returns the length of the PROFIBUS-DP telegram it dissected as
+-- a positive number, or DESEGMENT_ONE_MORE_SEGMENT if the Tvb doesn't have
+-- enough information to get the length, or a 0 for error.
+--------------------------------------------------------------------------------
+local function dissectPBUS(tvb, pinfo, tree, offset)
+  dprint7("PROFIBUS dissect() function called")
+
+  local length = get_fdl_length(tvb, pinfo, offset)
+
+  if length <= 0 then
+    return 0
+  elseif length >= DESEGMENT_ONE_MORE_SEGMENT then
+    return DESEGMENT_ONE_MORE_SEGMENT
+  end
+
+  -- currently only SD2 telegrams must be decoded
+  local fdl_type = tvb(offset, 1):uint()
+  if fdl_type ~= 0x68 then
+    return 0
+  end
+
+  -- if we got here, then we have a SD2 telegram in the Tvb buffer
+  -- so let's finish dissecting it...
+
+  -- set the INFO column, but only if we haven't already set it before for this
+  -- packet, because this function can be called multiple times per packet
+  local telegram = tvb(offset, 1):uint()
+  if string.find(tostring(pinfo.cols.info), "(0x%d%d)") == nil and FDL_CODES[telegram] ~= nil then
+    pinfo.cols.info:set(string.format("%s (0x%02x)", FDL_CODES[telegram], telegram))
+  end
+
+  -- dissect the header (SD2) incl. there length fields (LE, LEr)
+  tree:add(fdl_fields.telegram, tvb(offset, 1))
+  offset = offset + 1
+  tree:add(fdl_fields.le, tvb(offset, 2))
+  offset = offset + 2
+  tree:add(fdl_fields.ler, tvb(offset, 2))
+  offset = offset + 2
+  tree:add(fdl_fields.telegram2, tvb(offset, 1))
+  offset = offset + 1
+
+  -- calculate the checksum starting from DA including DU
+  local checksum = checkSum8Modulo256(tvb(offset, length - PBUS_FDL_HDR_LEN - PBUS_TRAILER_LEN):bytes())
+
+  -- dissect the "source and destination address" fields (DA and SA)
+  local dst_addr = tvb(offset, 1):uint()
+  tree:add(fdl_fields.da, tvb(offset, 1))
+  offset = offset + 1
+  local src_addr = tvb(offset, 1):uint()
+  tree:add(fdl_fields.sa, tvb(offset, 1))
+  offset = offset + 1
+
+  -- set the SOURCE and DESITNATION columns
+  pinfo.cols.src:set(string.format("0x%02x (%s)", src_addr, ADDRESS_VALUE[src_addr]))
+  pinfo.cols.dst:set(string.format("0x%02x (%s)", dst_addr, ADDRESS_VALUE[dst_addr]))
+
+  -- dissect the "frame control" field (FC)
+  tree:add(fdl_fields.fc, tvb(offset, 1))
+  offset = offset + 1
+
+  -- dissect the "data unit" fields (DSAP and SSAP)
+  local subtree = tree:add(tvb(offset, length - PBUS_SD2_HDR_LEN - PBUS_TRAILER_LEN), "Data Unit (DU)")
+  subtree:add(fdl_fields.dsap, tvb(offset, 1))
+  subtree:add(fdl_fields.ssap, tvb(offset + 1, 1))
+  offset = offset + length - PBUS_SD2_HDR_LEN - PBUS_TRAILER_LEN
+
+  -- dissect the "trailer" fields (FCS and ED)
+  local fcs_byte = tvb(offset, 1):uint()
+  if fcs_byte == checksum then
+    tree:add(fdl_fields.fcs, tvb(offset, 1), fcs_byte, nil, "[correct]")
+  else
+    local incorrect = string.format("[incorrect, should be 0x%02x]", checksum)
+    tree:add(fdl_fields.fcs, tvb(offset, 1), fcs_byte, nil, incorrect)
+  end
+  offset = offset + 1
+  tree:add(fdl_fields.ed, tvb(offset, 1))
+
+  -- we are finished, now the dissected length will be returned
+  return length
+end
+
+--------------------------------------------------------------------------------
 -- The following creates the callback function for the PROFIBUS dissector.
 -- It's implemented as a separate Protocal because we run over a serial
--- interface and thus might need to parse a single telegram over multiple packets.
--- So we invoke this function for desegmented telegrams.
+-- interface and thus might need to parse a single telegram over multiple
+-- packets. So we invoke this function for desegmented telegrams.
 --
--- The 'tvb' contains the packet data, 'pinfo' is a packet info object,
--- and 'root' is the root of the Wireshark tree view.
+-- The 'tvb' contains the packet data, 'pinfo' is a packet info object, and
+-- 'root' is the root of the Wireshark tree view.
 --
 -- Whenever Wireshark dissects a packet that our Proto is hooked into, it will
--- call this function and pass it these arguments for the packet it's dissecting.
+-- call this function and pass it these arguments for the packet it's
+-- dissecting.
 --------------------------------------------------------------------------------
 function PROFIBUS.dissector(tvb, pinfo, root)
   dprint7("PROFIBUS dissector() called, length:", tvb:len())
@@ -702,11 +815,12 @@ function PROFIBUS.dissector(tvb, pinfo, root)
 
   -- check if capture was only capturing partial packet size
   if length ~= tvb:reported_len() then
-    -- captured packets are being sliced/cut-off, so don't try to desegment/reassemble
+    -- captured packets are being sliced/cut-off, so don't try to
+    -- desegment/reassemble
     dprint4("Captured packet was shorter than original, can't reassemble")
-    -- Returning 0 tells Wireshark this packet is not for
-    -- us, and it will try heuristic dissectors or the plain "data"
-    -- one, which is what should happen in this case.
+    -- Returning 0 tells Wireshark this packet is not for us, and it will try
+    -- heuristic dissectors or the plain "data" one, which is what should happen
+    -- in this case.
     return 0
   end
 
@@ -720,9 +834,11 @@ function PROFIBUS.dissector(tvb, pinfo, root)
   local flags = 0
   -- display the fragments as data
   if packet_helper:fragmented() and packet_helper:more_fragment(pinfo) then
-    -- From here we know that the telegram is part of a PDU telegram (but not the last on).
-    -- The tvb is a fragment of a PDU telegram, so display only the telegram fields and the data to the tree
+    -- From here we know that the frame is part of a PROFINET telegram (but not
+    -- the last on).
     pinfo.cols.info:set("Telegram Fragment")
+    -- The Tvb buffer is a fragment of a PROFINET telegram, so display only the
+    -- meta fields and the data to the tree
     local subtree = root:add(PROFIBUS)
     flags = bit.bor(flags, FL_FRAGMENT)
     subtree:add(fdl_fields.telegram_number, packet_helper:get_number()):set_generated()
@@ -744,11 +860,12 @@ function PROFIBUS.dissector(tvb, pinfo, root)
   end
   
   -- reference to #3
-  -- That's similar to many protocols running atop TCP, so that's not inherently insoluble.
+  -- That's similar to many protocols running atop TCP, so that's not inherently
+  -- insoluble.
   local bytes_consumed = 0
   while bytes_consumed < length do
     -- reference to #4
-    local result = get_fdl_length(buffer, pinfo, bytes_consumed)
+    result = get_fdl_length(buffer, pinfo, bytes_consumed)
     if result == 0 then
       -- If the result is 0, then it means we hit an error of some kind,
       -- so increment sequence and return 0.
@@ -758,7 +875,8 @@ function PROFIBUS.dissector(tvb, pinfo, root)
 
     -- if we got here, then we know we have a PROFIBUS-DP telegram in the Tvb buffer
     local subtree = root:add(PROFIBUS)
-    -- check if the remaning bytes in buffer are a part of a PROFIBUS-DP telegram or not
+    -- check if the remaning bytes in buffer are a part of a PROFIBUS-DP
+    -- telegram or not
     local fragmented = bytes_consumed + result > length
     -- Inserted the telegram fields to the tree
     flags = 0
@@ -768,81 +886,49 @@ function PROFIBUS.dissector(tvb, pinfo, root)
     flagtree:add(fdl_fields.fragmented, flags)
 
     -- reference to #1 and #3
-    -- We might have to implement something similar to tcp in our dissector.
+    -- We might have to implement something similar to TCP in our dissector.
     -- For that we using old desegment_offset/desegment_len method
     if fragmented then
       -- call the data dissector
       data:call(buffer(bytes_consumed, length - bytes_consumed):tvb(), pinfo, root)
 
-      -- we need more bytes, so set the desegment_offset to what we
-      -- already consumed, and the desegment_len to how many more
-      -- are needed and save the fragment to our structure
+      -- we need more bytes, so set the desegment_offset to what we already
+      -- consumed, and the desegment_len to how many more are needed and save
+      -- the fragment to our structure
       pinfo.desegment_offset = bytes_consumed
       pinfo.desegment_len = result
       packet_helper:set_fragment(buffer, pinfo)
 
-      -- even though we need more bytes, this packet is for us, so we
-      -- tell Wireshark all of its bytes are for us by returning the
-      -- number of tvb bytes we "successfully processed", namely the
-      -- length of the tvb
+      -- even though we need more bytes, this packet is for us, so we tell
+      -- Wireshark all of its bytes are for us by returning the number of Tvb
+      -- bytes we "successfully processed", namely the length of the Tvb buffer
       return length
     end
 
-    -- set the INFO column, but only if we haven't already set it before for
-    -- this packet, because this function can be called multiple times per packet
-    local telegram = buffer(bytes_consumed, 1):uint()
-    if string.find(tostring(pinfo.cols.info), "(0x%d%d)") == nil and FDL_CODES[telegram] ~= nil then
-      pinfo.cols.info:set(string.format("%s (0x%02x)", FDL_CODES[telegram], telegram))
+    -- the real PROFIBUS-DP dissector starts here
+
+    -- We're going to call our "dissect()" function, which is defined earlier in
+    -- this script file. The dissect() function returns the length of the
+    -- PROFIBUS-DP SD2 telegram it dissected as a positive number, or if the
+    -- value is DESEGMENT_ONE_MORE_SEGMENT then we need additional bytes. If it
+    -- returns a 0, it's a dissection error.
+    if dissectPBUS(buffer, pinfo, subtree, bytes_consumed) == 0 then
+      -- If the result is 0, then it means we hit an error
+      return 0
     end
 
-    -- The real dissector starts here
-    
-    -- SD2 header
-    local offset = 0
-    subtree:add(fdl_fields.telegram, buffer(bytes_consumed + offset, 1))
-    offset = offset + 1
-    subtree:add(fdl_fields.le, buffer(bytes_consumed + offset, 2))
-    offset = offset + 2
-    subtree:add(fdl_fields.ler, buffer(bytes_consumed + offset, 2))
-    offset = offset + 2
-    subtree:add(fdl_fields.telegram2, buffer(bytes_consumed + offset, 1))
-    offset = offset + 1
-
-    local checksum = checkSum8Modulo256(buffer(bytes_consumed + offset, result - offset - 2):bytes())
-    subtree:add(fdl_fields.da, buffer(bytes_consumed + offset, 1))
-    offset = offset + 1
-    subtree:add(fdl_fields.sa, buffer(bytes_consumed + offset, 1))
-    offset = offset + 1
-    subtree:add(fdl_fields.fc, buffer(bytes_consumed + offset, 1))
-    offset = offset + 1
-
-    local ddlmtree = subtree:add(buffer(bytes_consumed + offset, result - offset - 2), "Data Unit (DU)")
-    ddlmtree:add(fdl_fields.dsap, buffer(bytes_consumed, 1))
-    offset = offset + 1
-    ddlmtree:add(fdl_fields.ssap, buffer(bytes_consumed, 1))
-    offset = offset + 1
-    bytes_consumed = bytes_consumed + offset
-
-    result = Dissector.get("logotd"):call(buffer(bytes_consumed, length - bytes_consumed - 2):tvb(), pinfo, root)
+    -- we successfully processed the PROFIBUS-DP telegram fields, now invoke the
+    -- LOGOTD dissector
+    local proto_offset = bytes_consumed + PBUS_SD2_HDR_LEN + PBUS_DDLM_HDR_LEN
+    local proto_length = result - PBUS_SD2_HDR_LEN - PBUS_DDLM_HDR_LEN - PBUS_TRAILER_LEN
+    result = Dissector.get("logotd"):call(buffer(proto_offset, proto_length):tvb(), pinfo, root)
     if result == 0 then
       -- If the result is 0, then it means we hit an error
       return 0
     end
-    -- we successfully processed an PROFIBUS-DP telegram, of 'result' length
-    bytes_consumed = bytes_consumed + result
-
-    local fcs_byte = buffer(bytes_consumed, 1):uint()
-    if fcs_byte == checksum then
-      subtree:add(fdl_fields.fcs, buffer(bytes_consumed, 1), fcs_byte, nil, "[correct]")
-    else
-      local incorrect = string.format("[incorrect, should be 0x%02x]", checksum)
-      subtree:add(fdl_fields.fcs, buffer(bytes_consumed, 1), fcs_byte, nil, incorrect)
-    end
-    bytes_consumed = bytes_consumed + 1
-      
-    subtree:add(fdl_fields.ed, buffer(bytes_consumed, 1))
-    bytes_consumed = bytes_consumed + 1
-
+    -- we successfully processed the LOGOTD dissector, of 'result' length
+    bytes_consumed = bytes_consumed + PBUS_SD2_HDR_LEN + PBUS_DDLM_HDR_LEN + result + PBUS_TRAILER_LEN
+    
     -- reference to #5 increment sequence number
     packet_helper:set_number(packet_helper:get_number() + 1)
   end
