@@ -1,6 +1,6 @@
 # LOGO! TD Protokoll Referenz Handbuch
 
-Ausgabe Ac
+Ausgabe Ad
 
 Juni 2018
 
@@ -24,20 +24,24 @@ Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in
 
 ## Inhalt
 
-  * [Kapitel 1 - TD-Schnittstelle](#Kapitel1)
+  * [Kapitel 1 - TD-Schnittstelle](#kapitel1)
     * [PROFIBUS](#profibus)
     * [RS-485](#rs485)
     * [Fieldbus Data Link (FDL)](#fdl)
-  * [Kapitel 2 - TD-Protokoll](#Kapitel2)
+  * [Kapitel 2 - TD-Protokoll](#kapitel2)
     * [Direkt Data Link Mapper (DDLM)](#ddlm)
     * [Anwendungsprotokoll (ALI)](#ali)
+  * [Kapitel 3 - TD-Profile](#kapitel3)
+    * [Stop/Start `04/05`](#0405)
+    * [Online-Test-Abfrage der I/O-Daten `08`](#08)
+    * [TD Funktionstasten `09`](#09)
   * [Anhang](#anhang)
     * [Prüfsumme](#fcs)
     * [RS485-TTL-Anschaltung](#ttl)
 
 ----------
 
-# <a name="Kapitel1"></a>Kapitel 1 - TD-Schnittstelle
+# <a name="kapitel1"></a>Kapitel 1 - TD-Schnittstelle
 Bei der _TD_-Schnittstelle (TD = Text Display) handelt es sich um eine Anwendung, die auf dem industriellen _PROFIBUS-DP_ Feldbusstandard aufsetzt. Der Feldbus verbindet die Feldebene (hier _TD_) mit den prozessnahen Komponenten (hier _LOGO!_ Kleinsteuerung), wobei diese Variante speziell für die Kommunikation zwischen _TD_ und den _LOGO!_ ausgelegt ist, um einen vereinfachten Einsatz ermöglichen.
 
 ## <a name="profibus"></a>PROFIBUS
@@ -203,7 +207,7 @@ Von den vier möglichen Diensten werden von _PROFIBUS-DP_ nur die Dienste _SDN_ u
 
 ----------
 
-# <a name="Kapitel2"></a>Kapitel 2 - TD-Protokoll
+# <a name="kapitel2"></a>Kapitel 2 - TD-Protokoll
 
 ## <a name="ddlm"></a>Direkt Data Link Mapper (DDLM)
 Das Höchstwertiges Bit (MSB) in _DA_ oder _SA_ zeigt an, ob eine Adresserweiterung via Dienstzugangspunkt (Service Access Point = SAPs) im Datenfeld vorliegt. Die PROFIBUS-Dienstzugangspunkte (SAP) sind in den Bytes (vom Datenfeld) _DSAP_ oder _SSAP_ vermerkt. 
@@ -331,7 +335,98 @@ ED: End Delimiter = 16h
 >Abb: _TD_-Anwendungsprotokoll eingebettet im Telegramm
 
 
-### TD Funktionstasten
+# <a name="kapitel3"></a>Kapitel 3 - TD-Profile
+
+## <a name="0405"></a>Stop/Start `04/05`
+Das Stoppen oder das Starten eines Programmes wird mit den Fkt. Codes `04` für Stop und `05` für Start ausgelöst. Mit diesen Befehlen wird das in der _LOGO!_ (Slave) gespeicherte Program gestartet oder gestoppt . Sobald der Befehl im Menü ausgewählt wird, wird der Start bzw. Stop-Befehl gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem Telegram beantwortet (z.B. Datenbyte = '06' für Ack). Die Beschreibung des Antwortcodes ist in einem eigenen Abschnitt beschrieben. 
+
+## <a name="08"></a>Online-Test-Abfrage der I/O-Daten `08`
+Response und Request
+
+Befehl:
+```
+send>68 00 0A 00 0A 68  80 7F 06 06 01 01  00 01  08  16 16
+```
+
+#### Request
+
+Darstellungsformat:
+```
+68 00 09 00 09 68 // SD2; Länge = 9 Byte
+80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
+01      //
+00      //
+01      // Byte Count = 1
+08      // Command 08h (Online Test)
+16      // CheckSum8 Modulo 256 (DU: 80..08)
+16      // End Delimiter
+```
+
+#### Response
+
+Darstellungsformat:
+```
+68 00 35 00 35 68 // SD2; Länge = 53 Byte
+7F 80 06 06 01    // SDN; DA:DSAP = 127:6; SA:SSAP = 0:1 (127 = Broadcast)
+01      //
+00      //
+2D      // Byte Count = 45
+08      // Command 08h (Online Test)
+00 00 00 ... 
+XX      // CheckSum8 Modulo 256 (DU: 80..08)
+16      // End Delimiter
+```
+
+Index | Parameter
+----- | ---------
+    1 |  Inputs 1-8
+    2 |  Inputs 9-16
+    3 |  Inputs 17-32
+    4 |  TD-Function Keys
+    5 |  Outputs 1-8
+    6 |  Outputs 9-16
+    7 |  Merker 1-8
+    8 |  Merker 9-16
+    9 |  Merker 17-24
+   10 |  Merker 25-27
+   11 |  Shift register 1-8
+   12 |  Cursor Keys C1-C4
+   13 |  analog Input 1 high
+   14 |  analog Input 1 low
+   15 |  analog Input 2 high
+   16 |  analog Input 2 low
+   17 |  analog Input 3 high
+   18 |  analog Input 3 low
+   19 |  analog Input 4 high
+   20 |  analog Input 4 low
+   21 |  analog Input 5 high
+   22 |  analog Input 5 low
+   23 |  analog Input 6 high
+   24 |  analog Input 6 low
+   25 |  analog Input 7 high
+   26 |  analog Input 7 low
+   27 |  analog Input 8 high
+   28 |  analog Input 8 low
+   29 |  analog Output 1 high
+   30 |  analog Output 1 low
+   31 |  analog Output 2 high
+   32 |  analog Output 2 low
+   33 |  analog Merker 1 high
+   34 |  analog Merker 1 low
+   35 |  analog Merker 2 high
+   36 |  analog Merker 2 low
+   37 |  analog Merker 3 high
+   38 |  analog Merker 3 low
+   39 |  analog Merker 4 high
+   40 |  analog Merker 4 low
+   41 |  analog Merker 5 high
+   42 |  analog Merker 5 low
+   43 |  analog Merker 6 high
+   44 |  analog Merker 6 low
+>Tab: Index der Werte beim Online-Test
+
+### <a name="09"></a>TD Funktionstasten `09`
+Nur Request, kein Response
 
 Darstellungsformat:
 ```
@@ -360,7 +455,7 @@ Fx: Funktionstaste 24h = 0010.0100b
 
 Beispiel F4 off:
 ```
-68 00 0A 00 0A 68 // SD2; DU Länge = 10 Byte
+68 00 0A 00 0A 68 // SD2; Länge = 10 Byte
 80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
 01      // 
 00      // 
@@ -373,12 +468,12 @@ Beispiel F4 off:
 
 Beispiel F4 on:
 ```
-68 00 0A 00 0A 68 // SD2; DU Länge = 10 Byte
+68 00 0A 00 0A 68 // SD2; Länge = 10 Byte
 80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
 01      // 
 00      // 
 02      // Byte Count = 2
-09      // Command 09h (set/write)
+09      // Command 09h (Func Key)
 13      // 13h = 0001.0011b: b4=1 -> on, 3 -> F3
 2B      // CheckSum8 Modulo 256 (DU: 80..13)
 16      // End Delimiter
@@ -404,72 +499,6 @@ send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 14   2C 16
 send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 24   3C 16
 ```
 
-### Online-Test-Abfrage der I/O-Daten
-
-Befehl:
-```
-send>68 00 0A 00 0A 68  80 7F 06 06 01 01  00 01  08  16 16
-```
-
-Darstellungsformat:
-```
-68 00 09 00 09 68 // SD2; DU Länge = 9 Byte
-80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
-01      // 
-00      // 
-01      // Byte Count = 1
-08      // Command 08 (get/read)
-16      // CheckSum8 Modulo 256 (DU: 80..08)
-16      // End Delimiter
-```
-
-Index | Parameter
------ | ---------
-   16 | Inputs 1-8
-   17 | Inputs 9-16
-   18 | Inputs 17-32
-   19 | TD-Function Keys
-   20 | Outputs 1-8
-   21 | Outputs 9-16
-   22 | Merker 1-8
-   23 | Merker 9-16
-   24 | Merker 17-24
-   25 | Merker 25-27
-   26 | Shift register 1-8
-   27 | Cursor Keys C1-C4
-   28 | analog Input 1 Low
-   29 | analog Input 1 High
-   30 | analog Input 2 Low
-   31 | analog Input 2 High
-   32 | analog Input 3 Low
-   33 | analog Input 3 High
-   34 | analog Input 4 Low
-   35 | analog Input 4 High
-   36 | analog Input 5 Low
-   37 | analog Input 5 High
-   38 | analog Input 6 Low
-   39 | analog Input 6 High
-   40 | analog Input 7 Low
-   41 | analog Input 7 High
-   42 | analog Input 8 Low
-   43 | analog Input 8 High
-   44 | analog Output 1 Low
-   45 | analog Output 1 High
-   46 | analog Output 2 Low
-   47 | analog Output 2 High
-   48 | analog Merker 1 Low
-   49 | analog Merker 1 High
-   50 | analog Merker 2 Low
-   51 | analog Merker 2 High
-   52 | analog Merker 3 Low
-   53 | analog Merker 3 High
-   54 | analog Merker 4 Low
-   55 | analog Merker 4 High
-   56 | analog Merker 5 Low
-   57 | analog Merker 5 High
-   58 | analog Merker 6 Low
-   59 | analog Merker 6 High
->Tab: Index der Werte beim Online-Test
 
 ----------
 
