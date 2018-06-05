@@ -152,7 +152,7 @@ Ein PROFIBUS-Telegramm besteht aus dem Telegrammheader, den Nutzdaten, einem Sic
 
 Folgende Telegramme sind für das _PROFIBUS_-Buszugriffsprotokoll (FDL) definiert:
 - SD1: Format mit fester Informationsfeldlänge ohne Daten (L = 3) 
-- SD2: Format mit variabler Informationsfeldlänge (L = 4..249)
+- SD2: Format mit variabler Informationsfeldlänge (L = 4..xxx)
 - SD3: Format mit fester Informationsfeldlänge mit Daten (L = 11)
 - SD4: Token-Telegramm
 - SC: Kurzquittung
@@ -181,12 +181,12 @@ Die Länge des Datenfeldes beträgt maximal 246 Bytes.
 
 Bedeutung der Abkürzungen: 
 - SD2: Startbyte (Start Delimiter) _"variable Datenlänge"_, Code `68`
-- DA: Zieladressbyte (Destination Address )
+- DA: Zieladressbyte (Destination Address)
 - SA: Quelladressbyte Source Address 
 - FC: Kontrollbyte (Frame Control) zur Festlegung des Telegramtyps (_Senden_, _Anfordern_, _Quitieren_, etc.)
 - FCS: Sicherungsbyte (Frame Check Sequence)
-- LE: Längenbyte (Length), Wert 4 bis 249
-- LEr: Wiederholung (Length repeated) des Längenbytes zur Sicherung
+- LE: Längenword (Length), Wertebereich (4 bis xxx)
+- LEr: Wiederholung (Length repeated) des Längenword zur Sicherung
 - ED: Endebyte (End Delimiter), Code `16`
 
 ### Adressierung
@@ -476,7 +476,18 @@ Index | Parameter
 # Anhang
 
 ## <a name="fcs"></a>Prüfsumme
-Jedem Telegramm wird eine 8-Bit-Prüfsumme hinzugefügt. Alle Datenbytes, zum Teil auch Bytes des Rahmens, werden Modulo-256 aufsummiert. Modulo-256 bedeutet dabei, dass bei jeder Summierung der Übertrag in das Bit mit der Wertigkeit 256 einfach ignoriert wird. Die entstandene 8 Bit lange Prüfsumme wird vom Sender ins Telegramm eingefügt. Der Empfänger prüft die empfangenen Daten und führt die selbe Addition durch. Die Prüfsumme muss gleich sein. 
+Jedem Telegramm wird eine 8-Bit-Prüfsumme hinzugefügt. Alle Datenbytes, zum Teil auch Bytes des Rahmens, werden Modulo-256 aufsummiert. Modulo-256 bedeutet dabei, dass bei jeder Summierung der Übertrag in das Bit mit der Wertigkeit 256 einfach ignoriert wird. Die entstandene 8 Bit lange Prüfsumme wird vom Sender ins Telegramm eingefügt. Der Empfänger prüft die empfangenen Daten und führt die selbe Addition durch. Die Prüfsumme muss gleich sein.
+
+Die Implementierung ist einfach, da nur eine 8-Bit-Prüfsumme für eine Folge von hexadezimalen Bytes berechnet werden muss. Wir verwenden eine Funktion `F(bval, cval)`, die ein Datenbyte und einen Prüfwert eingibt und einen neu berechneten Prüfwert ausgibt. Der Anfangswert für `cval` ist 0. Die Prüfsumme kann mit der folgenden Beispielfunktion (in C-Sprache) berechnet werden, die wir für jedes Byte des Datenfelds wiederholt aufrufen. Die 8-Bit-Prüfsumme ist das Zweierkomplement der Summe aller Bytes.
+
+```
+int F_chk_8( int bval, int cval )
+{
+  return ( bval ^ cval ) % 256;
+}
+```
+>Abb: Implementation der 8-Bit-Prüfsumme in _C_
+
 
 ## <a name="ttl"></a>RS485-TTL-Anschaltung
 TTL Anschaltung (z.B für Anschaltung an ein Microcontroller) via _MAX RS485 Module_  [HCMODU0081](http://hobbycomponents.com/wired-wireless/663-max485-rs485-transceiver-module). Das Modul ist von LC Electronic. Der Zugriff auf den Bus wird nicht automatisch vom Modul erledigt, sondern über die beiden "enable" Eingänge RE ("Receiver enabled" = high bei Daten empfangen) und DE ("Driver enable" = low bei Daten senden) gesteuert. Die Anschlüsse an P1 haben TTL-Pegel, die Anschlüsse an P2 sind für die Versorgung des Moduls und hat zudem die A-B-Anschlüsse für die Anschaltung an den RS485-BUS. 
