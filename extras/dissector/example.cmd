@@ -1,1 +1,0 @@
-"C:\Program Files\Wireshark\Wireshark.exe" -Xlua_script:logopg.lua example.pcap
