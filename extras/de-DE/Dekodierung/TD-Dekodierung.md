@@ -1,6 +1,6 @@
 # LOGO! TD Protokoll Referenz Handbuch
 
-Ausgabe Ad
+Ausgabe Ae
 
 Juni 2018
 
@@ -35,6 +35,7 @@ Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in
     * [Stop/Start `04/05`](#0405)
     * [Online-Test-Abfrage der I/O-Daten `08`](#08)
     * [TD Funktionstasten `09`](#09)
+    * [Uhrzeit/Datum `10`](#10)
   * [Anhang](#anhang)
     * [Prüfsumme](#fcs)
     * [RS485-TTL-Anschaltung](#ttl)
@@ -156,7 +157,7 @@ Ein PROFIBUS-Telegramm besteht aus dem Telegrammheader, den Nutzdaten, einem Sic
 
 Folgende Telegramme sind für das _PROFIBUS_-Buszugriffsprotokoll (FDL) definiert:
 - SD1: Format mit fester Informationsfeldlänge ohne Daten (L = 3) 
-- SD2: Format mit variabler Informationsfeldlänge (L = 4..xxx)
+- SD2: Format mit variabler Informationsfeldlänge (L = 4..65531)
 - SD3: Format mit fester Informationsfeldlänge mit Daten (L = 11)
 - SD4: Token-Telegramm
 - SC: Kurzquittung
@@ -181,7 +182,7 @@ Folgend der Aufbau des _SD2_ Telegrams:
 ```
 >Abb: _SD2_ Telegramm von Schicht 2
 
-Die Länge des Datenfeldes beträgt maximal 246 Bytes.
+Die Länge des Datenfeldes beträgt maximal 65528 Bytes.
 
 Bedeutung der Abkürzungen: 
 - SD2: Startbyte (Start Delimiter) _"variable Datenlänge"_, Code `68`
@@ -189,7 +190,7 @@ Bedeutung der Abkürzungen:
 - SA: Quelladressbyte Source Address 
 - FC: Kontrollbyte (Frame Control) zur Festlegung des Telegramtyps (_Senden_, _Anfordern_, _Quitieren_, etc.)
 - FCS: Sicherungsbyte (Frame Check Sequence)
-- LE: Längenword (Length), Wertebereich (4 bis xxx)
+- LE: Längenword (Length), Wertebereich (4 bis 65531)
 - LEr: Wiederholung (Length repeated) des Längenword zur Sicherung
 - ED: Endebyte (End Delimiter), Code `16`
 
@@ -315,7 +316,7 @@ SSAP: Quell-Dienstzugangspunkt; 1 = 0000.0001b
         b6: Typ bit = 0
         b5..b0: Adresse = 1
 DU: Protocol Data Unit; Nettodaten (max 246 Bytes)
-FCS: Frame Check Sequence von DU; CheckSum8 Modulo 256
+FCS: Frame Check Sequence von DA bis inkl. DU; CheckSum8 Modulo 256
 ED: End Delimiter = 16h
 ```
 
@@ -338,14 +339,18 @@ ED: End Delimiter = 16h
 # <a name="kapitel3"></a>Kapitel 3 - TD-Profile
 
 ## <a name="0405"></a>Stop/Start `04/05`
-Das Stoppen oder das Starten eines Programmes wird mit den Fkt. Codes `04` für Stop und `05` für Start ausgelöst. Mit diesen Befehlen wird das in der _LOGO!_ (Slave) gespeicherte Program gestartet oder gestoppt . Sobald der Befehl im Menü ausgewählt wird, wird der Start bzw. Stop-Befehl gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem Telegram beantwortet (z.B. Datenbyte = '06' für Ack). Die Beschreibung des Antwortcodes ist in einem eigenen Abschnitt beschrieben. 
+Das Stoppen oder das Starten eines Programmes wird mit den Befehl `04` für _Stop_ und `05` für _Start_ ausgelöst. Mit diesen Befehlen wird das in der _LOGO!_ (Slave) gespeicherte Program gestartet oder gestoppt. Sobald der Befehl im Menü ausgewählt wird, wird der _Start_ bzw. _Stop_-Befehl gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram beantwortet (z.B. Datenbyte = `06` für Ack). Die Beschreibung des Antwortcodes ist in einem eigenen Abschnitt beschrieben. 
 
 ## <a name="08"></a>Online-Test-Abfrage der I/O-Daten `08`
 Response und Request
 
 Befehl:
 ```
-send>68 00 0A 00 0A 68  80 7F 06 06 01 01  00 01  08  16 16
+send>68 00 0A 00 0A 68
+80 7F 06 06 01 01
+00
+01 08
+16 16
 ```
 
 #### Request
@@ -354,12 +359,11 @@ Darstellungsformat:
 ```
 68 00 09 00 09 68 // SD2; Länge = 9 Byte
 80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
-01      //
-00      //
-01      // Byte Count = 1
-08      // Command 08h (Online Test)
-16      // CheckSum8 Modulo 256 (DU: 80..08)
-16      // End Delimiter
+01    //
+00 01 // Byte Count = 1
+08    // Befehl 08h (Online Test)
+16    // CheckSum8 Modulo 256 (DA incl. DU: 80..08)
+16    // End Delimiter
 ```
 
 #### Response
@@ -368,74 +372,73 @@ Darstellungsformat:
 ```
 68 00 35 00 35 68 // SD2; Länge = 53 Byte
 7F 80 06 06 01    // SDN; DA:DSAP = 127:6; SA:SSAP = 0:1 (127 = Broadcast)
-01      //
-00      //
-2D      // Byte Count = 45
-08      // Command 08h (Online Test)
+01    // 
+00 2D // Byte Count = 45
+08    // Befehl 08h (Online Test)
 00 00 00 ... 
-XX      // CheckSum8 Modulo 256 (DU: 80..08)
-16      // End Delimiter
+XX    // CheckSum8 Modulo 256 (DA incl. DU: 7F..08)
+16    // End Delimiter
 ```
 
 Index | Parameter
------ | ---------
-    1 |  Inputs 1-8
-    2 |  Inputs 9-16
-    3 |  Inputs 17-32
-    4 |  TD-Function Keys
-    5 |  Outputs 1-8
-    6 |  Outputs 9-16
-    7 |  Merker 1-8
-    8 |  Merker 9-16
-    9 |  Merker 17-24
-   10 |  Merker 25-27
-   11 |  Shift register 1-8
-   12 |  Cursor Keys C1-C4
-   13 |  analog Input 1 high
-   14 |  analog Input 1 low
-   15 |  analog Input 2 high
-   16 |  analog Input 2 low
-   17 |  analog Input 3 high
-   18 |  analog Input 3 low
-   19 |  analog Input 4 high
-   20 |  analog Input 4 low
-   21 |  analog Input 5 high
-   22 |  analog Input 5 low
-   23 |  analog Input 6 high
-   24 |  analog Input 6 low
-   25 |  analog Input 7 high
-   26 |  analog Input 7 low
-   27 |  analog Input 8 high
-   28 |  analog Input 8 low
-   29 |  analog Output 1 high
-   30 |  analog Output 1 low
-   31 |  analog Output 2 high
-   32 |  analog Output 2 low
-   33 |  analog Merker 1 high
-   34 |  analog Merker 1 low
-   35 |  analog Merker 2 high
-   36 |  analog Merker 2 low
-   37 |  analog Merker 3 high
-   38 |  analog Merker 3 low
-   39 |  analog Merker 4 high
-   40 |  analog Merker 4 low
-   41 |  analog Merker 5 high
-   42 |  analog Merker 5 low
-   43 |  analog Merker 6 high
-   44 |  analog Merker 6 low
+----- | --------------------
+    1 | Inputs 1..8
+    2 | Inputs 9..16
+    3 | Inputs 17..32
+    4 | Function Keys F1..F4
+    5 | Outputs 1..8
+    6 | Outputs 9..16
+    7 | Merker 1..8
+    8 | Merker 9..16
+    9 | Merker 17..24
+   10 | Merker 25..27
+   11 | Shift register 1..8
+   12 | Cursor Keys C1..C4
+   13 | analog Input 1 high
+   14 | analog Input 1 low
+   15 | analog Input 2 high
+   16 | analog Input 2 low
+   17 | analog Input 3 high
+   18 | analog Input 3 low
+   19 | analog Input 4 high
+   20 | analog Input 4 low
+   21 | analog Input 5 high
+   22 | analog Input 5 low
+   23 | analog Input 6 high
+   24 | analog Input 6 low
+   25 | analog Input 7 high
+   26 | analog Input 7 low
+   27 | analog Input 8 high
+   28 | analog Input 8 low
+   29 | analog Output 1 high
+   30 | analog Output 1 low
+   31 | analog Output 2 high
+   32 | analog Output 2 low
+   33 | analog Merker 1 high
+   34 | analog Merker 1 low
+   35 | analog Merker 2 high
+   36 | analog Merker 2 low
+   37 | analog Merker 3 high
+   38 | analog Merker 3 low
+   39 | analog Merker 4 high
+   40 | analog Merker 4 low
+   41 | analog Merker 5 high
+   42 | analog Merker 5 low
+   43 | analog Merker 6 high
+   44 | analog Merker 6 low
 >Tab: Index der Werte beim Online-Test
 
 ### <a name="09"></a>TD Funktionstasten `09`
-Nur Request, kein Response
+Der _Request_ erfolgt mit einem Datenbyte. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram beantwortet (z.B. Datenbyte = `06` für Ack, siehe Antwortcodes im eigenen Abschnitt).
 
 Darstellungsformat:
 ```
 68 00 0A 00 0A 68 80 7F 06 06 01 [01 00 02 09  24] 3C 16
                                  [DU             ]
-                                 [01 00 BC Cmd Fx]
+                                 [01 [BC ] CMD Fx]
 
-BC: Byte Count = 2
-Cmd: Set/Write = 09h
+Bc: Byte Count (Typ Word, Big Endian)
+Cmd: Befehl 09h = Function Key
 Fx: Funktionstaste 24h = 0010.0100b
         0  0  1  0  0  1  0  0
     MSB --+--+--+--*--+--+--+-- LSB
@@ -457,26 +460,24 @@ Beispiel F4 off:
 ```
 68 00 0A 00 0A 68 // SD2; Länge = 10 Byte
 80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
-01      // 
-00      // 
-02      // Byte Count = 2
-09      // Command 09h (set/write)
-24      // 24h = 0010.0100b: b5=1 -> off, 4 -> F4
-3C      // CheckSum8 Modulo 256 (DU: 80..24)
-16      // End Delimiter
+01    // 
+00 02 // Byte Count = 2
+09    // Befehl 09h (Func Key)
+24    // 24h = 0010.0100b: b5=1 -> off, 4 -> F4
+3C    // CheckSum8 Modulo 256 (DA incl. DU: 80..24)
+16    // End Delimiter
 ```
 
 Beispiel F4 on:
 ```
 68 00 0A 00 0A 68 // SD2; Länge = 10 Byte
 80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
-01      // 
-00      // 
-02      // Byte Count = 2
-09      // Command 09h (Func Key)
-13      // 13h = 0001.0011b: b4=1 -> on, 3 -> F3
-2B      // CheckSum8 Modulo 256 (DU: 80..13)
-16      // End Delimiter
+01    // 
+00 02 // Byte Count = 2
+09    // Befehl 09h (Func Key)
+13    // 13h = 0001.0011b: b4=1 -> on, 3 -> F3
+2B    // CheckSum8 Modulo 256 (DA incl. DU: 80..13)
+16    // End Delimiter
 ```
 
 Weitere Beispiele:
@@ -499,6 +500,56 @@ send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 14   2C 16
 send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 24   3C 16
 ```
 
+### <a name="10"></a>Uhrzeit/Datum `10`
+Der Befehl `10` _Date Time_ liest die aktuelle Uhrzeit, das Datum und die Sommer-/Winterzeit aus der Hardware-Uhr der _LOGO!_ Keinsteuerung aus. Der _Request_ erfolgt ohne Daten. Das Ergebnis der Operation wird von der _LOGO_ Steuerung mit einem _Response_-Telegram beantwortet.
+
+Befehl:
+```
+send>68 00 09 00 09 68
+80 7F 06 06 01
+01 00 01 10
+1E 16
+recv<68 00 10 00 10 68
+7F 80 06 06 01
+01 00 08 10
+10 05 12 08 02 03 01
+5A 16
+```
+
+Darstellungsformat:
+```
+68 00 09 00 09 68 80 7F 06 06 01  01 00 01 10  1E 16
+                                 [DU          ]
+                                 [01 [Bc ] Cmd]
+
+68 00 0A 00 0A 68 80 7F 06 06 01 [01 00 08 10  10 05 12 08 02 03 01] 5A 16
+                                 [DU                               ]
+                                 [01 [Bc ] Cmd DD MM YY mm hh Wd SW]
+
+Bc: Byte Count (Typ Word, Big Endian)
+Cmd: Befehl 10h = Date Time
+DD: Tag; Wertebereich 01..1F (1 bis 31)
+MM: Monat; Wertebereich 01..0C (1 bis 12)
+YY: Jahr; Wertebereich beginnend bei 03 (entspricht 2003)
+mm: Minuten; Wertebereich 01..3B (1 bis 59)
+hh: Stunden; Wertebereich 00..17 (0 bis 23)
+Wd: Wochentag; Wertebereich 01..07 (Mo bis So)
+SW: 01 = Sommerzeit; 00 = Winterzeit
+```
+
+Beispiel (Response, nur DU):
+```
+01    //
+00 08 // Byte Count = 8
+10    // Befehl 10h (Clock)
+04    // Tag 4
+06    // Monat Juni
+12    // Jahr 2018
+13    // Minute 19
+16    // Stunde 22 
+02    // Dienstag
+01    // Sommerzeit
+```
 
 ----------
 
