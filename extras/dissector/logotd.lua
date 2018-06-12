@@ -14,12 +14,14 @@
 --  p_frag.lua      by mj99, https://osqa-ask.Wireshark.org/answer_link/55764/
 --
 -- History:
---  0.1   03-04.06.2018	inital version
---  0.1.1 04.06.2018		bug fixing
---  0.2 	05.06.2018    update INFO colum, command code 0x08
+--  0.1   03-04.06.2018 inital version
+--  0.1.1 04.06.2018    bug fixing
+--  0.2   05.06.2018    update INFO colum, command code 0x08
 --  0.2.1 06.06.2018    bug fixing
 --  0.2.2 07.06.2018    bug fixing byte count
 --  0.3   07.06.2018    command code 0x04, 0x05, 0x09, 0x10
+--  0.3.1 11.06.2018    bug fixing, command code 0x03
+--  0.3.2 12.06.2018    command code 0x21
 --
 -------------------------------------------------------------------------------
 
@@ -127,8 +129,14 @@ local PBUS_SD2_HDR_LEN = PBUS_FDL_HDR_LEN + 1 + 1 + 1
 local PBUS_DDLM_HDR_LEN = 1 + 1
 -- size of the FDL trailer (DCS+ED = 2 bytes)
 local PBUS_TRAILER_LEN = 1 + 1
--- size of the ALI header (01+00+BC+CND = 4 bytes)
-local PBUS_ALI_HDR_LEN = 1 + 1 + 1 + 1
+-- size of the ALI header (01+BC+CND = 4 bytes)
+local PBUS_ALI_HDR_LEN = 1 + 2 + 1
+-- size of the param header (DD+MM+YY+mm+hh-Wd+SW = 7 bytes)
+local CMD_DATETIME_LEN = 7
+-- size of the param header (BLOCK+ADDR+BC = 6 bytes)
+local CMD_PARAM_HDR_LEN = 2 + 2 + 2
+-- size of the param header (ADDR+BC = 4 bytes)
+local CMD_PRGMEM_HDR_LEN = 2 + 2
 
 fdl_fields.telegram_number =
   ProtoField.uint32("PROFIBUS.number", "Telegram number")
@@ -171,23 +179,27 @@ local ali_fields = LOGOTD.fields
 local COMMAND_CODES = {
 --  [0x01] = "Init Start",
 --  [0x02] = "Init Complete",
---  [0x03] = "Diagnosis",
-  [0x04] = "Stop",
-  [0x05] = "Start",
+  [0x03] = "Diagnosis",
+  [0x04] = "Stop Operating",
+  [0x05] = "Start Operating",
   [0x08] = "Online Test",
   [0x09] = "Function Key",
   [0x10] = "Date Time",
 --  [0x14] = "",
 --  [0x18] = "Message Text",
+  [0x21] = "Set Parameter",
 --  [0x30] = "",
 --  [0x3c] = "",
 --  [0x3d] = "",
 --  [0x40] = "",
+  [0x41] = "Program Memory",
+--  [0x42] = "",
 --  [0x5a] = "",
 --  [0x5b] = "",
 --  [0x61] = "",
 --  [0x70] = "",
---  [0x77] = "Update Display",
+--  [0x76] = "Parameter Display",
+--  [0x77] = "Message Display",
 --  [0x78] = "",
 --  [0x81] = "",
 }
@@ -195,6 +207,12 @@ local COMMAND_CODES = {
 local LOGICAL_VALUE = {
   [0] = "Low",
   [1] = "High",
+}
+
+local OPERATION_CODES = {
+  [0x01] = "RUN Mode",
+  [0x02] = "STOP Mode",
+  [0x20] = "Parameter Mode",
 }
 
 local FUNCTION_KEY_CODES = {
@@ -209,13 +227,13 @@ local FUNCTION_KEY_CODES = {
 }
 
 local WEEKDAY = {
+  [0x00] = "Sunday",
   [0x01] = "Monday",
   [0x02] = "Tuesday",
   [0x03] = "Wednesday",
   [0x04] = "Thursday",
   [0x05] = "Friday",
   [0x06] = "Saturday",
-  [0x07] = "Sunday",
 }
 
 ali_fields.header =
@@ -242,6 +260,9 @@ ali_fields.bit6 =
   ProtoField.uint8 ("LOGOTD.bit6", "b6", base.DEC, LOGICAL_VALUE, 0x40)
 ali_fields.bit7 =
   ProtoField.uint8 ("LOGOTD.bit7", "b7", base.DEC, LOGICAL_VALUE, 0x80)
+ali_fields.operation_mode =
+  ProtoField.uint8 ("LOGOTD.operation_mode", "Operation Mode", base.HEX,
+                    OPERATION_CODES)
 ali_fields.function_key =
   ProtoField.uint8 ("LOGOTD.function_key", "Function Key", base.HEX,
                     FUNCTION_KEY_CODES)
@@ -265,6 +286,8 @@ ali_fields.dt_weekday =
   ProtoField.uint8 ("LOGOTD.dt_weekday", "Day of the week", base.DEC, WEEKDAY)
 ali_fields.dt_swtime =
   ProtoField.bool  ("LOGOTD.dt_swtime", "Summertime")
+ali_fields.addr =
+  ProtoField.uint16("LOGOTD.addr", "Address", base.HEX)
 
 --------------------------------------------------------------------------------
 -- https://www.lua.org/pil/19.3.html
@@ -590,6 +613,29 @@ local packet_helper = nil
 local data = Dissector.get("data")
 
 lookup_command_code = {
+  [0x03] = {
+    dissect = function(tvb, pinfo, tree)
+      -- Header fields
+      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
+      -- 01 + Byte Count (16bit Big Endian)
+      local number_of_bytes = tvb(1,2):uint()
+      tree:add(ali_fields.header, tvb(0,1))
+      tree:add(ali_fields.byte_count, tvb(1,2))
+      -- Command Code + ...
+      local cmd_code = tvb(3,1):uint()
+      tree:add(ali_fields.command_code, tvb(3,1))
+      -- If this telegram has no data, then we are done here
+      if number_of_bytes == 1 then return PBUS_ALI_HDR_LEN end
+
+      -- Payload fields
+      local pdu_length = PBUS_ALI_HDR_LEN - 1 + number_of_bytes
+      if tvb:len() < pdu_length then return 0 end
+      local offset = PBUS_ALI_HDR_LEN
+      tree:add(ali_fields.operation_mode, tvb(offset, 1))
+      offset = offset + 1
+      return offset
+    end
+  },
   [0x04] = {
     dissect = function(tvb, pinfo, tree)
       -- Header fields
@@ -618,29 +664,7 @@ lookup_command_code = {
   },
   [0x05] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Command Code + ...
-      local cmd_code = tvb(3,1):uint()
-      tree:add(ali_fields.command_code, tvb(3,1))
-      -- If this telegram has no data, then we are done here
-      if number_of_bytes == 1 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN - 1 + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      if data:uint() == 0x06 then
-        tree:add(data, "Acknowledge Response (0x06)")
-      else
-        tree:add(ali_fields.data, data)
-      end
-      return pdu_length
+      return lookup_command_code[0x04].dissect(tvb, pinfo, tree)
     end
   },
   [0x08] = {
@@ -892,8 +916,8 @@ lookup_command_code = {
       if data:uint() == 0x06 then
         tree:add(data, "Acknowledge Response (0x06)")
       else
-        if number_of_bytes < 7 then return 0 end
-        data = tvb(PBUS_ALI_HDR_LEN, 7)
+        if number_of_bytes <= CMD_DATETIME_LEN then return 0 end
+        data = tvb(PBUS_ALI_HDR_LEN, CMD_DATETIME_LEN)
         local day     = data(0,1)
         local month   = data(1,1)
         local year    = data(2,1)
@@ -912,6 +936,96 @@ lookup_command_code = {
         subtree:add(ali_fields.dt_hour, hour)
         subtree:add(ali_fields.dt_weekday, weekday)
         subtree:add(ali_fields.dt_swtime, swtime)
+      end
+      return pdu_length
+    end
+  },
+  [0x21] = {
+    dissect = function(tvb, pinfo, tree)
+      -- Header fields
+      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
+      -- 01 + Byte Count (16bit Big Endian)
+      local number_of_bytes = tvb(1,2):uint()-1
+      tree:add(ali_fields.header, tvb(0,1))
+      tree:add(ali_fields.byte_count, tvb(1,2))
+      -- Command Code + ...
+      local cmd_code = tvb(3,1):uint()
+      tree:add(ali_fields.command_code, tvb(3,1))
+      -- If this telegram has no data, then we are done here
+      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
+
+      -- Payload fields
+      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
+      if tvb:len() < pdu_length then return 0 end
+      -- ... Data + ...
+      local data = tvb(PBUS_ALI_HDR_LEN, 1)
+      if data:uint() == 0x06 then
+        tree:add(data, "Acknowledge Response (0x06)")
+      else
+        local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes),
+                        string.format("Parameter (%d bytes)", number_of_bytes))
+        if default_settings.subdissect then
+          -- display command header
+          if number_of_bytes < CMD_PARAM_HDR_LEN then return 0 end
+          local header      = tvb(PBUS_ALI_HDR_LEN, CMD_PARAM_HDR_LEN)
+          local block       = header(0,2)
+          local addr        = header(2,2)
+          local byte_count  = header(4,2)
+          subtree:add(block, string.format("Block B%03d", block:uint()-9))
+          subtree:add(ali_fields.addr, addr)
+          subtree:add(ali_fields.byte_count, byte_count)
+          -- display command data
+          local length = byte_count:uint()-2
+          if number_of_bytes < CMD_PARAM_HDR_LEN + length then return 0 end
+          local data = tvb(PBUS_ALI_HDR_LEN + CMD_PARAM_HDR_LEN, length)
+          subtree:add(ali_fields.data, data)
+        end
+      end
+      return pdu_length
+    end
+  },
+  [0x41] = {
+    dissect = function(tvb, pinfo, tree)
+      -- Header fields
+      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
+      -- 01 + Byte Count (16bit Big Endian)
+      local number_of_bytes = tvb(1,2):uint()-1
+      tree:add(ali_fields.header, tvb(0,1))
+      tree:add(ali_fields.byte_count, tvb(1,2))
+      -- Command Code + ...
+      local cmd_code = tvb(3,1):uint()
+      tree:add(ali_fields.command_code, tvb(3,1))
+      -- If this telegram has no data, then we are done here
+      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
+
+      -- Payload fields
+      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
+      if tvb:len() < pdu_length then return 0 end
+      -- ... Data + ...
+      local data = tvb(PBUS_ALI_HDR_LEN, 1)
+      if data:uint() == 0x06 then
+        tree:add(data, "Acknowledge Response (0x06)")
+      else
+        local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes),
+                        string.format("Memory (%d bytes)", number_of_bytes))
+        if default_settings.subdissect then
+          local offset = PBUS_ALI_HDR_LEN
+          while offset + CMD_PRGMEM_HDR_LEN < pdu_length do
+            -- display command header
+            local header     = tvb(offset, CMD_PRGMEM_HDR_LEN)
+            local addr       = header(0,2)
+            local byte_count = header(2,2)
+            subtree:add(ali_fields.addr, addr)
+            subtree:add(ali_fields.byte_count, byte_count)
+            offset = offset + CMD_PRGMEM_HDR_LEN
+            -- display command data
+            local length = byte_count:uint()
+            if pdu_length < offset + length then return offset end
+            local data = tvb(offset, length)
+            subtree:add(ali_fields.data, data)
+            offset = offset + length
+          end
+        end
       end
       return pdu_length
     end
