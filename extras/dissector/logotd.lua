@@ -20,8 +20,8 @@
 --  0.2.1 06.06.2018    bug fixing
 --  0.2.2 07.06.2018    bug fixing byte count
 --  0.3   07.06.2018    command code 0x04, 0x05, 0x09, 0x10
---  0.3.1 11.06.2018    bug fixing, command code 0x03
---  0.3.2 12.06.2018    command code 0x21
+--  0.3.1 11.06.2018    command code 0x03, bug fixing 0x10
+--  0.3.2 12.06.2018    command code 0x21, bug fixing 0x08
 --
 -------------------------------------------------------------------------------
 
@@ -697,7 +697,7 @@ lookup_command_code = {
         -- digital inputs
         local number_of_bits = 24
         local bytes_to_consume = 3
-        local bitcount = NumberOfSetBits(tvb(offset, bytes_to_consume):bytes())
+        local bitcount = NumberOfSetBits(tvb(offset, bytes_to_consume):bytes(), nil)
         local subtree = datatree:add(tvb(offset, bytes_to_consume),
                         string.format("Digital inputs [Bitcount %d]", bitcount))
         local bit = 1
@@ -716,21 +716,10 @@ lookup_command_code = {
           bytes_to_consume = bytes_to_consume - 1
         end
 
-        -- function keys
-        bitcount = NumberOfSetBits(tvb(offset,1):bytes(), 4)
-        subtree = datatree:add(tvb(offset,1),
-                  string.format("Function keys [Bitcount %d]", bitcount))
-        subtree:add(tvb(offset,1), "F04-F01")
-        subtree:add(ali_fields.bit0, tvb(offset,1))
-        subtree:add(ali_fields.bit1, tvb(offset,1))
-        subtree:add(ali_fields.bit2, tvb(offset,1))
-        subtree:add(ali_fields.bit3, tvb(offset,1))
-        offset = offset + 1
-  
         -- digital outputs
         number_of_bits = 16
         bytes_to_consume = 2
-        bitcount = NumberOfSetBits(tvb(offset, bytes_to_consume):bytes())
+        bitcount = NumberOfSetBits(tvb(offset, bytes_to_consume):bytes(), nil)
         subtree = datatree:add(tvb(offset, bytes_to_consume),
                   string.format("Digital outputs [Bitcount %d]", bitcount))
         bit = 1
@@ -749,6 +738,17 @@ lookup_command_code = {
           bytes_to_consume = bytes_to_consume - 1
         end
         
+        -- function keys
+        bitcount = NumberOfSetBits(tvb(offset,1):bytes(), 4)
+        subtree = datatree:add(tvb(offset,1),
+                  string.format("Function keys [Bitcount %d]", bitcount))
+        subtree:add(tvb(offset,1), "F04-F01")
+        subtree:add(ali_fields.bit0, tvb(offset,1))
+        subtree:add(ali_fields.bit1, tvb(offset,1))
+        subtree:add(ali_fields.bit2, tvb(offset,1))
+        subtree:add(ali_fields.bit3, tvb(offset,1))
+        offset = offset + 1
+
         -- digital merkers
         number_of_bits = 27
         bytes_to_consume = 4
@@ -778,7 +778,7 @@ lookup_command_code = {
         end
         
         -- shift register
-    		bitcount = NumberOfSetBits(tvb(offset,1):bytes())
+        bitcount = NumberOfSetBits(tvb(offset,1):bytes(), nil)
         subtree = datatree:add(tvb(offset,1),
                   string.format("Shift register [Bitcount %d]", bitcount))
         subtree:add(tvb(offset,1), "S08-S01")
