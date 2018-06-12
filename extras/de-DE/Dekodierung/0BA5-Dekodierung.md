@@ -1238,7 +1238,7 @@ recv< 06
 Klemme | Block | HEX | DEC
 -------|-------|-----|-----
 Q1     | B001  | 0A  | 10
-Q2     | B005  | 0E  | 10
+Q2     | B005  | 0E  | 14
 Q3-16  | -     | FF  | -
 >Tab: Zuordnung der Blocknummer zum Ausgang
 
