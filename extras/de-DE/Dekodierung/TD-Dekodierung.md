@@ -1,11 +1,11 @@
 # LOGO! TD Protokoll Referenz Handbuch
 
-Ausgabe Ae
+Ausgabe Af
 
 Juni 2018
 
 ## Vorwort
-Dieses Handbuch richtet sich an Personen, die mit einem Siemens (TM) _LOGO!_ __0BA6__ über die TD-Schnittstelle kommunizieren. Die TD-Schnittstelle verwendete ein _PROFIBUS_ Anwendungs-Protokoll zur Bedienung und Anzeige am _TD_, welches hier als TD-Protokoll bezeichnet wird. In diesem Handbuch wird beschrieben, wie Nachrichten erstellt werden und wie Transaktionen mithilfe des TD-Protokolls ausgeführt werden.
+Dieses Handbuch richtet sich an Personen, die mit einem Siemens (TM) _LOGO!_ __0BA6__ über die Schnittstelle des _Text Displays_ kommunizieren. Die Schnittstelle verwendet ein _PROFIBUS_ Anwendungs-Protokoll zur Bedienung und Anzeige am _Text Displays_, welches hier als _TD_-Protokoll bezeichnet wird. In diesem Handbuch wird beschrieben, wie Nachrichten erstellt werden und wie Transaktionen mithilfe des _TD_-Protokolls ausgeführt werden.
 
 _Siemens_ und _LOGO!_ sind eingetragene Marken der __Siemens AG__.
 
@@ -32,10 +32,12 @@ Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in
     * [Direkt Data Link Mapper (DDLM)](#ddlm)
     * [Anwendungsprotokoll (ALI)](#ali)
   * [Kapitel 3 - TD-Profile](#kapitel3)
+    * [Diagnose `03`](#03)
     * [Stop/Start `04/05`](#0405)
-    * [Online-Test-Abfrage der I/O-Daten `08`](#08)
+    * [Online-Test (I/O-Daten) `08`](#08)
     * [TD Funktionstasten `09`](#09)
     * [Uhrzeit/Datum `10`](#10)
+    * [Konfiguration `21`](#21)
   * [Anhang](#anhang)
     * [Prüfsumme](#fcs)
     * [RS485-TTL-Anschaltung](#ttl)
@@ -338,10 +340,48 @@ ED: End Delimiter = 16h
 
 # <a name="kapitel3"></a>Kapitel 3 - TD-Profile
 
+## <a name="03"></a>Diagnose `03`
+Das _TD_-Protokoll nutzt den Befehl `03`, um Diagnoseinformationen von der LOGO! Kleinsteuerung zu erhalten. Das Diagnosetelegramm wird unter anderem verwendet, um den Status, Betriebszustand und benutzerspezifische Ereignisse zu erfragen. Das Text-Display (Master) fragt hierzu zyklisch (ungefähr einmal pro Sekunde) die _LOGO!_ Steuerung (Slave) ab. Die Antwort erfolgt ebenfalls mit dem Befehl `03` (_Response_-Telegram) und hat ein festes Format, welches einen 7 Byte langen Informationsteil hat. 
+
+Befehl:
+```
+send>68 00 09 00 09 68
+80 7F 06 06 01
+01 00 01 03
+11 16
+recv<68 00 10 00 10 68
+7F 80 06 06 01
+01 00 08 03
+01 00 00 00 00 7B C4
+58 16
+```
+
+Darstellungsformat:
+```
+68 00 09 00 09 68 80 7F 06 06 01 [01 00 01 03 ] 11 16
+                                 [DU          ]
+                                 [01 [Bc ] Cmd]
+
+68 00 10 00 10 68 7F 80 06 06 01 [01 00 08 03  01 00 00 00 00 7B C4] 58 16
+                                 [DU                               ]
+                                 [01 [Bc ] Cmd Op O2 O3 O4 O5 O6 O7]
+
+Bc: Byte Count (Typ Word, Big Endian)
+Cmd: Befehl 03h = Diagnosis
+Op: Operating Mode;
+        01h = RUN Mode
+        02h = STOP Mode
+        20h = Parameter Mode
+
+O2-O5: Octett 2 bis 5 = 00
+O6: Octett 6; 7Bh = 123d = 0111.1011b = ?
+O7: Octett 7; C4h = 196d = 1100.0100b = ?
+```
+
 ## <a name="0405"></a>Stop/Start `04/05`
 Das Stoppen oder das Starten eines Programmes wird mit den Befehl `04` für _Stop_ und `05` für _Start_ ausgelöst. Mit diesen Befehlen wird das in der _LOGO!_ (Slave) gespeicherte Program gestartet oder gestoppt. Sobald der Befehl im Menü ausgewählt wird, wird der _Start_ bzw. _Stop_-Befehl gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram beantwortet (z.B. Datenbyte = `06` für Ack). Die Beschreibung des Antwortcodes ist in einem eigenen Abschnitt beschrieben. 
 
-## <a name="08"></a>Online-Test-Abfrage der I/O-Daten `08`
+## <a name="08"></a>Online-Test (I/O-Daten) `08`
 Response und Request
 
 Befehl:
@@ -381,54 +421,54 @@ XX    // CheckSum8 Modulo 256 (DA incl. DU: 7F..08)
 ```
 
 Index | Parameter
------ | --------------------
-    1 | Inputs 1..8
-    2 | Inputs 9..16
-    3 | Inputs 17..32
-    4 | Function Keys F1..F4
-    5 | Outputs 1..8
-    6 | Outputs 9..16
-    7 | Merker 1..8
-    8 | Merker 9..16
-    9 | Merker 17..24
-   10 | Merker 25..27
-   11 | Shift register 1..8
-   12 | Cursor Keys C1..C4
-   13 | analog Input 1 high
-   14 | analog Input 1 low
-   15 | analog Input 2 high
-   16 | analog Input 2 low
-   17 | analog Input 3 high
-   18 | analog Input 3 low
-   19 | analog Input 4 high
-   20 | analog Input 4 low
-   21 | analog Input 5 high
-   22 | analog Input 5 low
-   23 | analog Input 6 high
-   24 | analog Input 6 low
-   25 | analog Input 7 high
-   26 | analog Input 7 low
-   27 | analog Input 8 high
-   28 | analog Input 8 low
-   29 | analog Output 1 high
-   30 | analog Output 1 low
-   31 | analog Output 2 high
-   32 | analog Output 2 low
-   33 | analog Merker 1 high
-   34 | analog Merker 1 low
-   35 | analog Merker 2 high
-   36 | analog Merker 2 low
-   37 | analog Merker 3 high
-   38 | analog Merker 3 low
-   39 | analog Merker 4 high
-   40 | analog Merker 4 low
-   41 | analog Merker 5 high
-   42 | analog Merker 5 low
-   43 | analog Merker 6 high
-   44 | analog Merker 6 low
+--- | ---
+1 | Inputs 1..8
+2 | Inputs 9..16
+3 | Inputs 17..32
+4 | Function Keys F1..F4
+5 | Outputs 1..8
+6 | Outputs 9..16
+7 | Merker 1..8
+8 | Merker 9..16
+9 | Merker 17..24
+10 | Merker 25..27
+11 | Shift register 1..8
+12 | Cursor Keys C1..C4
+13 | analog Input 1 high
+14 | analog Input 1 low
+15 | analog Input 2 high
+16 | analog Input 2 low
+17 | analog Input 3 high
+18 | analog Input 3 low
+19 | analog Input 4 high
+20 | analog Input 4 low
+21 | analog Input 5 high
+22 | analog Input 5 low
+23 | analog Input 6 high
+24 | analog Input 6 low
+25 | analog Input 7 high
+26 | analog Input 7 low
+27 | analog Input 8 high
+28 | analog Input 8 low
+29 | analog Output 1 high
+30 | analog Output 1 low
+31 | analog Output 2 high
+32 | analog Output 2 low
+33 | analog Merker 1 high
+34 | analog Merker 1 low
+35 | analog Merker 2 high
+36 | analog Merker 2 low
+37 | analog Merker 3 high
+38 | analog Merker 3 low
+39 | analog Merker 4 high
+40 | analog Merker 4 low
+41 | analog Merker 5 high
+42 | analog Merker 5 low
+43 | analog Merker 6 high
+44 | analog Merker 6 low
 >Tab: Index der Werte beim Online-Test
 
-### <a name="09"></a>TD Funktionstasten `09`
+## <a name="09"></a>TD Funktionstasten `09`
 Der _Request_ erfolgt mit einem Datenbyte. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram beantwortet (z.B. Datenbyte = `06` für Ack, siehe Antwortcodes im eigenen Abschnitt).
 
 Darstellungsformat:
@@ -500,7 +540,7 @@ send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 14   2C 16
 send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 24   3C 16
 ```
 
-### <a name="10"></a>Uhrzeit/Datum `10`
+## <a name="10"></a>Uhrzeit/Datum `10`
 Der Befehl `10` _Date Time_ liest die aktuelle Uhrzeit, das Datum und die Sommer-/Winterzeit aus der Hardware-Uhr der _LOGO!_ Keinsteuerung aus. Der _Request_ erfolgt ohne Daten. Das Ergebnis der Operation wird von der _LOGO_ Steuerung mit einem _Response_-Telegram beantwortet.
 
 Befehl:
@@ -522,7 +562,7 @@ Darstellungsformat:
                                  [DU          ]
                                  [01 [Bc ] Cmd]
 
-68 00 0A 00 0A 68 80 7F 06 06 01 [01 00 08 10  10 05 12 08 02 03 01] 5A 16
+68 00 0A 00 0A 68 7F 80 06 06 01 [01 00 08 10  10 05 12 08 02 03 01] 5A 16
                                  [DU                               ]
                                  [01 [Bc ] Cmd DD MM YY mm hh Wd SW]
 
@@ -533,7 +573,7 @@ MM: Monat; Wertebereich 01..0C (1 bis 12)
 YY: Jahr; Wertebereich beginnend bei 03 (entspricht 2003)
 mm: Minuten; Wertebereich 01..3B (1 bis 59)
 hh: Stunden; Wertebereich 00..17 (0 bis 23)
-Wd: Wochentag; Wertebereich 01..07 (Mo bis So)
+Wd: Wochentag; Wertebereich 00..06 (So bis Sa)
 SW: 01 = Sommerzeit; 00 = Winterzeit
 ```
 
@@ -550,6 +590,9 @@ Beispiel (Response, nur DU):
 02    // Dienstag
 01    // Sommerzeit
 ```
+
+## <a name="21"></a>Konfiguration `21`
+
 
 ----------
 
