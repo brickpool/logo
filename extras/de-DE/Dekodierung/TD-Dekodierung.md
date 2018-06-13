@@ -1,6 +1,6 @@
 # LOGO! TD Protokoll Referenz Handbuch
 
-Ausgabe Af
+Ausgabe Ag
 
 Juni 2018
 
@@ -37,7 +37,7 @@ Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in
     * [Online-Test (I/O-Daten) `08`](#08)
     * [TD Funktionstasten `09`](#09)
     * [Uhrzeit/Datum `10`](#10)
-    * [Konfiguration `21`](#21)
+    * [Parametrierung `21`](#21)
   * [Anhang](#anhang)
     * [Prüfsumme](#fcs)
     * [RS485-TTL-Anschaltung](#ttl)
@@ -341,7 +341,7 @@ ED: End Delimiter = 16h
 # <a name="kapitel3"></a>Kapitel 3 - TD-Profile
 
 ## <a name="03"></a>Diagnose `03`
-Das _TD_-Protokoll nutzt den Befehl `03`, um Diagnoseinformationen von der LOGO! Kleinsteuerung zu erhalten. Das Diagnosetelegramm wird unter anderem verwendet, um den Status, Betriebszustand und benutzerspezifische Ereignisse zu erfragen. Das Text-Display (Master) fragt hierzu zyklisch (ungefähr einmal pro Sekunde) die _LOGO!_ Steuerung (Slave) ab. Die Antwort erfolgt ebenfalls mit dem Befehl `03` (_Response_-Telegram) und hat ein festes Format, welches einen 7 Byte langen Informationsteil hat. 
+Das _TD_-Protokoll nutzt den Befehl `03`, um Diagnoseinformationen von der LOGO! Kleinsteuerung zu erhalten. Das Diagnosetelegramm wird unter anderem verwendet, um den Status, Betriebszustand und benutzerspezifische Ereignisse zu erfragen. Das Text-Display (Master) fragt hierzu zyklisch (ungefähr einmal pro Sekunde) die _LOGO!_ Steuerung (Slave) ab. Die Antwort erfolgt ebenfalls mit dem Befehl `03` (_Response_-Telegram) und hat ein festes Format, welches einen 7 Byte langen Informationsteil hat. Bei der Übertragung wird auch eine Check-Summe vom Schaltprogramm mitgesendet (Byte 6 und 7). Anhand der Werte Kann das _TD_ erkennen, ob das bei der Initialisierung geladenen Schaltprogramm noch aktuell ist. 
 
 Befehl:
 ```
@@ -364,18 +364,19 @@ Darstellungsformat:
 
 68 00 10 00 10 68 7F 80 06 06 01 [01 00 08 03  01 00 00 00 00 7B C4] 58 16
                                  [DU                               ]
-                                 [01 [Bc ] Cmd Op O2 O3 O4 O5 O6 O7]
+                                 [01 [Bc ] Cmd Op [Dn     ] D5 [Chk ]
 
 Bc: Byte Count (Typ Word, Big Endian)
 Cmd: Befehl 03h = Diagnosis
 Op: Operating Mode;
-        01h = RUN Mode
-        02h = STOP Mode
-        20h = Parameter Mode
+    01h = RUN Mode
+    02h = STOP Mode
+    20h = Parameter Mode
 
-O2-O5: Octett 2 bis 5 = 00
-O6: Octett 6; 7Bh = 123d = 0111.1011b = ?
-O7: Octett 7; C4h = 196d = 1100.0100b = ?
+Dn: Datenbyte an Stelle n (n = 3..4) = 00h
+D5: Datenbyte Nr. 5; Bedeutung unbekannt;
+    01h = (b7 wurde nach Meldetext gesetzt, warum?)
+Chk: Schaltprogramm Checksum
 ```
 
 ## <a name="0405"></a>Stop/Start `04/05`
@@ -425,9 +426,9 @@ Index | Parameter
 1 | Inputs 1..8
 2 | Inputs 9..16
 3 | Inputs 17..32
-4 | Function Keys F1..F4
-5 | Outputs 1..8
-6 | Outputs 9..16
+4 | Outputs 1..8
+5 | Outputs 9..16
+6 | Function Keys F1..F4
 7 | Merker 1..8
 8 | Merker 9..16
 9 | Merker 17..24
@@ -591,8 +592,155 @@ Beispiel (Response, nur DU):
 01    // Sommerzeit
 ```
 
-## <a name="21"></a>Konfiguration `21`
+## <a name="21"></a>Parametrierung `21`
+Der Befehl _Set Parameter_ `21` dient dem Einstellen der Parameter der Blöcke. Es können unter anderem Verzögerungszeiten, Schaltzeiten, den Schwellwerte, berwachungszeiten, Ein- und Ausschaltschwellen geändert werden, ohne das das Schaltprogramm geändert werden muss. Vorteil: In der Betriebsart _Parametrieren_ arbeitet die _LOGO!_ Kleinsteuerung das Schaltprogramm weiter ab. Sobald die geänderten Parameter (in der Betriebsart Parametrieren) mit der Taste _OK_ quittiert wurden, wird der Befehl _Set Parameter_ gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram (üblicherweise mit dem Datenbyte = `06` für Ack) beantwortet. 
 
+__Hinweis:__ Das erfolgreiche Ändern von Parametern setzt voraus, dass die für den Block im Schaltprogramm eingestellte Schutzart dies erlaubt (Parameterschutz = `+`). 
+
+Befehl:
+```
+send>68 00 37 00 37 68
+80 7F 06 06 01
+01 00 2F 21 00 0F 00 FC 00 14 CE 04 EC 04 FF FF
+FF FF FF FF FF FF 7F 00 00 00 00 00 21 40 0F 80
+00 80 00 00 21 40 0F 80 2C 81 00 00 21 40 0F 80
+89 83
+BE 16
+recv<68 00 0A 00 0A 68
+7F 80 06 06 01
+01 00 02 21 06
+36 16
+```
+
+Darstellungsformat (Request, nur DU):
+```
+01  00 2F  21   00 0F   00 FC   00 14   CE 04 EC 04 FF FF ...
+01 [00 2F] 21  [00 0F] [00 FC] [00 14] [CE 04 EC 04 FF FF ...
+01 [Bc   ] Cmd [Bl   ] [Po   ] [Pc   ] [Dn ...
+
+Bc: Byte Count (Typ Word, Big Endian)
+Cmd: Befehl 21h = Set Parameter
+Bl: Blocknummer (Typ Word, Big Endian)
+Po: Zeigeradresse (Typ Word, Big Endian)
+Pc: Anzahl Parameter Bytes (Anzahhl ist inkl. Feldlänge von Pc)
+Dn: Datenbyte an Stelle n (n = 3..Pc)
+```
+
+## <a name="30"></a>Adressierung `30`
+Der Befehl _Addressing_ `30` beinhaltet die indizierten Speicherbereiche (Indexregister) vom Programmzeilenspeicher für die Ausgänge, Merker und Funktionsblöcke. Das Ziel eines Indexregisters ist eine Speicherzelle im Programmzeilenspeicher. Die Adresse ergibt sich über den Inhalt des jeweiligen Indexregisters, das auf die Speicherzelle im Programmzeilenspeicher verweist. Die von der _LOGO!_ Kleinsteuerung zurückgemeldeten Indexregister werden vom _TD_ genutzt, um auf die Struktur des Schaltprogramms zuzugreifen, welche über den Befehl `40` (und folgend) abgefragt werden. 
+
+Der Befehl `30` gibt bei einer _LOGO!_ __0BA6__ 420 Bytes Netto-Daten zurück. Die ersten 20 Bytes verweisen auf (weitere) 10*20 Bytes für Ausgänge und Merker (siehe Tabelle folgend). Die nächsten 400 Bytes verweisen auf 200 Funktionsblöcke im Programmzeilenspeicher. Der Verweis wird als 16 Bit-Offset-Adresse (Little Endian) dargestellt. 
+
+Befehl:
+```
+recv<68 01 AD 01 AD 68
+7F 80 06 06 01
+01 01 A5 30
+0000   00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00
+0010   A0 00 B4 00 C8 00 D4 00 E0 00 EC 00 F8 00 FC 00
+0020   10 01 18 01 20 01 28 01 30 01 34 01 3C 01 44 01
+0030   4C 01 54 01 58 01 5C 01 FF FF 60 01 6C 01 7C 01
+0040   8C 01 FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0050   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0060   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0070   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0080   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0090   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+00A0   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+00B0   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+00C0   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+00D0   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+00E0   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+00F0   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0100   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0110   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0120   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0130   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0140   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0150   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0160   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0170   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0180   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0190   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+01A0   FF FF FF FF
+EB 16
+```
+
+### Indexregister Ausgänge und Merker
+
+Darstellungsformat (Response, Netto-Daten, 20 Bytes):
+```
+0000   00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00
+0010   A0 00 B4 00 .. .. ..
+
+             |<----------------------- 20 Bytes ---------------------->|
+HEX (Lo Hi): 00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00 A0 00 B4 00
+HEX (Hi,Lo): 00,00 00,14 00,28 00,3C 00,50 00,64 00,78 00,8C 00,A0 00,B4
+Dezimal:     00    20    40    60    80    100   120   140   160   180
+Speicherbedarf: 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20
+```
+
+Zeiger | Beschreibung
+-------|------------------------------------
+0000   | Digitaler Ausgang 1-8
+0014   | Digitaler Ausgang 9-16
+0028   | Merker 1-8
+003C   | Merker 9-16
+0050   | Merker 17-24
+0064   | Analogausgang 1-2; Analogmerker 1-6
+0078   | offener Ausgang 1-8
+008C   | offener Ausgang 9-16
+00A0   | Merker 25-27
+00B4   | (Reserve ??)
+>Tab: Übersicht Indexregister Ausgänge und Merker
+
+### Indexregister für Funktionsblöcke
+Unter Verwendung des ausgelesen Wertes ist es möglich, den Block im Speicherbereich anzusprechen. Das Indexregister für Block B001 ist an Stelle `21..22` zu finden, der Block B002 an Stelle `23..24`, Block B003 an `25..26`, usw. Der Wert `FFFF` bedeutet, dass der Block nicht im Schaltprogramm verwendet wird.
+
+Darstellungsformat (Response, Netto-Daten, Bytes > 20):
+```
+0010   .. .. .. .. C8 00 D4 00 E0 00 EC 00 F8 00 FC 00
+0020   10 01 18 01 20 01 28 01 30 01 34 01 3C 01 44 01
+0030   4C 01 54 01 58 01 5C 01 FF FF 60 01 .. .. .. ..
+
+             |<----------------------- 20 Bytes ---------------------->|
+HEX (Lo Hi): C8 00 D4 00 E0 00 EC 00 F8 00 FC 00 10 01 18 01 20 01 28 01
+HEX (Hi,Lo): 00,C8 00,D4 00,E0 00,EC 00,F8 00,FC 01,10 01,18 01,20 01,28
+Dezimal:     200   212   224   236   248   252   272   280   288   296
+Speicherbedarf: 12 -- 12 -- 12 -- 12 --- 4 -- 20 --- 8 --- 8 --- 8 --- 8
+
+             |<----------------------- 20 Bytes ---------------------->|
+HEX (Lo Hi): 30 01 34 01 3C 01 44 01 4C 01 54 01 58 01 5C 01 FF FF 60 01
+HEX (Hi,Lo): 01,30 01,34 01,3C 01,44 01,4C 01,54 01,58 01,5C FF,FF 01,60
+Dezimal:     304   308   316   324   332   340   344   348   n/a   352
+Speicherbedarf:  4 --- 8 --- 8 --- 8 --- 8 --- 4 --- 4 ------ 8 ----- 12
+```
+
+Zeiger | Block-Nr | Speicher
+-------|----------|---------
+00C8   | B001     | 12 Bytes
+00D4   | B002     | 12 Bytes
+00E0   | B003     | 12 Bytes
+00EC   | B004     | 12 Bytes
+00F8   | B005     | 4 Bytes
+00FC   | B006     | 20 Bytes
+0110   | B007     | 8 Bytes
+0118   | B008     | 8 Bytes
+0120   | B009     | 8 Bytes
+0128   | B010     | 8 Bytes
+0130   | B011     | 4 Bytes
+0134   | B012     | 8 Bytes
+013C   | B013     | 8 Bytes
+0144   | B014     | 8 Bytes
+014C   | B015     | 8 Bytes
+0154   | B016     | 4 Bytes
+0158   | B017     | 4 Bytes
+015C   | B018     | 8 Bytes
+n/a *) | B019     | 0 Bytes
+0160   | B020     | 12 Bytes
+>Tab: Übersicht Indexregister Funktionsblöcke
+
+\*) Block-Nr. B019 wird im Schaltprogramm nicht verwendet!
 
 ----------
 
