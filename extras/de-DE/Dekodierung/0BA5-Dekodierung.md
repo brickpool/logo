@@ -1,7 +1,7 @@
 # Undocumented LOGO! __0BA5__
 ## Aufbau, Funktionsweise und Programmierung
 
-Ausgabe As
+Ausgabe Ar
 
 Juni 2018
 
@@ -907,7 +907,7 @@ recv< 06
 Das Beispiel zeigt auch, dass die anderen Ausgänge _Q2_-_Q16_ im Schaltprogramm nicht verwendet werden (`FFFF`).
 
 ## <a name="0C00"></a>Verweis auf Ausgänge, Merker
-20 Bytes fest, die auf jeweils (weitere) 20 Bytes im Speicherbereich für Ein-/Ausgänge und Merker verweisen. Der Verweis wird als 16 Bit-Offset-Adresse dargestellt. 
+20 Bytes fest, die auf jeweils (weitere) 10*20 Bytes im Speicherbereich für Ausgänge und Merker verweisen. Der Verweis wird als 16 Bit-Offset-Adresse dargestellt. 
 
 Die Adressverweise befinden sich im Speicherbereich `0C00..0C14` (10*2 Bytes).
 
@@ -937,7 +937,7 @@ Bereich     | Anz | Zeiger            | Beschreibung
 ------------|-----|-------------------|------------------------------------
 0E20 - 0E48 | 40  | 0000, 0014        | Digitaler Ausgang 1-16
 0E48 - 0E84 | 60  | 0028, 003C, 0050  | Merker 1-24
-0E84 - 0E98 | 20  | 0064              | Analogausgang 1,2, Analogmerker 1-6
+0E84 - 0E98 | 20  | 0064              | Analogausgang 1-2; Analogmerker 1-6
 0E98 - 0EC0 | 40  | 0078, 008C        | offener Ausgang 1-16
 0EC0 - 0EE8 | 40  | 00A0, 00B4        | (Reserve ??)
 >Tab: Adressübersicht Ausgänge und Merker
@@ -1516,6 +1516,8 @@ HEX        | RAM (Bytes) | REM (Bytes) | Beschreibung
 [2D](#SF2D)| 12          | 3           | Asynchroner Impulsgeber
 [2F](#SF2F)| 12          | 3           | Ein-/Ausschaltverzögerung
 [31](#SF31)| 12          | 3           | Treppenlichtschalter
+[34](#SF34)| 8           | -           | Meldetext
+[35](#SF35)| 16          | -           | Analoger Schwellwertschalter
 [39](#SF39)| 20          | -           | Analogwertüberwachung
 >Tab: Liste _Sonderfunktionen_
 
