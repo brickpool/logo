@@ -5,7 +5,7 @@ Ausgabe Ag
 Juni 2018
 
 ## Vorwort
-Dieses Handbuch richtet sich an Personen, die mit einem Siemens (TM) _LOGO!_ __0BA6__ über die Schnittstelle des _Text Displays_ kommunizieren. Die Schnittstelle verwendet ein _PROFIBUS_ Anwendungs-Protokoll zur Bedienung und Anzeige am _Text Displays_, welches hier als _TD_-Protokoll bezeichnet wird. In diesem Handbuch wird beschrieben, wie Nachrichten erstellt werden und wie Transaktionen mithilfe des _TD_-Protokolls ausgeführt werden.
+Dieses Handbuch richtet sich an Personen, die mit einem Siemens (TM) _LOGO!_ __0BA6__ über die Schnittstelle des _Text Displays_ kommunizieren. Die Schnittstelle verwendet ein _PROFIBUS_ (TM) Anwendungs-Protokoll zur Bedienung und Anzeige am _Text Displays_, welches hier als _TD_-Protokoll bezeichnet wird. In diesem Handbuch wird beschrieben, wie Nachrichten erstellt werden und wie Transaktionen mithilfe des _TD_-Protokolls ausgeführt werden.
 
 _Siemens_ und _LOGO!_ sind eingetragene Marken der __Siemens AG__.
 
@@ -38,6 +38,7 @@ Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in
     * [TD Funktionstasten `09`](#09)
     * [Uhrzeit/Datum `10`](#10)
     * [Parametrierung `21`](#21)
+    * [Adressierung `30`](#30)
   * [Anhang](#anhang)
     * [Prüfsumme](#fcs)
     * [RS485-TTL-Anschaltung](#ttl)
@@ -341,7 +342,9 @@ ED: End Delimiter = 16h
 # <a name="kapitel3"></a>Kapitel 3 - TD-Profile
 
 ## <a name="03"></a>Diagnose `03`
-Das _TD_-Protokoll nutzt den Befehl `03`, um Diagnoseinformationen von der LOGO! Kleinsteuerung zu erhalten. Das Diagnosetelegramm wird unter anderem verwendet, um den Status, Betriebszustand und benutzerspezifische Ereignisse zu erfragen. Das Text-Display (Master) fragt hierzu zyklisch (ungefähr einmal pro Sekunde) die _LOGO!_ Steuerung (Slave) ab. Die Antwort erfolgt ebenfalls mit dem Befehl `03` (_Response_-Telegram) und hat ein festes Format, welches einen 7 Byte langen Informationsteil hat. Bei der Übertragung wird auch eine Check-Summe vom Schaltprogramm mitgesendet (Byte 6 und 7). Anhand der Werte Kann das _TD_ erkennen, ob das bei der Initialisierung geladenen Schaltprogramm noch aktuell ist. 
+Das _TD_-Protokoll nutzt den Befehl `03`, um Diagnoseinformationen von der _LOGO!_ Kleinsteuerung zu erhalten. Das Diagnosetelegramm wird unter anderem verwendet, um den Status, Betriebszustand und benutzerspezifische Ereignisse zu erfragen. Das Text-Display (Master) fragt hierzu zyklisch (ungefähr einmal pro Sekunde) die _LOGO!_ Steuerung (Slave) ab. Die Antwort erfolgt ebenfalls mit dem Befehl `03` (_Response_-Telegram) und hat ein festes Format, welches einen 7 Byte langen Informationsteil hat.
+
+Im Informationsteil wird auch eine Check-Summe vom Schaltprogramm mitgesendet (Byte 6 und 7). Anhand der Check-Summe kann das _TD_ erkennen, ob das bei der Initialisierung geladenen Schaltprogramm noch aktuell ist. 
 
 Befehl:
 ```
@@ -364,7 +367,7 @@ Darstellungsformat:
 
 68 00 10 00 10 68 7F 80 06 06 01 [01 00 08 03  01 00 00 00 00 7B C4] 58 16
                                  [DU                               ]
-                                 [01 [Bc ] Cmd Op [Dn     ] D5 [Chk ]
+                                 [01 [Bc ] Cmd Op [Dn    ] D5 [Chk ]
 
 Bc: Byte Count (Typ Word, Big Endian)
 Cmd: Befehl 03h = Diagnosis
@@ -593,7 +596,9 @@ Beispiel (Response, nur DU):
 ```
 
 ## <a name="21"></a>Parametrierung `21`
-Der Befehl _Set Parameter_ `21` dient dem Einstellen der Parameter der Blöcke. Es können unter anderem Verzögerungszeiten, Schaltzeiten, den Schwellwerte, berwachungszeiten, Ein- und Ausschaltschwellen geändert werden, ohne das das Schaltprogramm geändert werden muss. Vorteil: In der Betriebsart _Parametrieren_ arbeitet die _LOGO!_ Kleinsteuerung das Schaltprogramm weiter ab. Sobald die geänderten Parameter (in der Betriebsart Parametrieren) mit der Taste _OK_ quittiert wurden, wird der Befehl _Set Parameter_ gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram (üblicherweise mit dem Datenbyte = `06` für Ack) beantwortet. 
+Der Befehl _Set Parameter_ `21` dient dem Einstellen der Parameter der Blöcke. Es können unter anderem Verzögerungszeiten, Schaltzeiten, Schwellwerte, Überwachungszeiten und Ein- und Ausschaltschwellen geändert werden, ohne das das Schaltprogramm geändert werden muss. 
+
+Vorteil: In der Betriebsart _Parametrieren_ arbeitet die _LOGO!_ Kleinsteuerung das Schaltprogramm weiter ab. Sobald die geänderten Parameter (in der Betriebsart _Parametrieren_) mit der Taste _OK_ quittiert wurden, wird der Befehl _Set Parameter_ gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram (üblicherweise mit dem Datenbyte = `06` für Ack) beantwortet. 
 
 __Hinweis:__ Das erfolgreiche Ändern von Parametern setzt voraus, dass die für den Block im Schaltprogramm eingestellte Schutzart dies erlaubt (Parameterschutz = `+`). 
 
@@ -627,9 +632,9 @@ Dn: Datenbyte an Stelle n (n = 3..Pc)
 ```
 
 ## <a name="30"></a>Adressierung `30`
-Der Befehl _Addressing_ `30` beinhaltet die indizierten Speicherbereiche (Indexregister) vom Programmzeilenspeicher für die Ausgänge, Merker und Funktionsblöcke. Das Ziel eines Indexregisters ist eine Speicherzelle im Programmzeilenspeicher. Die Adresse ergibt sich über den Inhalt des jeweiligen Indexregisters, das auf die Speicherzelle im Programmzeilenspeicher verweist. Die von der _LOGO!_ Kleinsteuerung zurückgemeldeten Indexregister werden vom _TD_ genutzt, um auf die Struktur des Schaltprogramms zuzugreifen, welche über den Befehl `40` (und folgend) abgefragt werden. 
+Der Befehl _Addressing_ `30` benennt die indizierten Speicherbereiche (Indexregister) vom Programmzeilenspeicher für die Ausgänge, Merker und Funktionsblöcke. Das Ziel eines Indexregisters ist eine Speicherzelle im Programmzeilenspeicher. Die von der _LOGO!_ Kleinsteuerung zurückgemeldeten Indexregister werden vom _TD_ genutzt, um auf die Struktur des Schaltprogramms zuzugreifen, welche über den Befehl `40` (und folgend) abgefragt werden. Die Adresse ergibt sich aus den Inhalt des jeweiligen Indexregisters, das auf den Speicherort vom Programmzeilenspeicher verweist. 
 
-Der Befehl `30` gibt bei einer _LOGO!_ __0BA6__ 420 Bytes Netto-Daten zurück. Die ersten 20 Bytes verweisen auf (weitere) 10*20 Bytes für Ausgänge und Merker (siehe Tabelle folgend). Die nächsten 400 Bytes verweisen auf 200 Funktionsblöcke im Programmzeilenspeicher. Der Verweis wird als 16 Bit-Offset-Adresse (Little Endian) dargestellt. 
+Der Befehl `30` gibt bei einer _LOGO!_ __0BA6__ 420 Bytes Netto-Daten zurück. Die ersten 20 Bytes verweisen auf (weitere) 10*20 Bytes für Ausgänge und Merker (siehe Tabelle folgend). Die nächsten 400 Bytes verweisen auf die 200 Funktionsblöcke im Programmzeilenspeicher. Der Verweis wird als 16 Bit-Offset-Adresse (Little Endian) dargestellt. 
 
 Befehl:
 ```
@@ -668,7 +673,7 @@ EB 16
 
 ### Indexregister Ausgänge und Merker
 
-Darstellungsformat (Response, Netto-Daten, 20 Bytes):
+Darstellungsformat (Response, nur Netto-Daten, 20 Bytes):
 ```
 0000   00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00
 0010   A0 00 B4 00 .. .. ..
@@ -697,7 +702,7 @@ Zeiger | Beschreibung
 ### Indexregister für Funktionsblöcke
 Unter Verwendung des ausgelesen Wertes ist es möglich, den Block im Speicherbereich anzusprechen. Das Indexregister für Block B001 ist an Stelle `21..22` zu finden, der Block B002 an Stelle `23..24`, Block B003 an `25..26`, usw. Der Wert `FFFF` bedeutet, dass der Block nicht im Schaltprogramm verwendet wird.
 
-Darstellungsformat (Response, Netto-Daten, Bytes > 20):
+Darstellungsformat (Response, nur Netto-Daten, Bytes > 20):
 ```
 0010   .. .. .. .. C8 00 D4 00 E0 00 EC 00 F8 00 FC 00
 0020   10 01 18 01 20 01 28 01 30 01 34 01 3C 01 44 01
