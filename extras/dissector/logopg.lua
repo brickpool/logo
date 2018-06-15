@@ -32,6 +32,7 @@
 --  0.5.5 30.04.2018      bitcount for data in function code 0x11
 --  0.5.6 01-02.05.2018   bug fixing
 --  0.5.7 06.06.2018      bug fixing transaction_id and update INFO colum
+--  0.5.8 14.06.2018      bug fixing NumberOfSetBits in 0x551111
 --
 -------------------------------------------------------------------------------
 
@@ -622,7 +623,7 @@ local lookup_function_code = {
         -- digital inputs
         number_of_bits = 24
         bytes_to_consume = 3
-        bitcount = NumberOfSetBits(tvb(offset, bytes_to_consume):bytes())
+        bitcount = NumberOfSetBits(tvb(offset, bytes_to_consume):bytes(), number_of_bits)
         subtree = datatree:add(tvb(offset, bytes_to_consume), string.format("Digital inputs [Bitcount %d]", bitcount))
         bit = 1
         while bytes_to_consume > 0 do
@@ -655,7 +656,7 @@ local lookup_function_code = {
         -- digital outputs
         number_of_bits = 16
         bytes_to_consume = 2
-        bitcount = NumberOfSetBits(tvb(offset, bytes_to_consume):bytes())
+        bitcount = NumberOfSetBits(tvb(offset, bytes_to_consume):bytes(), number_of_bits)
         subtree = datatree:add(tvb(offset, bytes_to_consume), string.format("Digital outputs [Bitcount %d]", bitcount))
         bit = 1
         while bytes_to_consume > 0 do
@@ -698,7 +699,7 @@ local lookup_function_code = {
         end
         
         -- shift register
-        bitcount = NumberOfSetBits(tvb(offset,1):bytes())
+        bitcount = NumberOfSetBits(tvb(offset,1):bytes(), 8)
         subtree = datatree:add(tvb(offset,1), string.format("Shift register [Bitcount %d]", bitcount))
         subtree:add(tvb(offset,1), "S08-S01")
         subtree:add(pg_fields.bit0, tvb(offset,1))
@@ -726,8 +727,8 @@ local lookup_function_code = {
         local flag = 0
         for i = offset, offset+bytes_to_consume-1 do
           if tvb(i,1):uint() ~= 0 then
-          flag = 1
-          break
+            flag = 1
+            break
           end
         end
         subtree = datatree:add(tvb(offset,bytes_to_consume), string.format("Analog inputs [%s]", FLAG_VALUE[flag]))
@@ -743,8 +744,8 @@ local lookup_function_code = {
         flag = 0
         for i = offset, offset+4-1 do
           if tvb(i,1):uint() ~= 0 then
-          flag = 1
-          break
+            flag = 1
+            break
           end
         end
         subtree = datatree:add(tvb(offset,4), string.format("Analog outputs [%s]", FLAG_VALUE[flag]))
@@ -758,8 +759,8 @@ local lookup_function_code = {
         flag = 0
         for i = offset, offset+bytes_to_consume-1 do
           if tvb(i,1):uint() ~= 0 then
-          flag = 1
-          break
+            flag = 1
+            break
           end
         end
         subtree = datatree:add(tvb(offset,bytes_to_consume), string.format("Analog merkers [%s]", FLAG_VALUE[flag]))
