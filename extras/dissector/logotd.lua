@@ -23,6 +23,8 @@
 --  0.3.1 11.06.2018    command code 0x03; bug fixing 0x10
 --  0.3.2 12.06.2018    command code 0x21, 0x41; bug fixing 0x08
 --  0.3.3 13-15.06.2018 command code 0x30, 0x40, 0x42; opt. 0x03
+--  0.3.4 15.06.2018    command code 0x3d
+--  0.3.5 18.06.2018    command code 0x09, 0x3c; bug fixing 0x08
 --
 -------------------------------------------------------------------------------
 
@@ -138,6 +140,8 @@ local CMD_DIAGNOSIS_LEN = 1 + 4 + 2
 local CMD_DATETIME_LEN = 7
 -- size of the Param header (block+register+BC = 6 bytes)
 local CMD_PARAM_HDR_LEN = 2 + 2 + 2
+-- size of one Blockname (8 bytes)
+local CMD_BLK_NAME_LEN = 8
 -- size of the Program header (register+BC+blocktype+blockparam = 6 bytes)
 local CMD_PRGMEM_HDR_LEN = 2 + 2 + 1 + 1
 -- size of one Conn row (header+data+trailer = 20 bytes)
@@ -188,20 +192,20 @@ local COMMAND_CODES = {
   [0x04] = "Stop Operating",
   [0x05] = "Start Operating",
   [0x08] = "Online Test",
-  [0x09] = "Function Key",
+  [0x09] = "Button Key",
   [0x10] = "Date Time",
 --  [0x14] = "",
---  [0x18] = "Message Text",
+--  [0x18] = "",
   [0x21] = "Set Parameter",
   [0x30] = "Addressing",
---  [0x3c] = "",
---  [0x3d] = "",
+  [0x3c] = "Block Name Index",
+  [0x3d] = "Block Name Memory",
   [0x40] = "Connectors",
   [0x41] = "Program Memory",
   [0x42] = "Program Memory",
---  [0x5a] = "",
+--  [0x5a] = "Message Index",
 --  [0x5b] = "",
---  [0x61] = "",
+  [0x61] = "Message Text",
 --  [0x70] = "",
 --  [0x76] = "Parameter Display",
 --  [0x77] = "Message Display",
@@ -220,14 +224,19 @@ local OPERATION_CODES = {
   [0x20] = "Parameter Mode",
 }
 
-local FUNCTION_KEY_CODES = {
+local BUTTON_KEY_CODES = {
+  [0x05] = "C1 pressed",
+  [0x06] = "Ack Response (S>M) / C2 pressed (M>S)",
+  [0x07] = "C3 pressed",
+  [0x08] = "C4 pressed",
   [0x11] = "F1 pressed",
-  [0x21] = "F1 released",
   [0x12] = "F2 pressed",
-  [0x22] = "F2 released",
   [0x13] = "F3 pressed",
-  [0x23] = "F3 released",
   [0x14] = "F4 pressed",
+  [0x19] = "Cursor released",
+  [0x21] = "F1 released",
+  [0x22] = "F2 released",
+  [0x23] = "F3 released",
   [0x24] = "F4 released",
 }
 
@@ -297,8 +306,8 @@ local BLOCK_PARAM_CODES = {
 }
 
 -- ALI header fields
-ali_fields.header     = ProtoField.uint8 ("LOGOTD.Header", "Header", base.HEX)
-ali_fields.byte_count = ProtoField.uint16("LOGOTD.BC", "Byte Count", base.DEC)
+ali_fields.header       = ProtoField.uint8 ("LOGOTD.Header", "Header", base.HEX)
+ali_fields.byte_count   = ProtoField.uint16("LOGOTD.BC", "Byte Count", base.DEC)
 ali_fields.command_code = ProtoField.uint8 ("LOGOTD.CMD", "Command Code"
   , base.HEX, COMMAND_CODES)
 
@@ -309,14 +318,8 @@ ali_fields.prg_checksum   = ProtoField.uint16("LOGOTD.prg_checksum"
   , "Program checksum", base.HEX)
 
 -- Function Keys fields (0x09)
-ali_fields.function_key   = ProtoField.uint8("LOGOTD.function_key"
-  , "Function Key", base.HEX, FUNCTION_KEY_CODES)
-ali_fields.fbtn_released  = ProtoField.bool ("LOGOTD.fbtn_released"
-  , "Button Released", 8, nil, 0x20)
-ali_fields.fbtn_pressed   = ProtoField.bool ("LOGOTD.fbtn_pressed"
-  , "Button Pressed", 8, nil, 0x10)
-ali_fields.fbtn_key_code =  ProtoField.uint8("LOGOTD.fbtn_key_code"
-  , "Button Code", base.DEC, nil, 0x07)
+ali_fields.button_key = ProtoField.uint8("LOGOTD.button_key", "Button Key"
+  , base.HEX, BUTTON_KEY_CODES)
 
 -- Date Time fields (0x10)
 ali_fields.dt_day     = ProtoField.uint8("LOGOTD.dt_day", "Day", base.DEC)
@@ -765,21 +768,21 @@ lookup_command_code = {
       if tvb:len() < pdu_length then return 0 end
       -- ... Data + ...
       if not default_settings.subdissect then
-        tree:add(pg_fields.data, tvb(PBUS_ALI_HDR_LEN,
-                                     pdu_length - PBUS_ALI_HDR_LEN))
+        tree:add(pg_fields.data, tvb(PBUS_ALI_HDR_LEN
+                                     , pdu_length - PBUS_ALI_HDR_LEN))
       else
         local offset = PBUS_ALI_HDR_LEN
-        local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN,
-                                      pdu_length - PBUS_ALI_HDR_LEN),
-                                  "Data bytes")
+        local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN
+                                      , pdu_length - PBUS_ALI_HDR_LEN)
+                                  , "Data bytes")
 
         -- digital inputs
         local number_of_bits = 24
         local bytes_to_consume = 3
-        local bitcount = NumberOfSetBits(tvb(offset,
-                                             bytes_to_consume):bytes(), nil)
-        local subtree = datatree:add(tvb(offset, bytes_to_consume),
-                        string.format("Digital inputs [Bitcount %d]", bitcount))
+        local bitcount = NumberOfSetBits(tvb(offset
+                                             , bytes_to_consume):bytes(), nil)
+        local subtree = datatree:add(tvb(offset, bytes_to_consume)
+                      , string.format("Digital inputs [Bitcount %d]", bitcount))
         local bit = 1
         while bytes_to_consume > 0 do
           subtree:add(tvb(offset,1), string.format("I%02u-I%02u", bit+7, bit))
@@ -800,8 +803,9 @@ lookup_command_code = {
         number_of_bits = 16
         bytes_to_consume = 2
         bitcount = NumberOfSetBits(tvb(offset, bytes_to_consume):bytes(), nil)
-        subtree = datatree:add(tvb(offset, bytes_to_consume),
-                  string.format("Digital outputs [Bitcount %d]", bitcount))
+        subtree = datatree:add(tvb(offset, bytes_to_consume)
+                               , string.format("Digital outputs [Bitcount %d]"
+                                               , bitcount))
         bit = 1
         while bytes_to_consume > 0 do
           subtree:add(tvb(offset,1), string.format("Q%02u-Q%02u", bit+7, bit))
@@ -829,38 +833,46 @@ lookup_command_code = {
         subtree:add(ali_fields.bit3, tvb(offset,1))
         offset = offset + 1
 
-        -- digital merkers
-        number_of_bits = 27
-        bytes_to_consume = 4
-        bitcount = NumberOfSetBits(tvb(offset, bytes_to_consume):bytes(),
-                                   number_of_bits)
-        subtree = datatree:add(tvb(offset, bytes_to_consume),
-                  string.format("Digital merkers [Bitcount %d]", bitcount))
+        -- digital merkers 1-24
+        number_of_bits = 24
+        bytes_to_consume = 3
+        bitcount = NumberOfSetBits(tvb(offset, bytes_to_consume):bytes(), nil)
+        subtree = datatree:add(tvb(offset, bytes_to_consume)
+                               , string.format("Digital merkers [Bitcount %d]"
+                                               , bitcount))
         bit = 1
         while bytes_to_consume > 0 do
-          subtree:add(tvb(offset,1),
-                      string.format("M%02u-M%02u",
-                      bit+7 > number_of_bits and number_of_bits or bit+7, bit))
+          subtree:add(tvb(offset,1), string.format("M%02u-M%02u", bit+7, bit))
           subtree:add(ali_fields.bit0, tvb(offset,1))
           subtree:add(ali_fields.bit1, tvb(offset,1))
           subtree:add(ali_fields.bit2, tvb(offset,1))
-          bit = bit + 3
-          if bit < number_of_bits then
-            subtree:add(ali_fields.bit3, tvb(offset,1))
-            subtree:add(ali_fields.bit4, tvb(offset,1))
-            subtree:add(ali_fields.bit5, tvb(offset,1))
-            subtree:add(ali_fields.bit6, tvb(offset,1))
-            subtree:add(ali_fields.bit7, tvb(offset,1))
-            bit = bit + 5
-          end
+          subtree:add(ali_fields.bit3, tvb(offset,1))
+          subtree:add(ali_fields.bit4, tvb(offset,1))
+          subtree:add(ali_fields.bit5, tvb(offset,1))
+          subtree:add(ali_fields.bit6, tvb(offset,1))
+          subtree:add(ali_fields.bit7, tvb(offset,1))
+          bit = bit + 8
           offset = offset + 1
           bytes_to_consume = bytes_to_consume - 1
         end
         
+        -- cursor keys
+    		bitcount = NumberOfSetBits(tvb(offset,1):bytes(), 4)
+        subtree = datatree:add(tvb(offset,1)
+                               , string.format("Cursor keys [Bitcount %d]"
+                                               , bitcount))
+        subtree:add(tvb(offset,1), "C04-C01")
+        subtree:add(ali_fields.bit0, tvb(offset,1))
+        subtree:add(ali_fields.bit1, tvb(offset,1))
+        subtree:add(ali_fields.bit2, tvb(offset,1))
+        subtree:add(ali_fields.bit3, tvb(offset,1))
+        offset = offset + 1
+  
         -- shift register
         bitcount = NumberOfSetBits(tvb(offset,1):bytes(), nil)
-        subtree = datatree:add(tvb(offset,1),
-                  string.format("Shift register [Bitcount %d]", bitcount))
+        subtree = datatree:add(tvb(offset,1)
+                               , string.format("Shift register [Bitcount %d]"
+                                               , bitcount))
         subtree:add(tvb(offset,1), "S08-S01")
         subtree:add(ali_fields.bit0, tvb(offset,1))
         subtree:add(ali_fields.bit1, tvb(offset,1))
@@ -872,17 +884,17 @@ lookup_command_code = {
         subtree:add(ali_fields.bit7, tvb(offset,1))
         offset = offset + 1
         
-        -- cursor keys
-    		bitcount = NumberOfSetBits(tvb(offset,1):bytes(), 4)
-        subtree = datatree:add(tvb(offset,1),
-                  string.format("Cursor keys [Bitcount %d]", bitcount))
-        subtree:add(tvb(offset,1), "C04-C01")
+        -- digital merkers 25-27
+    		bitcount = NumberOfSetBits(tvb(offset,1):bytes(), 3)
+        subtree = datatree:add(tvb(offset,1)
+                               , string.format("Digital merkers [Bitcount %d]"
+                                               , bitcount))
+        subtree:add(tvb(offset,1), "M25-M27")
         subtree:add(ali_fields.bit0, tvb(offset,1))
         subtree:add(ali_fields.bit1, tvb(offset,1))
         subtree:add(ali_fields.bit2, tvb(offset,1))
-        subtree:add(ali_fields.bit3, tvb(offset,1))
         offset = offset + 1
-  
+
         -- analog inputs (16bit Big Endian)
         bytes_to_consume = 16
         local flag = 0
@@ -892,12 +904,13 @@ lookup_command_code = {
             break
           end
         end
-        subtree = datatree:add(tvb(offset,bytes_to_consume),
-                  string.format("Analog inputs [%s]", FLAG_VALUE[flag]))
+        subtree = datatree:add(tvb(offset,bytes_to_consume)
+                               , string.format("Analog inputs [%s]"
+                                               , FLAG_VALUE[flag]))
         local analog = 1
         while bytes_to_consume > 0 do
-          subtree:add(tvb(offset,2),
-                      string.format("AI%u: %d", analog, tvb(offset,2):int()))
+          subtree:add(tvb(offset,2)
+                      , string.format("AI%u: %d", analog, tvb(offset,2):int()))
           analog = analog + 1
           offset = offset + 2
           bytes_to_consume = bytes_to_consume - 2
@@ -911,13 +924,14 @@ lookup_command_code = {
             break
           end
         end
-        subtree = datatree:add(tvb(offset,4),
-                  string.format("Analog outputs [%s]", FLAG_VALUE[flag]))
-        subtree:add(tvb(offset,2),
-                    string.format("AQ1: %d", tvb(offset,2):int()))
+        subtree = datatree:add(tvb(offset,4)
+                               , string.format("Analog outputs [%s]"
+                                               , FLAG_VALUE[flag]))
+        subtree:add(tvb(offset,2)
+                    , string.format("AQ1: %d", tvb(offset,2):int()))
         offset = offset + 2
-        subtree:add(tvb(offset,2),
-                    string.format("AQ2: %d", tvb(offset,2):int()))
+        subtree:add(tvb(offset,2)
+                    , string.format("AQ2: %d", tvb(offset,2):int()))
         offset = offset + 2
   
         -- analog merkers (16bit Big Endian)
@@ -929,12 +943,13 @@ lookup_command_code = {
             break
           end
         end
-        subtree = datatree:add(tvb(offset,bytes_to_consume),
-                  string.format("Analog merkers [%s]", FLAG_VALUE[flag]))
+        subtree = datatree:add(tvb(offset,bytes_to_consume)
+                               , string.format("Analog merkers [%s]"
+                                               , FLAG_VALUE[flag]))
         local analog = 1
         while bytes_to_consume > 0 do
-          subtree:add(tvb(offset,2),
-                      string.format("AM%u: %d", analog, tvb(offset,2):int()))
+          subtree:add(tvb(offset,2)
+                      , string.format("AM%u: %d", analog, tvb(offset,2):int()))
           analog = analog + 1
           offset = offset + 2
           bytes_to_consume = bytes_to_consume - 2
@@ -962,15 +977,7 @@ lookup_command_code = {
       local pdu_length = PBUS_ALI_HDR_LEN - 1 + number_of_bytes
       if tvb:len() < pdu_length then return 0 end
       -- ... Data + ...
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      if data:uint() == 0x06 then
-        tree:add(data, "Acknowledge Response (0x06)")
-      else
-        local flagtree = tree:add(ali_fields.function_key, data)
-        flagtree:add(ali_fields.fbtn_released, data)
-        flagtree:add(ali_fields.fbtn_pressed, data)
-        flagtree:add(ali_fields.fbtn_key_code, data)
-      end
+      tree:add(ali_fields.button_key, tvb(PBUS_ALI_HDR_LEN, 1))
       return pdu_length
     end
   },
@@ -1006,9 +1013,9 @@ lookup_command_code = {
         local weekday = data(5,1)
         local swtime  = data(6,1)
         local subtree = tree:add(data,
-          string.format("Date Time: 20%02d-%02d-%02d %02d:%02d",
-                        year:uint(), month:uint(), day:uint(),
-                        hour:uint(), minute:uint() ))
+          string.format("Date Time: 20%02d-%02d-%02d %02d:%02d"
+                        , year:uint(), month:uint(), day:uint()
+                        , hour:uint(), minute:uint() ))
         subtree:add(ali_fields.dt_day, day)
         subtree:add(ali_fields.dt_month, month)
         subtree:add(ali_fields.dt_year, year)
@@ -1042,8 +1049,9 @@ lookup_command_code = {
       if data:uint() == 0x06 then
         tree:add(data, "Acknowledge Response (0x06)")
       else
-        local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes),
-                        string.format("Parameter (%d bytes)", number_of_bytes))
+        local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
+                                 , string.format("Parameter (%d bytes)"
+                                                 , number_of_bytes))
         if default_settings.subdissect then
           -- display command header
           if number_of_bytes < CMD_PARAM_HDR_LEN then return 0 end
@@ -1082,28 +1090,121 @@ lookup_command_code = {
       local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
       if tvb:len() < pdu_length then return 0 end
       -- ... Data + ...
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes),
-                      string.format("Addressing (%d bytes)", number_of_bytes))
+      local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
+                               , string.format("Addressing (%d bytes)"
+                                               , number_of_bytes))
       -- display the details if desired
       if default_settings.subdissect then
         local offset = PBUS_ALI_HDR_LEN
         local index = 0
-        while offset + 2 < pdu_length do
+        while offset + 2 <= pdu_length do
           -- display command data
-          local register = tvb(offset, 2)
-          if register:le_uint() ~= 0xFFFF then
-            local datatree = subtree:add_le(ali_fields.register, register)
+          local register  = tvb(offset, 2)
+          local reg_value = register:le_uint()
+          if reg_value ~= 0xFFFF then
+            local text
             if CONNECTOR_TYPES[index] ~= nil then
-              datatree:add(register, CONNECTOR_TYPES[index])
+              text = string.format("[%s]", CONNECTOR_TYPES[index])
             elseif index >= 10 then
-              datatree:add(register, string.format("Block: B%03d", index-9))
+              text = string.format("[Block B%03d]", index-9)
             end
+            subtree:add(register, string.format("Register: 0x%04x", reg_value)
+                                                , text)
           end
           offset = offset + 2
           index = index + 1
         end
       end
+      return pdu_length
+    end
+  },
+  [0x3c] = {
+    dissect = function(tvb, pinfo, tree)
+      -- Header fields
+      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
+      -- 01 + Byte Count (16bit Big Endian)
+      local number_of_bytes = tvb(1,2):uint()-1
+      tree:add(ali_fields.header, tvb(0,1))
+      tree:add(ali_fields.byte_count, tvb(1,2))
+      -- Command Code + ...
+      local cmd_code = tvb(3,1):uint()
+      tree:add(ali_fields.command_code, tvb(3,1))
+      -- If this telegram has no data, then we are done here
+      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
+
+      -- Payload fields
+      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
+      if tvb:len() < pdu_length then return 0 end
+      -- ... Data + ...
+      local data = tvb(PBUS_ALI_HDR_LEN, 1)
+
+      -- Payload fields
+      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
+      if tvb:len() < pdu_length then return 0 end
+      -- ... Data + ...
+      local data = tvb(PBUS_ALI_HDR_LEN, 1)
+      local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
+                               , string.format("Block Name Index (%d bytes)"
+                                               , number_of_bytes))
+      -- display the details if desired
+      if default_settings.subdissect then
+        local offset = PBUS_ALI_HDR_LEN
+        subtree:add(ali_fields.byte_count, tvb(offset,1))
+        offset = offset + 1
+        local index = 1
+        while offset < pdu_length do
+          -- display command data
+          local block     = tvb(offset, 1)
+          local block_no  = block:uint()-9
+          subtree:add(block, string.format("Index %d: B%03d", index, block_no))
+          offset = offset + 1
+          index = index + 1
+        end
+      end
+      return pdu_length
+    end
+  },
+  [0x3d] = {
+    dissect = function(tvb, pinfo, tree)
+      -- Header fields
+      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
+      -- 01 + Byte Count (16bit Big Endian)
+      local number_of_bytes = tvb(1,2):uint()-1
+      tree:add(ali_fields.header, tvb(0,1))
+      tree:add(ali_fields.byte_count, tvb(1,2))
+      -- Command Code + ...
+      local cmd_code = tvb(3,1):uint()
+      tree:add(ali_fields.command_code, tvb(3,1))
+      -- If this telegram has no data, then we are done here
+      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
+
+      -- Payload fields
+      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
+      if tvb:len() < pdu_length then return 0 end
+      -- ... Data + ...
+      local data = tvb(PBUS_ALI_HDR_LEN, 1)
+      local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
+                               , string.format("Block Names (%d bytes)"
+                                               , number_of_bytes))
+      -- display the details if desired
+      if default_settings.subdissect then
+        local offset = PBUS_ALI_HDR_LEN
+        local index = 1
+        while offset + CMD_BLK_NAME_LEN <= pdu_length do
+          -- block name text (8 bytes)
+          local text = tvb(offset, CMD_BLK_NAME_LEN)
+          local first = text(0,1):uint()
+          if first > 0 and first < 0xFF then
+            subtree:add(text, string.format("Index %d:", index)
+                        , text:stringz())
+          end
+          -- increment offset
+          offset = offset + CMD_BLK_NAME_LEN
+          -- next row
+          index = index + 1
+        end
+      end
+
       return pdu_length
     end
   },
@@ -1157,7 +1258,7 @@ lookup_command_code = {
               if link_value == 0x80 or link_value == 0xC0 then
                 local block = connector:uint()
                 datatree:add(connector, string.format("Block: B%03d (0x%02x)",
-                                                      block, block-9))
+                                                      block-9, block))
               elseif link_value ~= 0xFF then
                 datatree:add(ali_fields.data, connector)
               end
@@ -1683,8 +1784,8 @@ function PROFIBUS.dissector(tvb, pinfo, root)
     proto_length = proto_length - PBUS_SD2_HDR_LEN
     proto_length = proto_length - PBUS_DDLM_HDR_LEN
     proto_length = proto_length - PBUS_TRAILER_LEN
-    result = Dissector.get("logotd"):call(buffer(proto_offset,
-             proto_length):tvb(), pinfo, root)
+    result = Dissector.get("logotd"):call(buffer(proto_offset
+             , proto_length):tvb(), pinfo, root)
     if result == 0 then
       -- If the result is 0, then it means we hit an error
       return 0
