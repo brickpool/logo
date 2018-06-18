@@ -1,6 +1,6 @@
 # LOGO! TD Protokoll Referenz Handbuch
 
-Ausgabe Ag
+Ausgabe Ah
 
 Juni 2018
 
@@ -35,10 +35,12 @@ Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in
     * [Diagnose `03`](#03)
     * [Stop/Start `04/05`](#0405)
     * [Online-Test (I/O-Daten) `08`](#08)
-    * [TD Funktionstasten `09`](#09)
+    * [Cursor-/Funktionstasten `09`](#09)
     * [Uhrzeit/Datum `10`](#10)
     * [Parametrierung `21`](#21)
     * [Adressierung `30`](#30)
+    * [Index Blocknamen `3c`](#3c)
+    * [Blocknamen `3d`](#3d)
   * [Anhang](#anhang)
     * [Prüfsumme](#fcs)
     * [RS485-TTL-Anschaltung](#ttl)
@@ -435,9 +437,9 @@ Index | Parameter
 7 | Merker 1..8
 8 | Merker 9..16
 9 | Merker 17..24
-10 | Merker 25..27
+10 | Cursor Keys C1..C4
 11 | Shift register 1..8
-12 | Cursor Keys C1..C4
+12 | Merker 25..27
 13 | analog Input 1 high
 14 | analog Input 1 low
 15 | analog Input 2 high
@@ -472,32 +474,38 @@ Index | Parameter
 44 | analog Merker 6 low
 >Tab: Index der Werte beim Online-Test
 
-## <a name="09"></a>TD Funktionstasten `09`
+## <a name="09"></a>Cursor-/Funktionstasten `09`
 Der _Request_ erfolgt mit einem Datenbyte. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram beantwortet (z.B. Datenbyte = `06` für Ack, siehe Antwortcodes im eigenen Abschnitt).
 
 Darstellungsformat:
 ```
 68 00 0A 00 0A 68 80 7F 06 06 01 [01 00 02 09  24] 3C 16
                                  [DU             ]
-                                 [01 [BC ] CMD Fx]
+                                 [01 [Bc ] Cmd Kc]
 
 Bc: Byte Count (Typ Word, Big Endian)
-Cmd: Befehl 09h = Function Key
-Fx: Funktionstaste 24h = 0010.0100b
+Cmd: Befehl 09h = Button Key
+Kc: Tastencode 24h = 0010.0100b
         0  0  1  0  0  1  0  0
     MSB --+--+--+--*--+--+--+-- LSB
         b7 b6 b5 b4 b3 b2 b1 b0
 
         b7:
         b6:
-        b5: F off = 1
-        b4: F on = 1
-        b3:
-        b2..b0:
-          100b = F4
-          011b = F3
-          010b = F2
-          001b = F1
+        b5..b0:
+          10.0100b = F4 pressed
+          10.0011b = F3 pressed
+          10.0010b = F2 pressed
+          10.0001b = F1 pressed
+          01.1001b = Cursor released
+          01.0100b = F4 pressed
+          01.0011b = F3 pressed
+          01.0010b = F2 pressed
+          01.0001b = F1 pressed
+          00.1000b = C4 pressed
+          00.0111b = C3 pressed
+          00.0110b = C2 pressed
+          00.0101b = C1 pressed
 ```
 
 Beispiel F4 off:
@@ -507,7 +515,7 @@ Beispiel F4 off:
 01    // 
 00 02 // Byte Count = 2
 09    // Befehl 09h (Func Key)
-24    // 24h = 0010.0100b: b5=1 -> off, 4 -> F4
+24    // 24h = 0010.0100b: F4 off
 3C    // CheckSum8 Modulo 256 (DA incl. DU: 80..24)
 16    // End Delimiter
 ```
@@ -519,7 +527,7 @@ Beispiel F4 on:
 01    // 
 00 02 // Byte Count = 2
 09    // Befehl 09h (Func Key)
-13    // 13h = 0001.0011b: b4=1 -> on, 3 -> F3
+13    // 13h = 0001.0011b: F3 on
 2B    // CheckSum8 Modulo 256 (DA incl. DU: 80..13)
 16    // End Delimiter
 ```
@@ -574,7 +582,7 @@ Bc: Byte Count (Typ Word, Big Endian)
 Cmd: Befehl 10h = Date Time
 DD: Tag; Wertebereich 01..1F (1 bis 31)
 MM: Monat; Wertebereich 01..0C (1 bis 12)
-YY: Jahr; Wertebereich beginnend bei 03 (entspricht 2003)
+YY: Jahr; Wertebereich beginnend bei 08 (entspricht 2008)
 mm: Minuten; Wertebereich 01..3B (1 bis 59)
 hh: Stunden; Wertebereich 00..17 (0 bis 23)
 Wd: Wochentag; Wertebereich 00..06 (So bis Sa)
@@ -746,6 +754,49 @@ n/a *) | B019     | 0 Bytes
 >Tab: Übersicht Indexregister Funktionsblöcke
 
 \*) Block-Nr. B019 wird im Schaltprogramm nicht verwendet!
+
+## <a name="3c"></a>Verweis auf Blocknamen `3c`
+Es können maximal 100 Blöcke einen Blocknamen erhalten.
+
+Beispiel:
+```
+send> 68 00 09 00 09 68 80 7F 06 06 01
+01    //
+00 01 // Byte Count = 1
+3C    // Befehl 3Ch (Block Name Index)
+4A 16
+recv< 68 00 0c 00 0c 68 7f 80 06 06 01
+01
+00 04 // Byte Count = 4
+3c    // Befehl 3Ch (Block Name Index)
+02    // Byte Count = 2
+0a 0f // Index 1..2
+68 16
+```
+
+Index | HEX | DEC | Block
+------|-----|-----|------
+1     | 0A  | 10  | B001
+2     | 0F  | 15  | B006
+>Tab: Auswertung Beispiel _Verweis Blocknamen_
+
+## <a name="3d"></a>Blocknamen `3d`
+In LOGO!Soft Comfort können für eine _LOGO!_ Kleinsteuerung der Generation __0BA6__ für bis zu 100 Blöcke achtstellige Blocknamen vergeben werden. Die maximale Länge eines Blocknamens beträgt 8 Byte, bei weniger als 8 Byte wird der Text mit `00` terminiert und mit `FF` aufgefüllt.
+
+Beispiel:
+```
+send> 68 00 09 00 09 68 80 7F 06 06 01
+01    //
+00 01 // Byte Count = 1
+3D    // Befehl 3Dh (Block Name Memory)
+4B 16
+recv< 68 00 09 00 09 68 80 7F 06 06 01
+01                      //
+00 09                   // Byte Count = 9
+3D                      // Befehl 3Dh (Block Name Memory)
+44 69 73 70 6C 61 79 00 // ACSII = 'Display'\0
+29 16
+```
 
 ----------
 
