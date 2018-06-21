@@ -19,12 +19,14 @@
 --  0.2   05.06.2018    update INFO colum; impl. first command code 0x08
 --  0.2.1 06.06.2018    bug fixing
 --  0.2.2 07.06.2018    bug fixing byte count
---  0.3   07.06.2018    command code 0x04, 0x05, 0x09, 0x10
---  0.3.1 11.06.2018    command code 0x03; bug fixing 0x10
---  0.3.2 12.06.2018    command code 0x21, 0x41; bug fixing 0x08
---  0.3.3 13-15.06.2018 command code 0x30, 0x40, 0x42; opt. 0x03
---  0.3.4 15.06.2018    command code 0x3d
---  0.3.5 18.06.2018    command code 0x09, 0x3c; bug fixing 0x08
+--  0.3   07.06.2018    command 0x04, 0x05, 0x09, 0x10
+--  0.3.1 11.06.2018    command 0x03; bug fixing 0x10
+--  0.3.2 12.06.2018    command 0x21, 0x41; bug fixing 0x08
+--  0.3.3 13-15.06.2018 command 0x30, 0x40, 0x42; update 0x03
+--  0.3.4 15.06.2018    command 0x3d
+--  0.3.5 18.06.2018    command 0x3c; update 0x09; bug fixing 0x08
+--  0.3.6 19.06.2018    update 0x03
+--  0.3.7 20-21.06.2018 command 0x5b, 0x61
 --
 -------------------------------------------------------------------------------
 
@@ -51,7 +53,7 @@ local default_settings = {
   debug_level       = DEBUG,
   subdissect        = true,   -- display data as tree info in wireshark
   max_telegram_len  = 1024,   -- this is the maximum size of a telegram
-  conn_value             = 1,      -- start conn_value for telegram counting
+  conn_value        = 1,      -- start conn_value for telegram counting
 }
 
 local null_function = function() end
@@ -147,6 +149,15 @@ local CMD_PRGMEM_HDR_LEN = 2 + 2 + 1 + 1
 -- size of one Conn row (header+data+trailer = 20 bytes)
 local CMD_CONN_ROW_LEN = 2 + 16 + 2
 
+-- size of one Message line (24*char = 24 bytes)
+local CMD_MSG_LINE_LEN = 24
+-- size of one Message row (line+rowdata = 32 bytes)
+local CMD_MSG_ROW_LEN = CMD_MSG_LINE_LEN + 8
+-- number of Message lines (4 lines)
+local CMD_MSG_LINES = 4
+-- size of Message display (col*row = 128 bytes)
+local CMD_MSG_DISPLAY_LEN = CMD_MSG_LINES * CMD_MSG_ROW_LEN
+
 fdl_fields.telegram_number =
   ProtoField.uint32("PROFIBUS.number", "Telegram number")
 fdl_fields.flags =
@@ -195,20 +206,20 @@ local COMMAND_CODES = {
   [0x09] = "Button Key",
   [0x10] = "Date Time",
 --  [0x14] = "",
---  [0x18] = "",
+--  [0x18] = "Update Display",
   [0x21] = "Set Parameter",
   [0x30] = "Addressing",
-  [0x3c] = "Block Name Index",
+  [0x3c] = "Block Name Reference",
   [0x3d] = "Block Name Memory",
   [0x40] = "Connectors",
   [0x41] = "Program Memory",
   [0x42] = "Program Memory",
---  [0x5a] = "Message Index",
---  [0x5b] = "",
-  [0x61] = "Message Text",
+--  [0x5a] = "",
+  [0x5b] = "Message Text Reference",
+  [0x61] = "Message Texts",
 --  [0x70] = "",
 --  [0x76] = "Parameter Display",
---  [0x77] = "Message Display",
+--  [0x77] = "",
 --  [0x78] = "",
 --  [0x81] = "",
 }
@@ -222,6 +233,13 @@ local OPERATION_CODES = {
   [0x01] = "RUN Mode",
   [0x02] = "STOP Mode",
   [0x20] = "Parameter Mode",
+  [0x42] = "Programming Mode",
+}
+
+local PROGRAMMING_CODE = {
+  [0x00] = "Idle",
+  [0x02] = "PUSH Notification",
+  [0x04] = "PUSH Complete",
 }
 
 local BUTTON_KEY_CODES = {
@@ -314,6 +332,8 @@ ali_fields.command_code = ProtoField.uint8 ("LOGOTD.CMD", "Command Code"
 -- Diagnostic fields (0x03)
 ali_fields.operation_mode = ProtoField.uint8 ("LOGOTD.operation_mode"
   , "Operation Mode", base.HEX, OPERATION_CODES)
+ali_fields.programming_mode = ProtoField.uint8 ("LOGOTD.programming_mode"
+  , "Programming Mode", base.HEX, PROGRAMMING_CODE)
 ali_fields.prg_checksum   = ProtoField.uint16("LOGOTD.prg_checksum"
   , "Program checksum", base.HEX)
 
@@ -346,6 +366,12 @@ ali_fields.blk_retentivity  = ProtoField.bool ("LOGOTD.blk_retentivity"
   , "Retentivity", 8, nil, 0x80)
 ali_fields.blk_protection   = ProtoField.bool ("LOGOTD.blk_protection"
   , "No Parameter Protection", 8, nil, 0x40)
+
+-- Message Text Reference fields (0x5b)
+ali_fields.msg_index  = ProtoField.uint8("LOGOTD.msg_index"
+  , "Message Text", base.DEC)
+ali_fields.char_set   = ProtoField.uint8("LOGOTD.char_set"
+  , "Character Set", base.DEC)
 
 -- ALI data fields
 ali_fields.data = ProtoField.bytes("LOGOTD.data", "Data")
@@ -436,8 +462,8 @@ end
 -- 2. A single header may also span multiple packets
 -- 3. A packet may also contain multiple Telegrams, both complete and fragmented
 -- 4. The length of a Telegram is determined by a header field,
---    but an unknown number of bytes must be read before getting to that conn_value,
---    as the header is preceded by a variable length delimiter
+--    but an unknown number of bytes must be read before getting to that
+--    conn_value, as the header is preceded by a variable length delimiter
 -- 5. There are no sequence numbers or other ways of uniquely identifying a
 --    Telegram
 -- 6. There is no flag indicating whether a Telegram will be fragmented, or
@@ -468,8 +494,8 @@ function PacketHelper.new()
 
     -- The following local table holds the sequences of a fragmented PDU
     -- telegram. The key index for this is the sequence numper+pinfo.number
-    -- concatenated. The conn_value is a table, ByteArray style, holding the fragment
-    -- of the PROFIBUS telegram.
+    -- concatenated. The conn_value is a table, ByteArray style, holding the
+    -- fragment of the PROFIBUS telegram.
     fragments = {},
 
   }
@@ -711,9 +737,13 @@ lookup_command_code = {
       local offset = PBUS_ALI_HDR_LEN
       tree:add(ali_fields.operation_mode, tvb(offset, 1))
       offset = offset + 1
-      tree:add(ali_fields.data, tvb(offset,4))
-      offset = offset + 4
-      tree:add(ali_fields.prg_checksum, tvb(offset,2))
+      tree:add(ali_fields.data, tvb(offset, 1))
+      offset = offset + 1
+      tree:add(ali_fields.programming_mode, tvb(offset, 1))
+      offset = offset + 1
+      tree:add(ali_fields.data, tvb(offset, 2))
+      offset = offset + 2
+      tree:add(ali_fields.prg_checksum, tvb(offset, 2))
       offset = offset + 2
       return pdu_length
     end
@@ -1012,17 +1042,17 @@ lookup_command_code = {
         local hour    = data(4,1)
         local weekday = data(5,1)
         local swtime  = data(6,1)
-        local subtree = tree:add(data,
+        local datatree = tree:add(data,
           string.format("Date Time: 20%02d-%02d-%02d %02d:%02d"
                         , year:uint(), month:uint(), day:uint()
                         , hour:uint(), minute:uint() ))
-        subtree:add(ali_fields.dt_day, day)
-        subtree:add(ali_fields.dt_month, month)
-        subtree:add(ali_fields.dt_year, year)
-        subtree:add(ali_fields.dt_minute, minute)
-        subtree:add(ali_fields.dt_hour, hour)
-        subtree:add(ali_fields.dt_weekday, weekday)
-        subtree:add(ali_fields.dt_swtime, swtime)
+        datatree:add(ali_fields.dt_day, day)
+        datatree:add(ali_fields.dt_month, month)
+        datatree:add(ali_fields.dt_year, year)
+        datatree:add(ali_fields.dt_minute, minute)
+        datatree:add(ali_fields.dt_hour, hour)
+        datatree:add(ali_fields.dt_weekday, weekday)
+        datatree:add(ali_fields.dt_swtime, swtime)
       end
       return pdu_length
     end
@@ -1049,7 +1079,7 @@ lookup_command_code = {
       if data:uint() == 0x06 then
         tree:add(data, "Acknowledge Response (0x06)")
       else
-        local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
+        local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
                                  , string.format("Parameter (%d bytes)"
                                                  , number_of_bytes))
         if default_settings.subdissect then
@@ -1059,14 +1089,14 @@ lookup_command_code = {
           local block       = header(0,2)
           local register    = header(2,2)
           local byte_count  = header(4,2)
-          subtree:add(block, string.format("Block B%03d", block:uint()-9))
-          subtree:add(ali_fields.register, register)
-          subtree:add(ali_fields.byte_count, byte_count)
+          datatree:add(block, string.format("Block B%03d", block:uint()-9))
+          datatree:add(ali_fields.register, register)
+          datatree:add(ali_fields.byte_count, byte_count)
           -- display command data
           local length = byte_count:uint()-2
           if number_of_bytes < CMD_PARAM_HDR_LEN + length then return 0 end
           local data = tvb(PBUS_ALI_HDR_LEN + CMD_PARAM_HDR_LEN, length)
-          subtree:add(ali_fields.data, data)
+          datatree:add(ali_fields.data, data)
         end
       end
       return pdu_length
@@ -1090,7 +1120,7 @@ lookup_command_code = {
       local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
       if tvb:len() < pdu_length then return 0 end
       -- ... Data + ...
-      local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
+      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
                                , string.format("Addressing (%d bytes)"
                                                , number_of_bytes))
       -- display the details if desired
@@ -1102,14 +1132,12 @@ lookup_command_code = {
           local register  = tvb(offset, 2)
           local reg_value = register:le_uint()
           if reg_value ~= 0xFFFF then
-            local text
+            local subtree = datatree:add_le(ali_fields.register, register)
             if CONNECTOR_TYPES[index] ~= nil then
-              text = string.format("[%s]", CONNECTOR_TYPES[index])
+              subtree:add(register, string.format("[%s]", CONNECTOR_TYPES[index]))
             elseif index >= 10 then
-              text = string.format("[Block B%03d]", index-9)
+              subtree:add(register, string.format("[Block B%03d]", index-9))
             end
-            subtree:add(register, string.format("Register: 0x%04x", reg_value)
-                                                , text)
           end
           offset = offset + 2
           index = index + 1
@@ -1143,20 +1171,20 @@ lookup_command_code = {
       if tvb:len() < pdu_length then return 0 end
       -- ... Data + ...
       local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
-                               , string.format("Block Name Index (%d bytes)"
+      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
+                               , string.format("References (%d bytes)"
                                                , number_of_bytes))
       -- display the details if desired
       if default_settings.subdissect then
         local offset = PBUS_ALI_HDR_LEN
-        subtree:add(ali_fields.byte_count, tvb(offset,1))
+        datatree:add(ali_fields.byte_count, tvb(offset,1))
         offset = offset + 1
         local index = 1
         while offset < pdu_length do
           -- display command data
           local block     = tvb(offset, 1)
           local block_no  = block:uint()-9
-          subtree:add(block, string.format("Index %d: B%03d", index, block_no))
+          datatree:add(block, string.format("Name %d: B%03d", index, block_no))
           offset = offset + 1
           index = index + 1
         end
@@ -1183,7 +1211,7 @@ lookup_command_code = {
       if tvb:len() < pdu_length then return 0 end
       -- ... Data + ...
       local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
+      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
                                , string.format("Block Names (%d bytes)"
                                                , number_of_bytes))
       -- display the details if desired
@@ -1193,14 +1221,15 @@ lookup_command_code = {
         while offset + CMD_BLK_NAME_LEN <= pdu_length do
           -- block name text (8 bytes)
           local text = tvb(offset, CMD_BLK_NAME_LEN)
-          local first = text(0,1):uint()
-          if first > 0 and first < 0xFF then
-            subtree:add(text, string.format("Index %d:", index)
-                        , text:stringz())
+          local char = text(0,1):uint()
+          if char > 0 and char < 0xFF then
+            datatree:add(text, string.format("Name %d (%d bytes): '%s'", index
+                                             , CMD_BLK_NAME_LEN, text:stringz()
+                                             ))
           end
           -- increment offset
           offset = offset + CMD_BLK_NAME_LEN
-          -- next row
+          -- next index
           index = index + 1
         end
       end
@@ -1227,7 +1256,7 @@ lookup_command_code = {
       if tvb:len() < pdu_length then return 0 end
       -- ... Data + ...
       local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes),
+      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes),
                       string.format("Connectors (%d bytes)", number_of_bytes))
 
       -- display the details if desired
@@ -1239,7 +1268,7 @@ lookup_command_code = {
           local text = string.format("%s (%d bytes)",
                        CONNECTOR_TYPES[row] ~= nil and CONNECTOR_TYPES[row]
                        or "Data", CMD_CONN_ROW_LEN)
-          local rowtree = subtree:add(tvb(offset, CMD_CONN_ROW_LEN), text)
+          local rowtree = datatree:add(tvb(offset, CMD_CONN_ROW_LEN), text)
 
           -- Determine if the connection is used in this row
           local bytes_to_consume = 16
@@ -1254,13 +1283,13 @@ lookup_command_code = {
               local connector   = tvb(offset + column + 0, 1)
               local link_type   = tvb(offset + column + 1, 1)
               local link_value  = link_type:uint()
-              local datatree = rowtree:add(ali_fields.link_input, link_type)
+              local subtree = rowtree:add(ali_fields.link_input, link_type)
               if link_value == 0x80 or link_value == 0xC0 then
                 local block = connector:uint()
-                datatree:add(connector, string.format("Block: B%03d (0x%02x)",
+                subtree:add(connector, string.format("Block: B%03d (0x%02x)",
                                                       block-9, block))
               elseif link_value ~= 0xFF then
-                datatree:add(ali_fields.data, connector)
+                subtree:add(ali_fields.data, connector)
               end
             end
           end
@@ -1293,7 +1322,7 @@ lookup_command_code = {
       if tvb:len() < pdu_length then return 0 end
       -- ... Data + ...
       local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      local subtree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes),
+      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes),
                       string.format("Memory (%d bytes)", number_of_bytes))
 
       -- display details
@@ -1306,10 +1335,10 @@ lookup_command_code = {
           local byte_count  = header(2,2)
           local block_type  = header(4,1)
           local block_param = header(5,1)
-          local datatree = subtree:add(ali_fields.register, register)
-          datatree:add(ali_fields.byte_count, byte_count)
-          datatree:add(ali_fields.block_type, block_type)
-          local flagtree = datatree:add(ali_fields.block_param, block_param)
+          local subtree = datatree:add(ali_fields.register, register)
+          subtree:add(ali_fields.byte_count, byte_count)
+          subtree:add(ali_fields.block_type, block_type)
+          local flagtree = subtree:add(ali_fields.block_param, block_param)
           flagtree:add(ali_fields.blk_retentivity, block_param)
           flagtree:add(ali_fields.blk_protection, block_param)
           offset = offset + CMD_PRGMEM_HDR_LEN
@@ -1317,7 +1346,7 @@ lookup_command_code = {
           local length = byte_count:uint()-2
           if pdu_length < offset + length then return offset end
           data = tvb(offset, length)
-          datatree:add(ali_fields.data, data)
+          subtree:add(ali_fields.data, data)
           offset = offset + length
         end
       end
@@ -1330,6 +1359,106 @@ lookup_command_code = {
       return lookup_command_code[0x41].dissect(tvb, pinfo, tree)
     end
   },
+  [0x5b] = {
+    dissect = function(tvb, pinfo, tree)
+      -- Header fields
+      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
+      -- 01 + Byte Count (16bit Big Endian)
+      local number_of_bytes = tvb(1,2):uint()-1
+      tree:add(ali_fields.header, tvb(0,1))
+      tree:add(ali_fields.byte_count, tvb(1,2))
+      -- Command Code + ...
+      local cmd_code = tvb(3,1):uint()
+      tree:add(ali_fields.command_code, tvb(3,1))
+      -- If this telegram has no data, then we are done here
+      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
+
+      -- Payload fields
+      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
+      if tvb:len() < pdu_length then return 0 end
+      -- ... Data + ...
+      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
+                       , string.format("References (%d bytes)"
+                                       , number_of_bytes))
+      -- display the details if desired
+      if default_settings.subdissect then
+        local offset = PBUS_ALI_HDR_LEN
+        local index = 1
+        while offset + 2 <= pdu_length do
+          -- display command data
+          local msg_ref   = tvb(offset  , 1)
+          local char_set  = tvb(offset+1, 1)
+          if msg_ref:uint() ~= 0xFF then
+            local subtree = datatree:add(ali_fields.msg_index, msg_ref)
+            subtree:add(ali_fields.char_set, char_set)
+          end
+          offset = offset + 2
+          index = index + 1
+        end
+      end
+      return pdu_length
+    end
+  },
+  [0x61] = {
+    dissect = function(tvb, pinfo, tree)
+      -- Header fields
+      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
+      -- 01 + Byte Count (16bit Big Endian)
+      local number_of_bytes = tvb(1,2):uint()-1
+      tree:add(ali_fields.header, tvb(0,1))
+      tree:add(ali_fields.byte_count, tvb(1,2))
+      -- Command Code + ...
+      local cmd_code = tvb(3,1):uint()
+      tree:add(ali_fields.command_code, tvb(3,1))
+      -- If this telegram has no data, then we are done here
+      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
+
+      -- Payload fields
+      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
+      if tvb:len() < pdu_length then return 0 end
+      -- ... Data + ...
+      local data = tvb(PBUS_ALI_HDR_LEN, 1)
+      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
+                               , string.format("Message Texts (%d bytes)"
+                                               , number_of_bytes))
+      -- display the details if desired
+      if default_settings.subdissect then
+        local offset = PBUS_ALI_HDR_LEN
+        local number = 0
+        while offset + CMD_MSG_DISPLAY_LEN <= pdu_length do
+          -- display message display
+          local message = tvb(offset, CMD_MSG_DISPLAY_LEN)
+          local subtree = datatree:add(message
+                          , string.format("Message %d (%d bytes)"
+                                          , number, CMD_MSG_DISPLAY_LEN))
+          -- display each line
+          local line = 1
+          for p = 0, CMD_MSG_DISPLAY_LEN-1, CMD_MSG_ROW_LEN do
+            -- text len (24 bytes)
+            local text = message(p, CMD_MSG_LINE_LEN)
+            data = message(p + CMD_MSG_LINE_LEN, CMD_MSG_ROW_LEN
+                           - CMD_MSG_LINE_LEN)
+            local str = text:string()
+            str = string.gsub(str, "[\0-\31]", ".")
+            -- https://stackoverflow.com/questions/40861780/lua-regex-for-ascii0-127-characters
+            str = string.gsub(str, "[\192-\255][\128-\191]*", ".")
+            subtree:add(text, string.format("Line %d (%d bytes): '%s'", line
+                                            , CMD_MSG_LINE_LEN, str))
+            -- 8 bytes additional data
+            subtree:add(ali_fields.data, data)
+            -- increment line
+            line = line + 1
+          end
+          -- increment offset
+          offset = offset + CMD_MSG_DISPLAY_LEN
+          -- next number
+          number = number + 1
+        end
+      end
+
+      return pdu_length
+    end
+  },
 }
 
 --------------------------------------------------------------------------------
@@ -1338,6 +1467,7 @@ lookup_command_code = {
 -- This function returns the length of the telegram, or
 -- DESEGMENT_ONE_MORE_SEGMENT if the Tvb doesn't have enough information to get
 -- the length, or a 0 for error.
+--------------------------------------------------------------------------------
 local function get_fdl_length(tvb, pinfo, offset)
   dprint7("get_fdl_length() function called")
 
@@ -1397,6 +1527,7 @@ end
 -- This function returns the length of the telegram, or
 -- DESEGMENT_ONE_MORE_SEGMENT if the Tvb doesn't have enough information to get
 -- the length, or a 0 for error.
+--------------------------------------------------------------------------------
 local function get_ali_length(tvb, pinfo, offset)
   dprint7("get_ali_length() function called")
 
@@ -1470,7 +1601,7 @@ function LOGOTD.dissector(tvb, pinfo, tree)
 
     if ali_length == DESEGMENT_ONE_MORE_SEGMENT then
       -- we don't know exactly how many more bytes we need set the Pinfo
-      -- "desegment_len" to the predefined conn_value "DESEGMENT_ONE_MORE_SEGMENT"
+      -- desegment_len to the predefined conn_value "DESEGMENT_ONE_MORE_SEGMENT"
       pinfo.desegment_len = DESEGMENT_ONE_MORE_SEGMENT
     else
       -- set Pinfo's "desegment_len" to how many more bytes we need to decode
@@ -1624,8 +1755,10 @@ local function dissectPBUS(tvb, pinfo, tree, offset)
   -- set the INFO column, but only if we haven't already set it before for this
   -- packet, because this function can be called multiple times per packet
   if string.find(tostring(pinfo.cols.info), "Seq=%d") == nil then
-    local src = ADDRESS_VALUE[src_addr] and string.sub(ADDRESS_VALUE[src_addr], 1, 1) or nil
-    local dst = ADDRESS_VALUE[dst_addr] and string.sub(ADDRESS_VALUE[dst_addr], 1, 1) or nil
+    local src = ADDRESS_VALUE[src_addr] and string.sub(ADDRESS_VALUE[src_addr]
+                                                       , 1, 1) or nil
+    local dst = ADDRESS_VALUE[dst_addr] and string.sub(ADDRESS_VALUE[dst_addr]
+                                                       , 1, 1) or nil
     if src and dst then
       pinfo.cols.info:set(string.format("%s > %s", src, dst))
     else
@@ -1770,8 +1903,8 @@ function PROFIBUS.dissector(tvb, pinfo, root)
     -- We're going to call our "dissect()" function, which is defined earlier in
     -- this script file. The dissect() function returns the length of the
     -- PROFIBUS-DP SD2 telegram it dissected as a positive number, or if the
-    -- conn_value is DESEGMENT_ONE_MORE_SEGMENT then we need additional bytes. If it
-    -- returns a 0, it's a dissection error.
+    -- conn_value is DESEGMENT_ONE_MORE_SEGMENT then we need additional bytes. 
+    -- If it returns a 0, it's a dissection error.
     if dissectPBUS(buffer, pinfo, subtree, bytes_consumed) == 0 then
       -- If the result is 0, then it means we hit an error
       return 0
@@ -1832,16 +1965,16 @@ local debug_pref_enum = {
 
 --------------------------------------------------------------------------------
 -- register our preferences
-PROFIBUS.prefs.conn_value      = Pref.uint("Value", default_settings.conn_value,
-                                      "Start conn_value for counting")
+PROFIBUS.prefs.conn_value = Pref.uint("Value", default_settings.conn_value
+                                      , "Start conn_value for counting")
 
-PROFIBUS.prefs.subdissect = Pref.bool("Enable sub-dissectors",
-                                      default_settings.subdissect, 
-                          "Whether the data content should be dissected or not")
+PROFIBUS.prefs.subdissect = Pref.bool("Enable sub-dissectors"
+                                      , default_settings.subdissect
+                        , "Whether the data content should be dissected or not")
 
-PROFIBUS.prefs.debug      = Pref.enum("Debug", default_settings.debug_level,
-                                      "The debug printing level",
-                                      debug_pref_enum)
+PROFIBUS.prefs.debug      = Pref.enum("Debug", default_settings.debug_level
+                                      , "The debug printing level"
+                                      , debug_pref_enum)
 
 --------------------------------------------------------------------------------
 -- the function for handling preferences being changed
