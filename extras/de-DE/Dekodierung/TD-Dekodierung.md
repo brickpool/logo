@@ -1,11 +1,11 @@
 # LOGO! TD Protokoll Referenz Handbuch
 
-Ausgabe Ah
+Ausgabe Ai
 
 Juni 2018
 
 ## Vorwort
-Dieses Handbuch richtet sich an Personen, die mit einem Siemens (TM) _LOGO!_ __0BA6__ über die Schnittstelle des _Text Displays_ kommunizieren. Die Schnittstelle verwendet ein _PROFIBUS_ (TM) Anwendungs-Protokoll zur Bedienung und Anzeige am _Text Displays_, welches hier als _TD_-Protokoll bezeichnet wird. In diesem Handbuch wird beschrieben, wie Nachrichten erstellt werden und wie Transaktionen mithilfe des _TD_-Protokolls ausgeführt werden.
+Dieses Handbuch richtet sich an Personen, die mit einer Siemens _LOGO!_ Kleinsteuerung vom Typ __0BA6__ über die Schnittstelle des _Text Displays_ kommunizieren wollen. Die Schnittstelle verwendet ein _PROFIBUS_ Anwendungs-Protokoll zur Bedienung und Anzeige am _Text Displays_, welches hier als _TD_-Protokoll bezeichnet wird. In diesem Handbuch wird beschrieben, wie Nachrichten erstellt werden und wie Transaktionen mithilfe des _TD_-Protokolls ausgeführt werden.
 
 _Siemens_ und _LOGO!_ sind eingetragene Marken der __Siemens AG__.
 
@@ -37,10 +37,13 @@ Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in
     * [Online-Test (I/O-Daten) `08`](#08)
     * [Cursor-/Funktionstasten `09`](#09)
     * [Uhrzeit/Datum `10`](#10)
+    * [Display Update `18`](#18)
     * [Parametrierung `21`](#21)
     * [Adressierung `30`](#30)
-    * [Index Blocknamen `3c`](#3c)
+    * [Verweis auf Blocknamen `3c`](#3c)
     * [Blocknamen `3d`](#3d)
+    * [Verweis auf Meldetexte `5b`](#5b)
+    * [Meldetext `61`](#61)
   * [Anhang](#anhang)
     * [Prüfsumme](#fcs)
     * [RS485-TTL-Anschaltung](#ttl)
@@ -369,7 +372,7 @@ Darstellungsformat:
 
 68 00 10 00 10 68 7F 80 06 06 01 [01 00 08 03  01 00 00 00 00 7B C4] 58 16
                                  [DU                               ]
-                                 [01 [Bc ] Cmd Op [Dn    ] D5 [Chk ]
+                                 [01 [Bc ] Cmd Op D2 Pm D4 D5 [Chk ]
 
 Bc: Byte Count (Typ Word, Big Endian)
 Cmd: Befehl 03h = Diagnosis
@@ -377,8 +380,17 @@ Op: Operating Mode;
     01h = RUN Mode
     02h = STOP Mode
     20h = Parameter Mode
+    42h = Programming Mode
 
-Dn: Datenbyte an Stelle n (n = 3..4) = 00h
+D2: Datenbyte Nr. 2; Bedeutung unbekannt;
+    FFh = (nach Push gesetzt, ggf. Busy?)
+
+Pm: Programming Mode; LOGO!Soft Comfort sendet ein Schaltprogramm zur LOGO!
+    00h = Idle
+    02h = PUSH Notification
+    04h = PUSH Complete
+
+D4: Datenbyte Nr. 4; Bedeutung unbekannt;
 D5: Datenbyte Nr. 5; Bedeutung unbekannt;
     01h = (b7 wurde nach Meldetext gesetzt, warum?)
 Chk: Schaltprogramm Checksum
@@ -475,6 +487,8 @@ Index | Parameter
 >Tab: Index der Werte beim Online-Test
 
 ## <a name="09"></a>Cursor-/Funktionstasten `09`
+Die vier Cursortasten `^`, `>`, `v` und `<` können in einem Schaltprogramm als Eingang genutzt werden. Die Eingänge der Cursortasten des _LOGO! TD_ sind mit den Eingängen der Cursortasten des _LOGO!_ Basismoduls identisch. Die Verwendung erfolgt im Modus _RUN_ mittels `ESC` + gewünschte Cursortaste `C`. Das _TD_ hat vier Funktionstasten `F1`, `F2`, `F3` und `F4` welche ebenfalls, wie die Cursortasten, im Schaltprogramm als Eingang genutzt werden können, wenn sich die _LOGO!_ Steuerung im Modus _RUN_ befindet. 
+
 Der _Request_ erfolgt mit einem Datenbyte. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram beantwortet (z.B. Datenbyte = `06` für Ack, siehe Antwortcodes im eigenen Abschnitt).
 
 Darstellungsformat:
@@ -493,15 +507,17 @@ Kc: Tastencode 24h = 0010.0100b
         b7:
         b6:
         b5..b0:
-          10.0100b = F4 pressed
-          10.0011b = F3 pressed
-          10.0010b = F2 pressed
-          10.0001b = F1 pressed
+          10.0100b = F4 released
+          10.0011b = F3 released
+          10.0010b = F2 released
+          10.0001b = F1 released
           01.1001b = Cursor released
+
           01.0100b = F4 pressed
           01.0011b = F3 pressed
           01.0010b = F2 pressed
           01.0001b = F1 pressed
+
           00.1000b = C4 pressed
           00.0111b = C3 pressed
           00.0110b = C2 pressed
@@ -603,6 +619,25 @@ Beispiel (Response, nur DU):
 01    // Sommerzeit
 ```
 
+## <a name="18"></a>Display Update `18`
+
+Beispiel Fest, 2 Texte, Block B002 (nur DU)
+```
+0000  00 00 00 02 00 00 00 00
+      00 00 00 02 00 00 00 00
+0010  00 00 00 02 00 00 00 00
+      00 00 00 01 00 00 00 00
+0020  00 00 00 00 80 81 ff ff
+      ff ff ff ff ff ff ff ff
+0030  ff ff ff ff ff ff ff ff
+      ff ff ff ff ff ff ff ff
+0040  ff ff ff ff ff ff ff ff
+      ff ff ff ff ff ff ff ff
+0050  ff ff ff ff ff ff ff ff
+      ff ff ff ff ff ff ff ff
+0060  ff ff ff ff 00 00 ff 00
+```
+
 ## <a name="21"></a>Parametrierung `21`
 Der Befehl _Set Parameter_ `21` dient dem Einstellen der Parameter der Blöcke. Es können unter anderem Verzögerungszeiten, Schaltzeiten, Schwellwerte, Überwachungszeiten und Ein- und Ausschaltschwellen geändert werden, ohne das das Schaltprogramm geändert werden muss. 
 
@@ -635,7 +670,7 @@ Bc: Byte Count (Typ Word, Big Endian)
 Cmd: Befehl 21h = Set Parameter
 Bl: Blocknummer (Typ Word, Big Endian)
 Po: Zeigeradresse (Typ Word, Big Endian)
-Pc: Anzahl Parameter Bytes (Anzahhl ist inkl. Feldlänge von Pc)
+Pc: Anzahl Parameter Bytes (Anzahl ist inkl. Feldlänge von Pc)
 Dn: Datenbyte an Stelle n (n = 3..Pc)
 ```
 
@@ -770,14 +805,14 @@ recv< 68 00 0c 00 0c 68 7f 80 06 06 01
 00 04 // Byte Count = 4
 3c    // Befehl 3Ch (Block Name Index)
 02    // Byte Count = 2
-0a 0f // Index 1..2
+0a 0f // Verweis 1..2
 68 16
 ```
 
-Index | HEX | DEC | Block
-------|-----|-----|------
-1     | 0A  | 10  | B001
-2     | 0F  | 15  | B006
+Verweis | HEX | DEC | Block
+--------|-----|-----|------
+1       | 0A  | 10  | B001
+2       | 0F  | 15  | B006
 >Tab: Auswertung Beispiel _Verweis Blocknamen_
 
 ## <a name="3d"></a>Blocknamen `3d`
@@ -796,6 +831,115 @@ recv< 68 00 09 00 09 68 80 7F 06 06 01
 3D                      // Befehl 3Dh (Block Name Memory)
 44 69 73 70 6C 61 79 00 // ACSII = 'Display'\0
 29 16
+```
+
+## <a name="5b"></a>Verweis auf Meldetexte `5b`
+Es können maximal 50 Meldetext vergeben werden. Jeder Meldetexte ist entweder dem Zeichensatz 1 oder dem Zeichensatz 2 zugeordnet. 
+
+Darstellungsformat:
+```
+send> 68 00 09 00 09 68 80 7F 06 06 01
+01    //
+00 01 // Byte Count = 1
+5B    // Befehl 5Bh (Message Text Index)
+69 16 
+recv< 68 00 6D 00 6D 68 7F 80 06 06 01
+01    //
+00 65 // Byte Count = 101
+5B    // Befehl 5Bh (Message Text Index)
+
+0000   00 01 01 01 FF FF FF FF FF FF FF FF FF FF FF FF
+0010   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0020   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0030   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0040   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0050   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0060   FF FF FF FF
+
+70 16
+```
+
+Auswertung (Anhand der ersten 16 Zeichen):
+```
+0000   00 01 01 01 FF FF FF FF FF FF FF FF FF FF FF FF
+
+[00 01] [01 01] [FF FF] [FF FF] ...
+[N1 C1] [N2 C2] [N3 C3] [N4 C4] ...
+
+Nm: Message Text Number
+    00-31 = Meldetext 1 bis 50 (0..49d)
+    FF = nicht verwendet
+Cn: Zeichensatz vom Meldetext
+    01 = Zeichensatz 1
+    02 = Zeichensatz 2
+```
+
+
+## <a name="61"></a>Meldetext `61`
+Jeweils ein Meldetext belegt 128 Bytes: jeweils 4 Zeilen a 24 Bytes für `<Daten/Zeichen>` zzgl. 2 Bytes `<Header-Daten>` und 6 Bytes `00`.
+
+### Einstellungen für Meldetexte:
+* __En__: Ein Wechsel des Zustands von 0 auf 1 am Eingang
+* __P__: Priorität des Meldetexts 0..127, Meldeziel, Tickerart, Ticker-Einstellungen
+* __Ack__: Quittierung des Meldetexts
+* __Par__: Parameter oder Aktualwert einer bereits programmierten anderen Funktion
+* __EnTime__: Anzeige der Uhrzeit zum Zeitpunkt des Signalzustandswechsels
+* __EnDate__: Anzeige des Datums zum Zeitpunkt des Signalzustandswechsels
+* __E/A-Zustandsnamen__: Anzeige des Namens eines digitalen Eingangs- oder Ausgangszustands
+* __Analogeingang__: Anzeige des (nach Analogzeit) aktualisierten Analogeingangswerts 
+* __Q__: bleibt gesetzt, solange der Meldetext ansteht
+
+### Darstellungsformat:
+
+Das Folgendes Beispiel zeigt die Abfrage und die Antwort zwei aufeinander folgende Meldetexte:
+```
+send> 68 00 09 00 09 68 80 7F 06 06 01
+01    //
+00 01 // Byte Count = 1
+61    // Befehl 61h (Message Text)
+6F 16
+recv< 68 01 09 01 09 68 7F 80 06 06 01
+01    //
+01 01 // Byte Count = 257
+61    // Befehl 61h (Message Text)
+
+0000   43 31 80 20 6F 6E 20 20 20 20 20 20 20 20 20 20  // Zeile 1 = 'C1^ on ...
+0010   20 20 20 20 20 20 20 20 20 00 00 00 00 00 00 00
+0020   20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20  // Zeile 2
+0030   20 20 20 20 20 20 20 20 00 00 00 00 00 00 00 00
+0040   20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20  // Zeile 3
+0050   20 20 20 20 20 20 20 20 00 00 00 00 00 00 00 00
+0060   20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20  // Zeile 4
+0070   20 20 20 20 20 20 20 20 00 00 00 00 00 00 00 00
+
+0080   43 32 81 20 6F 6E 20 20 20 20 20 20 20 20 20 20  // Zeile 1 = 'C2v on ...
+0090   20 20 20 20 20 20 20 20 20 00 00 00 00 00 00 00
+00a0   20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20  // Zeile 2
+00b0   20 20 20 20 20 20 20 20 00 00 00 00 00 00 00 00
+00c0   20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20  // Zeile 3
+00d0   20 20 20 20 20 20 20 20 00 00 00 00 00 00 00 00
+00e0   20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20  // Zeile 4
+00f0   20 20 20 20 20 20 20 20 00 00 00 00 00 00 00 00
+
+14 16
+```
+
+Auswertung einer Zeile:
+```
+0000   43 31 80 20 6F 6E 20 20 20 20 20 20 20 20 20 20
+0010   20 20 20 20 20 20 20 20 20 00 00 00 00 00 00 00
+
+[43 31 80 20 6F 6E 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+[Txt                                                                    ] 
+[20 00] [00 00 00 00 00 00]
+[Pa   ] [Dn               ]
+
+Txt: maximal 24 ASCII Zeichen, aufgefüllt mit Leerzeichen (20h)
+    Sonderzeichen:
+      80: Pfeil nach oben '^'
+      81: Pfeil nach unten 'v'
+Pa: Parameter
+Dn: Datenbyte an Stelle n (n = 1..6)
 ```
 
 ----------
