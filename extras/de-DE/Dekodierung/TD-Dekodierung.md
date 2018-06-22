@@ -1,10 +1,12 @@
 # LOGO! TD Protokoll Referenz Handbuch
 
-Ausgabe Ai
+Ausgabe Aj
 
 Juni 2018
 
 ## Vorwort
+Mit der Einführung der 7. _LOGO!_ Generation __0BA6__ im Jahre 2008 hat _Siemens_ die Möglichkeit geschaffen ein abgesetztes Text-Display via seriellen Kabel anzuschalten. Durch Einsatz des Displays wurden die Einsatzgebiete der _LOGO!_ Kleinsteuerung erweitert. Das Display bietet neben dem Anzeigen von Meldungen auch die Bedienung und Parametrisierung im Betriebsmodus _RUN_. Leider wurde das verwendete Kommuikationsprotokoll von _Siemens_ nicht offengelegt, daher ist diese Funktionserweiterung für die Anschaltung an andere Kommunikationsnetz bislang unmöglich. In Versuchsreihen konnte ein Teil des Protokolls entschlüsselt werden. Die Ergebnisse wurden in Form des vorliegenden Handbuches dokumentiert. 
+
 Dieses Handbuch richtet sich an Personen, die mit einer Siemens _LOGO!_ Kleinsteuerung vom Typ __0BA6__ über die Schnittstelle des _Text Displays_ kommunizieren wollen. Die Schnittstelle verwendet ein _PROFIBUS_ Anwendungs-Protokoll zur Bedienung und Anzeige am _Text Displays_, welches hier als _TD_-Protokoll bezeichnet wird. In diesem Handbuch wird beschrieben, wie Nachrichten erstellt werden und wie Transaktionen mithilfe des _TD_-Protokolls ausgeführt werden.
 
 _Siemens_ und _LOGO!_ sind eingetragene Marken der __Siemens AG__.
@@ -42,6 +44,8 @@ Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in
     * [Adressierung `30`](#30)
     * [Verweis auf Blocknamen `3c`](#3c)
     * [Blocknamen `3d`](#3d)
+    * [Klemmenspeicher `40`](#40)
+    * [Programmzeilenspeicher `41..4x`](#41)
     * [Verweis auf Meldetexte `5b`](#5b)
     * [Meldetext `61`](#61)
   * [Anhang](#anhang)
@@ -51,7 +55,7 @@ Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in
 ----------
 
 # <a name="kapitel1"></a>Kapitel 1 - TD-Schnittstelle
-Bei der _TD_-Schnittstelle (TD = Text Display) handelt es sich um eine Anwendung, die auf dem industriellen _PROFIBUS-DP_ Feldbusstandard aufsetzt. Der Feldbus verbindet die Feldebene (hier _TD_) mit den prozessnahen Komponenten (hier _LOGO!_ Kleinsteuerung), wobei diese Variante speziell für die Kommunikation zwischen _TD_ und den _LOGO!_ ausgelegt ist, um einen vereinfachten Einsatz ermöglichen.
+Bei der _TD_-Schnittstelle (TD = Text Display) handelt es sich um eine Anwendung, die sich an den industriellen _PROFIBUS-DP_ Feldbusstandard anlehnt. Der Feldbus verbindet die Feldebene (hier _TD_) mit den prozessnahen Komponenten (hier _LOGO!_ Kleinsteuerung), wobei diese Variante speziell für die Kommunikation zwischen _TD_ und den _LOGO!_ ausgelegt ist, um einen vereinfachten Einsatz ermöglichen.
 
 ## <a name="profibus"></a>PROFIBUS
 _PROFIBUS_ (PROcess FIeld BUS) ist ein Standard für die Feldbus-Kommunikation in der Automatisierungstechnik. Es handelt sich eine vollständige und erprobte Technologie, welche sich bereits bewährt hat und daher zur Anbindung des _TD_ mittels der Variante PROFIBUS-DP (DP = Dezentrale Peripherie) genutzt wird: 
@@ -217,6 +221,7 @@ Von den vier möglichen Diensten werden von _PROFIBUS-DP_ nur die Dienste _SDN_ u
 ----------
 
 # <a name="kapitel2"></a>Kapitel 2 - TD-Protokoll
+Im Bereich der seriellen Übertrageung haben sich eine Reihe von Formaten etabliert. Das für das Text-Display eingesetzte Protokoll (kurz TD-Protokoll) wurde maßgeblich vom _PROFIBUS DP_ Protokoll beeinflußt. Das _PROFIBUS_ Protokoll wird, von vielen Firmen bzw. Produkten unterstützt. Für die Entwickler lag es wohl nahe, auf etablierte Verfahren zu setzen, da _Siemens_ maßgeblich an der Standardisierung vom _PROFIBUS_ mitgewirkt hatte. Dieses Kapitel behandeln den am PROFIBUS DP Standard angelehnten Protokollanteil. 
 
 ## <a name="ddlm"></a>Direkt Data Link Mapper (DDLM)
 Das Höchstwertiges Bit (MSB) in _DA_ oder _SA_ zeigt an, ob eine Adresserweiterung via Dienstzugangspunkt (Service Access Point = SAPs) im Datenfeld vorliegt. Die PROFIBUS-Dienstzugangspunkte (SAP) sind in den Bytes (vom Datenfeld) _DSAP_ oder _SSAP_ vermerkt. 
@@ -262,7 +267,7 @@ Das _TD_ ist ein Bediengerät und somit dem Gerätetyp _DPM2_ zugeordnet. Die _LOG
 
 
 ## <a name="ali"></a>TD-Anwendungsprotokoll (ALI)
-Die vom _TD_ genutzten _DDLM_-Dienste versehen ihre Daten mit einem eigenen Schicht-7-Rahmen: dem _TD_-Anwendungsprotokoll. Da keine Objekte und keine Objektlisten im _DDML_ existieren, wird die Kennzeichnung der Daten in anderer Weise durchgeführt. Unter der Annahme das der Slave modular aufgebaut ist, wird das _TD_-Anwendungsprotokoll gebildet aus der Funktionskennung, der Modulnummer, einer Kennziffer zur Unterscheidung innerhalb des Moduls und der Länge der zu übertragenden Daten. 
+Die vom _TD_ genutzten _DDLM_-Dienste versehen ihre Daten mit einem eigenen Schicht-7-Rahmen: dem _TD_-Anwendungsprotokoll. Da keine Objekte und keine Objektlisten im _DDML_ existieren, wird die Kennzeichnung der Daten in anderer Weise durchgeführt.  
 
 ```
 |<-- FDL ----------------------------------------------------->|
@@ -278,15 +283,17 @@ Die vom _TD_ genutzten _DDLM_-Dienste versehen ihre Daten mit einem eigenen Schi
 ```
 >Abb: _DDLM_ eingebettet in Telegramm
 
-Befehl:
+Beispiel:
 ```
 send> 68 00 0A 00 0A 68 80 7F 06 06 01 01 00 02 09 11 29 16
 ```
 
 Darstellungsformat:
 ```
-68  [00 0A] [00 0A] 68  80 7F 06 06   01   [01 00 02 09 11] 29  16
-SD2 [LE   ] [LEr  ] SD2 DA SA FC DSAP SSAP [DU            ] FCS ED
+|<-- FDL --------------------------------------------------->|
+                             |<-- DDLM -------------->|
+68  00 0A 00 0A 68  80 7F 06 06   01   [01 00 02 09 11] 29  16
+SD2 [LE ] [LEr] SD2 DA SA FC DSAP SSAP [ALI           ] FCS ED
 
 SD2: 0x68 = SD2; Daten variabler Länge
 LE: Länge der Nettodaten, (inkl. DA, SA, FC, DSAP, SSAP)
@@ -323,42 +330,55 @@ SSAP: Quell-Dienstzugangspunkt; 1 = 0000.0001b
         b7: Extension bit = 0
         b6: Typ bit = 0
         b5..b0: Adresse = 1
-DU: Protocol Data Unit; Nettodaten (max 246 Bytes)
+ALI: Application Layer Interface (variable Länge)
 FCS: Frame Check Sequence von DA bis inkl. DU; CheckSum8 Modulo 256
 ED: End Delimiter = 16h
 ```
 
-```
-|<-- FDL ------------------------------------------------->|
-            |<-- DDLM ------------------------->|
-.-----.-----.------.------.---------------------.-----.----.
-| SD2 | ... | DSAP | SSAP | ALI                 | FCS | ED |
-'-----'-----'------'------'---------------------'-----'----'
-                         /                       \
-                        /                         \
-                       .----.----.----.-----.------.
-                       | 01 | 00 | BC | CMD | Data |
-                       '----'----'----'-----'------'
-                       |<-- TD-Protokoll --------->|
-```
->Abb: _TD_-Anwendungsprotokoll eingebettet im Telegramm
-
+----------
 
 # <a name="kapitel3"></a>Kapitel 3 - TD-Profile
+Das folgende Kapitel zeigt, wie sich das _PROFIBUS DP_ Anwendungsprotokoll für das _TD_ (folgend als _TD_-Profil bezeichnet) im _PROFIBUS-DP_ Telegramm darstellt. Auch wenn sich einige Unterschiede zwischen den jeweiligen TD-Profilen ergeben, besitzen diese doch einen übereinstimmenden Protokollaufbau. Alle Informationen werden im Telegram mit folgender Struktur gespeichert:
+
+```
+|<-- FDL ----------------------------------------->|
+            |<-- DDLM ----------------->|
+.-----.-----.------.------.-------------.-----.----.
+| SD2 | ... | DSAP | SSAP | ALI         | FCS | ED |
+'-----'-----'------'------'-------------'-----'----'
+                         /               \
+                        /                 \
+                       .----.----.----.----.
+                       | NU | BC | OP | DU |
+                       '----'----'----'----'
+                       |<-- TD-Profil ---->|
+```
+>Abb: _TD_-Anwendungsprotokoll eingebettet im PROFIBUS DDLM Rahmen
+
+Feldname | Länge   | Verwendung
+---------|---------|---------------------------
+`NU`     | 1 Byte  | unbekannt (Name Unknown)
+`BC`     | 2 Bytes | Längenfeld (Byte Count)
+`OP`     | 1 Byte  | Befehlstyp (OPcode)
+`DU`     | n Bytes | Protokolldaten (Data Unit)
+
+Die einzelnen Felder haben folgende Bedeutung:
+* Die Bedeutung des ersten Bytes ist nicht bekannt. Die Versuchreihen zeigten hier bislang immer einen konstanten Wert von 01h an. 
+* Das Längenfeld `BC` umfasst zwei Byte und spezifiziert die Länge der nachfolgenden Daten (inkl. Feld `OP`) in Byte. Dabei wird das MSB zuerst gespeichert. 
+* Das Feld `OP` ist ein Byte lang und beschreibt den Befehlstyp (nachfolgend auch als _Opcode_ bezeichnet). 
+* Das Datenfeld `DU` ist optional und besitzt eine variable Länge, die vom _Opcode_ abhängt und durch das Längenfeld `BC` spezifiziert wird. Im Datenfeld finden sich Werte, Parameter, (Zeiger-)Referenzen und Inhalte vom Schaltprogramm. 
 
 ## <a name="03"></a>Diagnose `03`
-Das _TD_-Protokoll nutzt den Befehl `03`, um Diagnoseinformationen von der _LOGO!_ Kleinsteuerung zu erhalten. Das Diagnosetelegramm wird unter anderem verwendet, um den Status, Betriebszustand und benutzerspezifische Ereignisse zu erfragen. Das Text-Display (Master) fragt hierzu zyklisch (ungefähr einmal pro Sekunde) die _LOGO!_ Steuerung (Slave) ab. Die Antwort erfolgt ebenfalls mit dem Befehl `03` (_Response_-Telegram) und hat ein festes Format, welches einen 7 Byte langen Informationsteil hat.
+Das _TD_-Protokoll nutzt den _Opcode_ `03`, um Diagnoseinformationen von der _LOGO!_ Kleinsteuerung zu erhalten. Der Diagnosetelegramm wird unter anderem verwendet, um den Status, Betriebszustand und benutzerspezifische Ereignisse zu erfragen. Das Text-Display (Master) fragt hierzu zyklisch (ungefähr einmal pro Sekunde) die _LOGO!_ Steuerung (Slave) ab. Die Antwort erfolgt ebenfalls mit dem _Opcode_ `03` (_Response_-Telegram) und hat ein festes Format, welches einen 7 Byte langen Informationsteil hat.
 
-Im Informationsteil wird auch eine Check-Summe vom Schaltprogramm mitgesendet (Byte 6 und 7). Anhand der Check-Summe kann das _TD_ erkennen, ob das bei der Initialisierung geladenen Schaltprogramm noch aktuell ist. 
+Im Informationsteil wird die Check-Summe vom Schaltprogramm mitgesendet (Byte 6 und 7). Anhand der Check-Summe kann das _TD_ erkennen, ob das bei der Initialisierung geladenen Schaltprogramm noch aktuell ist. 
 
-Befehl:
+_Opcode_:
 ```
-send>68 00 09 00 09 68
-80 7F 06 06 01
+send> 68 00 09 00 09 68 80 7F 06 06 01
 01 00 01 03
 11 16
-recv<68 00 10 00 10 68
-7F 80 06 06 01
+recv< 68 00 10 00 10 68 7F 80 06 06 01
 01 00 08 03
 01 00 00 00 00 7B C4
 58 16
@@ -366,17 +386,18 @@ recv<68 00 10 00 10 68
 
 Darstellungsformat:
 ```
-68 00 09 00 09 68 80 7F 06 06 01 [01 00 01 03 ] 11 16
-                                 [DU          ]
-                                 [01 [Bc ] Cmd]
+                                 |<-- ALI -->|
+68 00 09 00 09 68 80 7F 06 06 01 [01 00 01 03] 11  16
+                                 [01 [Bc ] Op]
 
-68 00 10 00 10 68 7F 80 06 06 01 [01 00 08 03  01 00 00 00 00 7B C4] 58 16
-                                 [DU                               ]
-                                 [01 [Bc ] Cmd Op D2 Pm D4 D5 [Chk ]
+                                 |<-- ALI ----------------------->|
+                                 |            |<-- DU ----------->|
+68 00 10 00 10 68 7F 80 06 06 01 [01 00 08 03 01 00 00 00 00 7B C4] 58 16
+                                 [01 [Bc ] Op Om D2 Pm D4 D5 [Chk ]
 
 Bc: Byte Count (Typ Word, Big Endian)
-Cmd: Befehl 03h = Diagnosis
-Op: Operating Mode;
+Op: Opcode 03h = Diagnosis
+Om: Operating Mode;
     01h = RUN Mode
     02h = STOP Mode
     20h = Parameter Mode
@@ -397,48 +418,39 @@ Chk: Schaltprogramm Checksum
 ```
 
 ## <a name="0405"></a>Stop/Start `04/05`
-Das Stoppen oder das Starten eines Programmes wird mit den Befehl `04` für _Stop_ und `05` für _Start_ ausgelöst. Mit diesen Befehlen wird das in der _LOGO!_ (Slave) gespeicherte Program gestartet oder gestoppt. Sobald der Befehl im Menü ausgewählt wird, wird der _Start_ bzw. _Stop_-Befehl gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram beantwortet (z.B. Datenbyte = `06` für Ack). Die Beschreibung des Antwortcodes ist in einem eigenen Abschnitt beschrieben. 
+Das Stoppen oder das Starten eines Programmes wird mit den _Opcode_ `04` für _Stop_ und `05` für _Start_ ausgelöst. Mit diesen Befehlen wird das in der _LOGO!_ (Slave) gespeicherte Program gestartet oder gestoppt. Sobald der Befehl im Menü ausgewählt wird, wird der _Start_ bzw. _Stop_-Befehl gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram beantwortet (z.B. Datenbyte = `06` für Ack). Die Beschreibung des Antwortcodes ist in einem eigenen Abschnitt beschrieben. 
 
 ## <a name="08"></a>Online-Test (I/O-Daten) `08`
 Response und Request
 
-Befehl:
+Beispiel:
 ```
-send>68 00 0A 00 0A 68
-80 7F 06 06 01 01
-00
-01 08
+send> 68 00 0A 00 0A 68 80 7F 06 06 01
+01 00 01 08
 16 16
+recv< 68 00 35 00 35 68 7F 80 06 06 01
+01 00 2D 08
+00 00 00 ...
+XX 16
 ```
-
-#### Request
 
 Darstellungsformat:
 ```
-68 00 09 00 09 68 // SD2; Länge = 9 Byte
-80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
-01    //
-00 01 // Byte Count = 1
-08    // Befehl 08h (Online Test)
-16    // CheckSum8 Modulo 256 (DA incl. DU: 80..08)
-16    // End Delimiter
+                                 |<-- ALI -->|
+68 00 09 00 09 68 80 7F 06 06 01 [01 00 01 08] 16 16
+                                 [01 [Bc ] Op]
+
+                                 |<-- ALI ---------------->|
+                                 |            |<-- DU ---->|
+68 00 35 00 35 68 7F 80 06 06 01 [01 00 2D 08 00 00 00 ... ] XX 16
+                                 [01 [Bc ] Op [Pa          ]
+
+Bc: Byte Count = 1
+Op: Opcode 08h = Online Test
+Pa: Parameter, siehe Tabelle folgend
 ```
 
-#### Response
-
-Darstellungsformat:
-```
-68 00 35 00 35 68 // SD2; Länge = 53 Byte
-7F 80 06 06 01    // SDN; DA:DSAP = 127:6; SA:SSAP = 0:1 (127 = Broadcast)
-01    // 
-00 2D // Byte Count = 45
-08    // Befehl 08h (Online Test)
-00 00 00 ... 
-XX    // CheckSum8 Modulo 256 (DA incl. DU: 7F..08)
-16    // End Delimiter
-```
-
-Index | Parameter
+Position | Parameter
 --- | ---
 1 | Inputs 1..8
 2 | Inputs 9..16
@@ -452,39 +464,39 @@ Index | Parameter
 10 | Cursor Keys C1..C4
 11 | Shift register 1..8
 12 | Merker 25..27
-13 | analog Input 1 high
-14 | analog Input 1 low
-15 | analog Input 2 high
-16 | analog Input 2 low
-17 | analog Input 3 high
-18 | analog Input 3 low
-19 | analog Input 4 high
-20 | analog Input 4 low
-21 | analog Input 5 high
-22 | analog Input 5 low
-23 | analog Input 6 high
-24 | analog Input 6 low
-25 | analog Input 7 high
-26 | analog Input 7 low
-27 | analog Input 8 high
-28 | analog Input 8 low
-29 | analog Output 1 high
-30 | analog Output 1 low
-31 | analog Output 2 high
-32 | analog Output 2 low
-33 | analog Merker 1 high
-34 | analog Merker 1 low
-35 | analog Merker 2 high
-36 | analog Merker 2 low
-37 | analog Merker 3 high
-38 | analog Merker 3 low
-39 | analog Merker 4 high
-40 | analog Merker 4 low
-41 | analog Merker 5 high
-42 | analog Merker 5 low
-43 | analog Merker 6 high
-44 | analog Merker 6 low
->Tab: Index der Werte beim Online-Test
+13 | analog Input 1 MSB
+14 | analog Input 1 LSB
+15 | analog Input 2 MSB
+16 | analog Input 2 LSB
+17 | analog Input 3 MSB
+18 | analog Input 3 LSB
+19 | analog Input 4 MSB
+20 | analog Input 4 LSB
+21 | analog Input 5 MSB
+22 | analog Input 5 LSB
+23 | analog Input 6 MSB
+24 | analog Input 6 LSB
+25 | analog Input 7 MSB
+26 | analog Input 7 LSB
+27 | analog Input 8 MSB
+28 | analog Input 8 LSB
+29 | analog Output 1 MSB
+30 | analog Output 1 LSB
+31 | analog Output 2 MSB
+32 | analog Output 2 LSB
+33 | analog Merker 1 MSB
+34 | analog Merker 1 LSB
+35 | analog Merker 2 MSB
+36 | analog Merker 2 LSB
+37 | analog Merker 3 MSB
+38 | analog Merker 3 LSB
+39 | analog Merker 4 MSB
+40 | analog Merker 4 LSB
+41 | analog Merker 5 MSB
+42 | analog Merker 5 LSB
+43 | analog Merker 6 MSB
+44 | analog Merker 6 LSB
+>Tab: Parameter beim Befehlstyp Online-Test
 
 ## <a name="09"></a>Cursor-/Funktionstasten `09`
 Die vier Cursortasten `^`, `>`, `v` und `<` können in einem Schaltprogramm als Eingang genutzt werden. Die Eingänge der Cursortasten des _LOGO! TD_ sind mit den Eingängen der Cursortasten des _LOGO!_ Basismoduls identisch. Die Verwendung erfolgt im Modus _RUN_ mittels `ESC` + gewünschte Cursortaste `C`. Das _TD_ hat vier Funktionstasten `F1`, `F2`, `F3` und `F4` welche ebenfalls, wie die Cursortasten, im Schaltprogramm als Eingang genutzt werden können, wenn sich die _LOGO!_ Steuerung im Modus _RUN_ befindet. 
@@ -493,13 +505,14 @@ Der _Request_ erfolgt mit einem Datenbyte. Nachdem der Befehl ausgeführt wurde, 
 
 Darstellungsformat:
 ```
-68 00 0A 00 0A 68 80 7F 06 06 01 [01 00 02 09  24] 3C 16
-                                 [DU             ]
-                                 [01 [Bc ] Cmd Kc]
+                                 |<-- ALI ------>|
+                                 |            |DU|
+68 00 0A 00 0A 68 80 7F 06 06 01 [01 00 02 09 24 ] 3C 16
+                                 [01 [Bc ] Op Btn]
 
 Bc: Byte Count (Typ Word, Big Endian)
-Cmd: Befehl 09h = Button Key
-Kc: Tastencode 24h = 0010.0100b
+Op: Opcode 09h = Button Key
+Btn: Tastencode 24h = 0010.0100b
         0  0  1  0  0  1  0  0
     MSB --+--+--+--*--+--+--+-- LSB
         b7 b6 b5 b4 b3 b2 b1 b0
@@ -530,7 +543,7 @@ Beispiel F4 off:
 80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
 01    // 
 00 02 // Byte Count = 2
-09    // Befehl 09h (Func Key)
+09    // Opcode 09h (Func Key)
 24    // 24h = 0010.0100b: F4 off
 3C    // CheckSum8 Modulo 256 (DA incl. DU: 80..24)
 16    // End Delimiter
@@ -542,7 +555,7 @@ Beispiel F4 on:
 80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
 01    // 
 00 02 // Byte Count = 2
-09    // Befehl 09h (Func Key)
+09    // Opcode 09h (Func Key)
 13    // 13h = 0001.0011b: F3 on
 2B    // CheckSum8 Modulo 256 (DA incl. DU: 80..13)
 16    // End Delimiter
@@ -551,34 +564,32 @@ Beispiel F4 on:
 Weitere Beispiele:
 ```
 // F1 on
-send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 11   29 16
+send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  11  29 16
 // F1 off
-send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 21   39 16
+send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  21  39 16
 // F2 on
-send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 12   2A 16
+send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  12  2A 16
 // F2 off
-send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 22   3A 16
+send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  22  3A 16
 // F3 on
-send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 13   2B 16
+send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  13  2B 16
 // F3 off
-send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 23   3B 16
+send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  23  3B 16
 // F4 on
-send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 14   2C 16
+send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  14  2C 16
 // F4 off
-send>68 00 0A 00 0A 68   80 7F 06 06 01 01  00 02  09 24   3C 16
+send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  24  3C 16
 ```
 
 ## <a name="10"></a>Uhrzeit/Datum `10`
-Der Befehl `10` _Date Time_ liest die aktuelle Uhrzeit, das Datum und die Sommer-/Winterzeit aus der Hardware-Uhr der _LOGO!_ Keinsteuerung aus. Der _Request_ erfolgt ohne Daten. Das Ergebnis der Operation wird von der _LOGO_ Steuerung mit einem _Response_-Telegram beantwortet.
+Der _Opcode_ `10` _Date Time_ liest die aktuelle Uhrzeit, das Datum und die Sommer-/Winterzeit aus der Hardware-Uhr der _LOGO!_ Keinsteuerung aus. Der _Request_ erfolgt ohne Daten. Das Ergebnis der Operation wird von der _LOGO_ Steuerung mit einem _Response_-Telegram beantwortet.
 
-Befehl:
+Beispiel:
 ```
-send>68 00 09 00 09 68
-80 7F 06 06 01
+send>68 00 09 00 09 68 80 7F 06 06 01
 01 00 01 10
 1E 16
-recv<68 00 10 00 10 68
-7F 80 06 06 01
+recv<68 00 10 00 10 68 7F 80 06 06 01
 01 00 08 10
 10 05 12 08 02 03 01
 5A 16
@@ -586,16 +597,17 @@ recv<68 00 10 00 10 68
 
 Darstellungsformat:
 ```
-68 00 09 00 09 68 80 7F 06 06 01  01 00 01 10  1E 16
-                                 [DU          ]
-                                 [01 [Bc ] Cmd]
+                                 |<-- ALI -->|
+68 00 09 00 09 68 80 7F 06 06 01 [01 00 01 10] 1E 16
+                                 [01 [Bc ] Op]
 
-68 00 0A 00 0A 68 7F 80 06 06 01 [01 00 08 10  10 05 12 08 02 03 01] 5A 16
-                                 [DU                               ]
-                                 [01 [Bc ] Cmd DD MM YY mm hh Wd SW]
+                                 |<-- ALI ----------------------->|
+                                 |            |<--- DU ---------->|
+68 00 0A 00 0A 68 7F 80 06 06 01 [01 00 08 10 10 05 12 08 02 03 01] 5A 16
+                                 [01 [Bc ] Op DD MM YY mm hh Wd SW]
 
 Bc: Byte Count (Typ Word, Big Endian)
-Cmd: Befehl 10h = Date Time
+Op: Opcode 10h = Date Time
 DD: Tag; Wertebereich 01..1F (1 bis 31)
 MM: Monat; Wertebereich 01..0C (1 bis 12)
 YY: Jahr; Wertebereich beginnend bei 08 (entspricht 2008)
@@ -605,11 +617,11 @@ Wd: Wochentag; Wertebereich 00..06 (So bis Sa)
 SW: 01 = Sommerzeit; 00 = Winterzeit
 ```
 
-Beispiel (Response, nur DU):
+Beispiel Response (nur DU):
 ```
 01    //
 00 08 // Byte Count = 8
-10    // Befehl 10h (Clock)
+10    // Opcode 10h (Clock)
 04    // Tag 4
 06    // Monat Juni
 12    // Jahr 2018
@@ -621,20 +633,15 @@ Beispiel (Response, nur DU):
 
 ## <a name="18"></a>Display Update `18`
 
-Beispiel Fest, 2 Texte, Block B002 (nur DU)
+Beispiel Response (nur DU, Meldetext fest, 2 Meldetexte, Block B002):
 ```
-0000  00 00 00 02 00 00 00 00
-      00 00 00 02 00 00 00 00
-0010  00 00 00 02 00 00 00 00
-      00 00 00 01 00 00 00 00
-0020  00 00 00 00 80 81 ff ff
-      ff ff ff ff ff ff ff ff
-0030  ff ff ff ff ff ff ff ff
-      ff ff ff ff ff ff ff ff
-0040  ff ff ff ff ff ff ff ff
-      ff ff ff ff ff ff ff ff
-0050  ff ff ff ff ff ff ff ff
-      ff ff ff ff ff ff ff ff
+      |<-- DU --------------------------------------- ...
+0000  00 00 00 02 00 00 00 00 00 00 00 02 00 00 00 00
+0010  00 00 00 02 00 00 00 00 00 00 00 01 00 00 00 00
+0020  00 00 00 00 80 81 ff ff ff ff ff ff ff ff ff ff
+0030  ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+0040  ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+0050  ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
 0060  ff ff ff ff 00 00 ff 00
 ```
 
@@ -645,29 +652,30 @@ Vorteil: In der Betriebsart _Parametrieren_ arbeitet die _LOGO!_ Kleinsteuerung 
 
 __Hinweis:__ Das erfolgreiche Ändern von Parametern setzt voraus, dass die für den Block im Schaltprogramm eingestellte Schutzart dies erlaubt (Parameterschutz = `+`). 
 
-Befehl:
+Beispiel:
 ```
-send>68 00 37 00 37 68
-80 7F 06 06 01
-01 00 2F 21 00 0F 00 FC 00 14 CE 04 EC 04 FF FF
-FF FF FF FF FF FF 7F 00 00 00 00 00 21 40 0F 80
-00 80 00 00 21 40 0F 80 2C 81 00 00 21 40 0F 80
-89 83
+send>68 00 37 00 37 68 80 7F 06 06 01
+01 00 2F 21
+00 0F 00 FC 00 14 CE 04 EC 04 FF FF FF FF FF FF
+FF FF 7F 00 00 00 00 00 21 40 0F 80 00 80 00 00
+21 40 0F 80 2C 81 00 00 21 40 0F 80 89 83
 BE 16
-recv<68 00 0A 00 0A 68
-7F 80 06 06 01
-01 00 02 21 06
+recv<68 00 0A 00 0A 68 7F 80 06 06 01
+01 00 02 21
+06
 36 16
 ```
 
-Darstellungsformat (Request, nur DU):
+Darstellungsformat (Request, nur ALI):
 ```
-01  00 2F  21   00 0F   00 FC   00 14   CE 04 EC 04 FF FF ...
-01 [00 2F] 21  [00 0F] [00 FC] [00 14] [CE 04 EC 04 FF FF ...
-01 [Bc   ] Cmd [Bl   ] [Po   ] [Pc   ] [Dn ...
+|<-- ALI ----------------------------------------------- ...
+|             |<-- DU ---------------------------------- ...
+01  00 2F  21  00 0F   00 FC   00 14   CE 04 EC 04 FF FF ...
+01 [00 2F] 21 [00 0F] [00 FC] [00 14] [CE 04 EC 04 FF FF ...
+01 [Bc   ] Op [Bl   ] [Po   ] [Pc   ] [Dn ...
 
 Bc: Byte Count (Typ Word, Big Endian)
-Cmd: Befehl 21h = Set Parameter
+Op: Opcode 21h = Set Parameter
 Bl: Blocknummer (Typ Word, Big Endian)
 Po: Zeigeradresse (Typ Word, Big Endian)
 Pc: Anzahl Parameter Bytes (Anzahl ist inkl. Feldlänge von Pc)
@@ -675,14 +683,13 @@ Dn: Datenbyte an Stelle n (n = 3..Pc)
 ```
 
 ## <a name="30"></a>Adressierung `30`
-Der Befehl _Addressing_ `30` benennt die indizierten Speicherbereiche (Indexregister) vom Programmzeilenspeicher für die Ausgänge, Merker und Funktionsblöcke. Das Ziel eines Indexregisters ist eine Speicherzelle im Programmzeilenspeicher. Die von der _LOGO!_ Kleinsteuerung zurückgemeldeten Indexregister werden vom _TD_ genutzt, um auf die Struktur des Schaltprogramms zuzugreifen, welche über den Befehl `40` (und folgend) abgefragt werden. Die Adresse ergibt sich aus den Inhalt des jeweiligen Indexregisters, das auf den Speicherort vom Programmzeilenspeicher verweist. 
+Der Befehl _Addressing_ `30` benennt die indizierten Speicherbereiche (Register) vom Programmzeilenspeicher für die Ausgänge, Merker und Funktionsblöcke. Das Ziel eines Registers ist eine Speicherzelle im Programmzeilenspeicher. Die von der _LOGO!_ Kleinsteuerung zurückgemeldeten Register werden vom _TD_ genutzt, um auf die Struktur des Schaltprogramms zu schließen, welche über den _Opcode_ `40` (und folgend) abgefragt werden. Die Position ergibt sich aus den Inhalt des jeweiligen Registers, das auf den Speicherort vom Programmzeilenspeicher verweist. 
 
-Der Befehl `30` gibt bei einer _LOGO!_ __0BA6__ 420 Bytes Netto-Daten zurück. Die ersten 20 Bytes verweisen auf (weitere) 10*20 Bytes für Ausgänge und Merker (siehe Tabelle folgend). Die nächsten 400 Bytes verweisen auf die 200 Funktionsblöcke im Programmzeilenspeicher. Der Verweis wird als 16 Bit-Offset-Adresse (Little Endian) dargestellt. 
+Der _Opcode_ `30` gibt bei einer _LOGO!_ __0BA6__ 420 Bytes Netto-Daten zurück. Die ersten 20 Bytes verweisen auf (weitere) 10*20 Bytes für Ausgänge und Merker (siehe Tabelle folgend). Die nächsten 400 Bytes verweisen auf die 200 Funktionsblöcke im Programmzeilenspeicher. Der Verweis wird als 16 Bit-Offset-Adresse (Little Endian) dargestellt. 
 
-Befehl:
+Beispiel:
 ```
-recv<68 01 AD 01 AD 68
-7F 80 06 06 01
+recv<68 01 AD 01 AD 68 7F 80 06 06 01
 01 01 A5 30
 0000   00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00
 0010   A0 00 B4 00 C8 00 D4 00 E0 00 EC 00 F8 00 FC 00
@@ -714,10 +721,9 @@ recv<68 01 AD 01 AD 68
 EB 16
 ```
 
-### Indexregister Ausgänge und Merker
-
-Darstellungsformat (Response, nur Netto-Daten, 20 Bytes):
+Darstellungsformat Response (nur DU, 20 Bytes):
 ```
+       |<-- DU --------------------------------------- ...
 0000   00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00
 0010   A0 00 B4 00 .. .. ..
 
@@ -727,6 +733,7 @@ HEX (Hi,Lo): 00,00 00,14 00,28 00,3C 00,50 00,64 00,78 00,8C 00,A0 00,B4
 Dezimal:     00    20    40    60    80    100   120   140   160   180
 Speicherbedarf: 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20
 ```
+>Abb: Register Ausgänge und Merker
 
 Zeiger | Beschreibung
 -------|------------------------------------
@@ -740,13 +747,13 @@ Zeiger | Beschreibung
 008C   | offener Ausgang 9-16
 00A0   | Merker 25-27
 00B4   | (Reserve ??)
->Tab: Übersicht Indexregister Ausgänge und Merker
+>Tab: Übersicht Register Ausgänge und Merker
 
-### Indexregister für Funktionsblöcke
-Unter Verwendung des ausgelesen Wertes ist es möglich, den Block im Speicherbereich anzusprechen. Das Indexregister für Block B001 ist an Stelle `21..22` zu finden, der Block B002 an Stelle `23..24`, Block B003 an `25..26`, usw. Der Wert `FFFF` bedeutet, dass der Block nicht im Schaltprogramm verwendet wird.
+Unter Verwendung des ausgelesen Wertes ist es möglich, den Block im Speicherbereich anzusprechen. Das Register für Block B001 ist an Stelle `21..22` zu finden, der Block B002 an Stelle `23..24`, Block B003 an `25..26`, usw. Der Wert `FFFF` bedeutet, dass der Block nicht im Schaltprogramm verwendet wird.
 
-Darstellungsformat (Response, nur Netto-Daten, Bytes > 20):
+Darstellungsformat Response (nur DU, Bytes > 20):
 ```
+   ... -- DU ----------------------------------------- ...
 0010   .. .. .. .. C8 00 D4 00 E0 00 EC 00 F8 00 FC 00
 0020   10 01 18 01 20 01 28 01 30 01 34 01 3C 01 44 01
 0030   4C 01 54 01 58 01 5C 01 FF FF 60 01 .. .. .. ..
@@ -763,6 +770,7 @@ HEX (Hi,Lo): 01,30 01,34 01,3C 01,44 01,4C 01,54 01,58 01,5C FF,FF 01,60
 Dezimal:     304   308   316   324   332   340   344   348   n/a   352
 Speicherbedarf:  4 --- 8 --- 8 --- 8 --- 8 --- 4 --- 4 ------ 8 ----- 12
 ```
+>Abb: Register für Funktionsblöcke
 
 Zeiger | Block-Nr | Speicher
 -------|----------|---------
@@ -786,7 +794,7 @@ Zeiger | Block-Nr | Speicher
 015C   | B018     | 8 Bytes
 n/a *) | B019     | 0 Bytes
 0160   | B020     | 12 Bytes
->Tab: Übersicht Indexregister Funktionsblöcke
+>Tab: Übersicht Register Funktionsblöcke
 
 \*) Block-Nr. B019 wird im Schaltprogramm nicht verwendet!
 
@@ -796,23 +804,35 @@ Es können maximal 100 Blöcke einen Blocknamen erhalten.
 Beispiel:
 ```
 send> 68 00 09 00 09 68 80 7F 06 06 01
-01    //
-00 01 // Byte Count = 1
-3C    // Befehl 3Ch (Block Name Index)
+01 00 01 3C
 4A 16
-recv< 68 00 0c 00 0c 68 7f 80 06 06 01
-01
-00 04 // Byte Count = 4
-3c    // Befehl 3Ch (Block Name Index)
-02    // Byte Count = 2
-0a 0f // Verweis 1..2
+recv< 68 00 0C 00 0C 68 7F 80 06 06 01
+01 00 04 3C
+02 0A 0F
 68 16
 ```
 
-Verweis | HEX | DEC | Block
---------|-----|-----|------
-1       | 0A  | 10  | B001
-2       | 0F  | 15  | B006
+Darstellungsformat:
+```
+                                 |<-- ALI -->|
+68 00 09 00 09 68 80 7F 06 06 01 [01 00 01 3C] 4A 16
+                                 [01 [Bc ] Op]
+
+                                 |<-- ALI ------------ ...
+                                 |            |<--DU-- ...
+68 00 0C 00 0C 68 7F 80 06 06 01 [01 00 06 3C 02 0A 0F ...
+                                 [01 [Bc ] Op Pc B1 B2 ...
+
+Bc: Byte Count (Typ Word, Big Endian)
+Op: Opcode 3Ch = Block Name Reference
+Pc: Anzahl Parameter Bytes, Wertebereich 01..64h
+Bn: Block Nummer an Stelle n (n = 1..Pc)
+```
+
+Position | HEX | DEC | Block
+---------|-----|-----|------
+1        | 0A  | 10  | B001
+2        | 0F  | 15  | B006
 >Tab: Auswertung Beispiel _Verweis Blocknamen_
 
 ## <a name="3d"></a>Blocknamen `3d`
@@ -823,30 +843,228 @@ Beispiel:
 send> 68 00 09 00 09 68 80 7F 06 06 01
 01    //
 00 01 // Byte Count = 1
-3D    // Befehl 3Dh (Block Name Memory)
+3D    // Opcode 3Dh (Block Name Memory)
 4B 16
 recv< 68 00 09 00 09 68 80 7F 06 06 01
 01                      //
 00 09                   // Byte Count = 9
-3D                      // Befehl 3Dh (Block Name Memory)
+3D                      // Opcode 3Dh (Block Name Memory)
 44 69 73 70 6C 61 79 00 // ACSII = 'Display'\0
 29 16
 ```
 
+## <a name="40"></a>Klemmenspeicher `40`
+Als Klemme werden alle Anschlüsse und Zustände bezeichnet. Hierzu zählen Digitaleingänge, Analogeingänge, Digitalausgänge, Analogausgänge, Merker (inkl. Anlaufmerker), Analoge Merker, Schieberegisterbits, Cursortasten, Pegel und die Offenen Klemmen. Klemmen, die aufgrund eines Verknüpfungseinganges ein Speicherplatz besitzen, sind die Ausgänge _Q1_ bis _Q16_, _AQ1_ und _AQ2_, die Merker _M1_ bis _M24_ und _AM1_ bis _AM6_, sowie die 16 unbeschaltete Ausgänge _X1_ bis _X16_.
+
+Die Verknüpfungen im Schaltprogramm auf den Eingang einer Ausgangsklemme oder eines Merkes werden mittels des Befehls `40` vom _TD_ abgefragt. 
+
+Beispiel:
+```
+send> 68 00 09 00 09 68 80 7F 06 06 01
+01 00 01 40
+4E 16
+recv< 68 00 D3 00 D3 68 7F 80 06 06 01 
+01 00 CB 40
+0000   80 00 0A 80 0B 80 A2 00 A3 00 FF FF FF FF FF FF
+0010   FF FF FF FF 80 00 FF FF FF FF FF FF FF FF FF FF
+0020   FF FF FF FF FF FF FF FF 80 00 FF FF FF FF FF FF
+0030   FF FF FF FF FF FF FF FF FF FF FF FF 80 00 FF FF
+0040   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0050   80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0060   FF FF FF FF 80 00 FF FF FF FF FF FF FF FF FF FF
+0070   FF FF FF FF FF FF FF FF 80 00 FF FF FF FF FF FF
+0080   FF FF FF FF FF FF FF FF FF FF FF FF 80 00 FF FF
+0090   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+00A0   80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+00B0   FF FF FF FF 80 00 FF FF FF FF FF FF FF FF FF FF
+00C0   FF FF FF FF FF FF FF FF 00 20
+E6 16
+```
+
+Das Format ist einheitlich und ist als vielfache von 20 Bytes = 2 Bytes `80 00` + 16 Bytes `<Daten>` + 2 Bytes `FF FF` abgelegt.
+
+Position   | Anz | Beschreibung
+-----------|-----|------------------------------------
+0000..0027 | 40  | Digitaler Ausgang 1-16
+0028..0063 | 60  | Merker 1-24
+0064..0077 | 20  | Analogausgang 1-2; Analogmerker 1-6
+0078..009F | 40  | offener Ausgang 1-16
+00A0..00C7 | 40  | (Reserve ??)
+00C8..00C9 | 2   | (End of Record ??)
+>Tab: Adressübersicht Ausgänge und Merker
+
+Auswertung (nur DU):
+```
+    |<-- DU --------------------------------------------------- ...
+    80 00 0A 80 0B 80 A2 00 A3 00 FF FF FF FF FF FF FF FF FF FF
+    80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+    80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+    80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+    80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+    80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+    80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+    80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+    80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+    80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+    00 20
+... --->|
+
+
+    |<-- DU ----------------------------------------------------- ...
+    80 00 [0A 80 0B 80 A2 00 A3 00 FF FF FF FF FF FF FF FF] FF FF
+          [1a 1b ...                             ... 8a 8b]
+    :
+    :
+    80 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+    00 20
+... --->|
+    [EOR]
+```
+
+Nicht benutzte Anschlüsse (freie Eingänge) im Schaltprogramm werden mit `FFFF` angezeigt. 
+
+```
+Na: Eingang, abhängig von b7
+Nb: BIN MSB --+--+--+--*++++ LSB
+            b7 b6 b5 b4 0000
+
+    b7 = 0, Xa = Konstante oder Klemme
+    b7 = 1, Xa = Blocknummer
+    b6 = 0
+    b5 = 0
+    b4 = 0
+
+EOR: End of Record
+```
+
+Na Nb: N = Element 1-8
+
+## <a name="41"></a>Programmzeilenspeicher `41..4x`
+Der Programmzeilenspeicher ist Teil des Schaltprogramms und wird für die Parametrisierung und korrekten Darstellung der Variablen im Meldetext vom Text-Display ausgelesen. Es werden nicht alle 200 Blöcke am Stück vom _TD_ ausgelesen. Vielmehr werden die einzelen aufeinander folgenden Speicherbereiche mittels der Opcodes `41..4x` abgefragt. 
+
+Beispiel:
+```
+send> 68 00 09 00 09 68 80 7F 06 06 01
+01 00 01 41
+4F 16
+recv< 68 01 0F 01 0F 68 7F 80 06 06 01
+01 01 07 41
+0000   00 C8 00 0C 01 00 0E 80 10 80 14 80 1D 80 FF FF 
+0010   00 D4 00 0C 01 00 0E 80 11 80 19 80 FF FF FF FF 
+0020   00 E0 00 0C 01 00 0E 80 12 80 1A 80 FF FF FF FF
+0030   00 EC 00 0C 01 00 0E 80 13 80 1B 80 FF FF FF FF
+0040   00 F8 00 04 03 00 00 00 00 FC 00 14 24 40 CE 04
+0050   EC 04 FF FF FF FF FF FF FF FF 7F 00 00 00 00 00
+0060   01 10 00 08 21 40 0F 80 00 80 00 00 01 18 00 08
+0070   21 40 0F 80 2C 81 00 00 01 20 00 08 21 40 0F 80
+0080   89 83 00 00 01 28 00 08 21 40 0F 80 DC 85 00 00
+0090   01 30 00 04 03 00 15 80 01 34 00 08 21 40 10 80
+00A0   2C 81 00 00 01 3C 00 08 21 40 11 80 58 82 00 00
+00B0   01 44 00 08 21 40 12 80 58 82 00 00 01 4C 00 08
+00C0   21 40 13 80 2C 81 00 00 01 54 00 04 03 00 16 80
+00D0   01 58 00 04 03 00 17 80 01 5C 00 04 03 00 18 80
+00E0   01 60 00 0C 02 00 1F 80 1E 80 FF FF FF FF FF FF
+00F0   01 6C 00 10 35 40 81 00 64 00 C8 00 1E 00 00 00
+0100   00 00 00 00 00 00
+0C 16
+```
+
+Für den Aufbau von DU gibt es mehrere Randbedingungen:
+* Die ersten beide Bytes enthalten den Adressregister im Programmzeilenspeicher. Die Registerwerte werden vorab vom Textdisplay mit einem eigenem Befeh (Opcode `30`) abgefragt. 
+* Im folgenden Byte (Offset 02h) steht die Länge des Blocks im Speicher. Der Wert variiert dabei im Abhängigkeit von der Funktion des Blocks.
+* Die Formatlänge der nachfolgenden Daten ist variabel, durch 4 teilbar, daher ggf. mit Füllbytes (Padding) aufgefüllt und darf 252 Bytes nicht überschreiten. 
+
+Auch ohne Kenntnis der Bedeutung der Datenbytes lässt sich die Struktur in DU gut erkennen:
+```
+      |<-- DU --------------------------------------- ...
+      |<-- B1 ------------------------------------->|
+0000  00 C8 00 0C 01 00 0E 80 10 80 14 80 1D 80 FF FF
+      [Reg] [Pc ] Fc Pa [Dn.........................]
+
+      |<-- B2 ------------------------------------->|
+0010  00 D4 00 0C 01 00 0E 80 11 80 19 80 FF FF FF FF
+      [Reg] [Pc ] Fc Pa [Dn.........................]
+
+      |<-- B3 ------------------------------------->|
+0020  00 E0 00 0C 01 00 0E 80 12 80 1A 80 FF FF FF FF
+      [Reg] [Pc ] Fc Pa [Dn.........................]
+
+      |<-- B4 ------------------------------------->|
+0030  00 EC 00 0C 01 00 0E 80 13 80 1B 80 FF FF FF FF
+      [Reg] [Pc ] Fc Pa [Dn.........................]
+
+      |<-- B5 ------------->| |<-- B6 --------------- ...
+0040  00 F8 00 04 03 00 00 00 00 FC 00 14 24 40 CE 04
+      [Reg] [Pc ] Fc Pa [Dn ] [Reg] [Pc ] Fc Pa [Dn..
+
+  ... -- B6 ----------------------------------------- ... 
+0050  EC 04 FF FF FF FF FF FF FF FF 7F 00 00 00 00 00
+      ..............................................]
+
+  ... -- B6 --------------------------->| |<-- B7 --- ...
+0060  01 10 00 08 21 40 0F 80 00 80 00 00 01 18 00 08  
+      [Reg] [Pc ] Fc Pa [Dn.............] [Reg] [Pc ]
+
+  ... -- B7 --------------->| |<-- B8 --------------- ...
+0070  21 40 0F 80 2C 81 00 00 01 20 00 08 21 40 0F 80
+
+  ... -- B8 --->| |<-- B9 ------------------------->|
+0080  89 83 00 00 01 28 00 08 21 40 0F 80 DC 85 00 00
+
+      |<-- B10 ------------>| |<-- B11 -------------- ...
+0090  01 30 00 04 03 00 15 80 01 34 00 08 21 40 10 80
+
+  ... -- B11 -->| |<-- B12 ------------------------>|
+00A0  2C 81 00 00 01 3C 00 08 21 40 11 80 58 82 00 00
+
+      |<-- B13 ------------------------>| |<-- B14 -- ...
+00B0  01 44 00 08 21 40 12 80 58 82 00 00 01 4C 00 08
+
+  ... -- B14 -------------->| |<-- B15 ------------>|
+00C0  21 40 13 80 2C 81 00 00 01 54 00 04 03 00 16 80
+
+      |<-- B16 ------------>| |<-- B17 ------------>|
+00D0  01 58 00 04 03 00 17 80 01 5C 00 04 03 00 18 80
+
+      |<-- B18 ------------------------------------>|
+00E0  01 60 00 0C 02 00 1F 80 1E 80 FF FF FF FF FF FF
+
+      |<-- B19 -------------------------------------- ...
+00F0  01 6C 00 10 35 40 81 00 64 00 C8 00 1E 00 00 00
+
+  ... -- B19 -------->|
+0100  00 00 00 00 00 00
+
+Bn: Block an Stelle n (n = 1 bis max. 200)
+Reg: Registerwert (Typ Word, Big Endian), siehe auch Opcode 30
+Pc: Anzahl Parameter Bytes (inkl. Fc und Pa)
+Fc: Funktions-Code
+      Wert < 20h: GF, siehe Liste Grundfunktionen
+      Wert > 20h: SF, siehe Liste Sonderfunktionen
+Pa: Funktionsblockparameter, immer 00 bei GF
+   MSB --+--+--+--*++++ LSB
+       b7 b6 b5 b4 0000
+
+    b7: Remanenz; 1 = aktiv, 0 = nein
+    b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Standard)
+
+Dn: Datenbyte an Stelle n (n = 1..Pc-2), funktionabhängig
+```
+
 ## <a name="5b"></a>Verweis auf Meldetexte `5b`
-Es können maximal 50 Meldetext vergeben werden. Jeder Meldetexte ist entweder dem Zeichensatz 1 oder dem Zeichensatz 2 zugeordnet. 
+Es können maximal 50 Meldetext vergeben werden. Jeder Verweis auf ein Meldetext ist 2 Bytes lang und ist nennt zudem den Zeichensatz 1 oder den Zeichensatz 2. 
 
 Darstellungsformat:
 ```
 send> 68 00 09 00 09 68 80 7F 06 06 01
 01    //
 00 01 // Byte Count = 1
-5B    // Befehl 5Bh (Message Text Index)
+5B    // Opcode 5Bh (Message Text Reference)
 69 16 
 recv< 68 00 6D 00 6D 68 7F 80 06 06 01
 01    //
 00 65 // Byte Count = 101
-5B    // Befehl 5Bh (Message Text Index)
+5B    // Opcode 5Bh (Message Text Reference)
 
 0000   00 01 01 01 FF FF FF FF FF FF FF FF FF FF FF FF
 0010   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
@@ -859,26 +1077,29 @@ recv< 68 00 6D 00 6D 68 7F 80 06 06 01
 70 16
 ```
 
-Auswertung (Anhand der ersten 16 Zeichen):
+Auswertung (Anhand der ersten 16 Zeichen von DU):
 ```
+       |<-- DU --------------------------------------- ...
 0000   00 01 01 01 FF FF FF FF FF FF FF FF FF FF FF FF
 
+|<-- DU ----------------------- ...
 [00 01] [01 01] [FF FF] [FF FF] ...
-[N1 C1] [N2 C2] [N3 C3] [N4 C4] ...
+[R1 C1] [R2 C2] [R3 C3] [R4 C4] ...
 
-Nm: Message Text Number
-    00-31 = Meldetext 1 bis 50 (0..49d)
+Rn: Verweis Meldetext
+    00-31h = 0-49d = Meldetext 1 bis 50
     FF = nicht verwendet
 Cn: Zeichensatz vom Meldetext
     01 = Zeichensatz 1
     02 = Zeichensatz 2
-```
 
+Position n (n = 1..50)
+```
 
 ## <a name="61"></a>Meldetext `61`
 Jeweils ein Meldetext belegt 128 Bytes: jeweils 4 Zeilen a 24 Bytes für `<Daten/Zeichen>` zzgl. 2 Bytes `<Header-Daten>` und 6 Bytes `00`.
 
-### Einstellungen für Meldetexte:
+Einstellungen für Meldetexte:
 * __En__: Ein Wechsel des Zustands von 0 auf 1 am Eingang
 * __P__: Priorität des Meldetexts 0..127, Meldeziel, Tickerart, Ticker-Einstellungen
 * __Ack__: Quittierung des Meldetexts
@@ -889,19 +1110,18 @@ Jeweils ein Meldetext belegt 128 Bytes: jeweils 4 Zeilen a 24 Bytes für `<Daten/
 * __Analogeingang__: Anzeige des (nach Analogzeit) aktualisierten Analogeingangswerts 
 * __Q__: bleibt gesetzt, solange der Meldetext ansteht
 
-### Darstellungsformat:
 
 Das Folgendes Beispiel zeigt die Abfrage und die Antwort zwei aufeinander folgende Meldetexte:
 ```
 send> 68 00 09 00 09 68 80 7F 06 06 01
 01    //
 00 01 // Byte Count = 1
-61    // Befehl 61h (Message Text)
+61    // Opcode 61h (Message Texts)
 6F 16
 recv< 68 01 09 01 09 68 7F 80 06 06 01
 01    //
 01 01 // Byte Count = 257
-61    // Befehl 61h (Message Text)
+61    // Opcode 61h (Message Texts)
 
 0000   43 31 80 20 6F 6E 20 20 20 20 20 20 20 20 20 20  // Zeile 1 = 'C1^ on ...
 0010   20 20 20 20 20 20 20 20 20 00 00 00 00 00 00 00
@@ -924,21 +1144,25 @@ recv< 68 01 09 01 09 68 7F 80 06 06 01
 14 16
 ```
 
-Auswertung einer Zeile:
+Auswertung einer Zeile (nur DU):
 ```
+       |<-- DU --------------------------------------- ...
 0000   43 31 80 20 6F 6E 20 20 20 20 20 20 20 20 20 20
 0010   20 20 20 20 20 20 20 20 20 00 00 00 00 00 00 00
 
+|<-- DU ----------------------------------------------------------------- ...
 [43 31 80 20 6F 6E 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
 [Txt                                                                    ] 
-[20 00] [00 00 00 00 00 00]
-[Pa   ] [Dn               ]
+
+... -- DU -------------------- ...
+   [20 00] [00 00 00 00 00 00]
+   [Pa   ] [Dn               ]
 
 Txt: maximal 24 ASCII Zeichen, aufgefüllt mit Leerzeichen (20h)
     Sonderzeichen:
       80: Pfeil nach oben '^'
       81: Pfeil nach unten 'v'
-Pa: Parameter
+Pa: Parameter 
 Dn: Datenbyte an Stelle n (n = 1..6)
 ```
 
@@ -949,7 +1173,7 @@ Dn: Datenbyte an Stelle n (n = 1..6)
 ## <a name="fcs"></a>Prüfsumme
 Jedem Telegramm wird eine 8-Bit-Prüfsumme hinzugefügt. Alle Datenbytes, zum Teil auch Bytes des Rahmens, werden Modulo-256 aufsummiert. Modulo-256 bedeutet dabei, dass bei jeder Summierung der Übertrag in das Bit mit der Wertigkeit 256 einfach ignoriert wird. Die entstandene 8 Bit lange Prüfsumme wird vom Sender ins Telegramm eingefügt. Der Empfänger prüft die empfangenen Daten und führt die selbe Addition durch. Die Prüfsumme muss gleich sein.
 
-Die Implementierung ist einfach, da nur eine 8-Bit-Prüfsumme für eine Folge von hexadezimalen Bytes berechnet werden muss. Wir verwenden eine Funktion `F(bval, cval)`, die ein Datenbyte und einen Prüfwert eingibt und einen neu berechneten Prüfwert ausgibt. Der Anfangswert für `cval` ist 0. Die Prüfsumme kann mit der folgenden Beispielfunktion (in C-Sprache) berechnet werden, die wir für jedes Byte des Datenfelds wiederholt aufrufen. Die 8-Bit-Prüfsumme ist das Zweierkomplement der Summe aller Bytes.
+Die Implementierung ist einfach, da nur eine 8-Bit-Prüfsumme für eine Folge von hexadezimalen Bytes berechnet werden muss. Wir verwenden eine Funktion `F(bval, cval)`, die ein Datenbyte und einen Prüfwert eingibt und einen neu berechneten Prüfwert ausgibt. Der Anfangswert für `cval` ist 0. Die Prüfsumme kann mit der folgenden Beispielfunktion (in _C_-Sprache) berechnet werden, die wir für jedes Byte des Datenfelds wiederholt aufrufen. Die 8-Bit-Prüfsumme ist das Zweierkomplement der Summe aller Bytes.
 
 ```
 int F_chk_8( int bval, int cval )
