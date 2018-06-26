@@ -387,44 +387,44 @@ Die folgende schematische Darstellung einer _State Machine_ zeigt (mit den vier 
 ```
       .----------------.
       | Power On/Reset |<-.
-      '----------------'  |(1)
+      '----------------'  |(a)
               |   |       |
-           (2)|   '-------'
+           (b)|   '-------'
               v
       .----------------.
 .---->|    Wait_Prm    |
 |  .->|Parameterization|<-.
 |  |  '----------------'  |
-|  |          |   |       |(3)
-|  |       (4)|   '-------'
-|  |(5)       v
+|  |          |   |       |(c)
+|  |       (d)|   '-------'
+|  |(e)       v
 |  |  .----------------.
 |  |  |    Wait_Cfg    |
 |  '--| Configuration  |<-.
 |     '----------------'  |
-|             |   |       |(6)
-|          (7)|   '-------'
-|(8)          v
+|             |   |       |(f)
+|          (g)|   '-------'
+|(h)          v
 |     .----------------.
 '-----|   Data_Exch    |
       | Data Exchange  |<-.
       '----------------'  |
-                  |       |(9)
+                  |       |(i)
                   '-------'
 ```
 >Abb: _State-Machine_ der Initialisierungsprozedur
 
 ### Zustand _Power On/Reset_
-Der _Power On/Reset_-Zustand ist der Anfangszustand nach dem Einschalten des _TD_. Nach Abschluss der Einschaltroutine wartet das _TD_ auf ein Diagnose Antwort-Telegramm (Opcode `03`) von der _LOGO!_ Steuerung. Das _TD_ verbleibt im Zustand `(1)` und fährt erst mit der Parametrierung fort `(2)`, sofern die _LOGO!_ Steuerung bereit ist (Opcode `03`, Programming Mode = `00`).
+Der _Power On/Reset_-Zustand ist der Anfangszustand nach dem Einschalten des _TD_. Nach Abschluss der Einschaltroutine wartet das _TD_ auf ein Diagnose Antwort-Telegramm (Opcode `03`) von der _LOGO!_ Steuerung. Das _TD_ verbleibt im Zustand (`a`) und fährt erst mit der Parametrierung fort (`b`), sofern die _LOGO!_ Steuerung bereit ist (Opcode `03`, Programming Mode `00`).
 
 ### Zustand _Parameterization_
-In diesem Zustand wartet das _TD_ auf die positive Antwort der Initalisierungsabfrage (Opcode `01) vom _LOGO!_, dass das _TD_ die Konfiguration auslesen darf. Die _LOGO!_ Kleinsteuerung wird in diesem Zustand alle anderen Telegramme mit Ausnahme des Anforderungstelegramme für Diagnose (Opcode `03`) oder Initialisierung (Opcode `01`) ignorieren oder ablehnen `(3)`. Erst anschließend wird die _LOGO!_ Steuerung mit der Ausgabe der Konfigurationsdaten fortfahren `(4)`. 
+In diesem Zustand wartet das _TD_ auf die positive Antwort der Initalisierungsabfrage (Opcode `01`) vom _LOGO!_, dass das _TD_ die Konfiguration auslesen darf. Die _LOGO!_ Kleinsteuerung wird in diesem Zustand alle anderen Telegramme mit Ausnahme des Anforderungstelegramme für Diagnose (Opcode `03`) oder Initialisierung (Opcode `01`) ignorieren oder ablehnen (`c`). Erst anschließend wird die _LOGO!_ Steuerung mit der Ausgabe der Konfigurationsdaten fortfahren (`d`). 
 
 ### Zustand _Configuration_
-In diesem Zustand erwartet die _LOGO!_ Steuerung Telegramme zur Konfigurationsabfrage, die das _TD_, basierend auf bereits gelieferte Inhalte, abfragt `(6)`. Anhand der zusätzlichen zyklicher Abfrage von Diagnose Telegrammen (Opcode `03`) kann das _TD_ eventuelle Konfigurationänderungen erkennen, da hierbei auch eine Checksumme mitgesendet wird. Die _LOGO!_ Steuerung akzeptiert in diesem Zustand ausschließlich Anforderungstelegramme für Diagnose (Opcode `03`) oder Konfiguration (Opcode `14`, `3c/3d`, `4x`, `5a/5b/61` und optional `81`) oder ein Ende-Telegramm (Opcode `02`), welches den Abschluss der Initialisierung anzeigt `(7)`. Ein Diagnose Telegramm (`03`) welches anzeigen, dass die _LOGO!_ Steuerung im Programmiermodus ist (Operation Mode `42`) führen zu einer erneuten Initalisierungsabfrage `(5)`.
+In diesem Zustand erwartet die _LOGO!_ Steuerung Telegramme zur Konfigurationsabfrage, die das _TD_, basierend auf bereits gelieferte Inhalte, abfragt (`f`). Anhand der zusätzlichen zyklicher Abfrage von Diagnose Telegrammen (Opcode `03`) kann das _TD_ eventuelle Konfigurationänderungen erkennen, da hierbei auch eine Checksumme mitgesendet wird. Die _LOGO!_ Steuerung akzeptiert in diesem Zustand ausschließlich Anforderungstelegramme für Diagnose (Opcode `03`) oder Konfiguration (Opcode `14`, `3c/3d`, `4x`, `5a/5b/61` und optional `81`) oder ein Ende-Telegramm (Opcode `02`), welches den Abschluss der Initialisierung anzeigt (`g`). Ein Diagnose Telegramm (Opcode `03`) welches anzeigt, dass die _LOGO!_ Steuerung im Programmiermodus ist (Operation Mode `42`) führen zu einer erneuten Initalisierungsabfrage (`e`).
 
 ### Zustand _Data Exchange_
-Nach Abschluß der Initalsierungsroutine tauscht das _TD_ zyklisch Daten mit der _LOGO!_ Steuerung_ aus. Neben der zyklischen Übertragung von Diagnose- (Opcode `03`) und Displayinformationen (Opcode `18`, `70/76-78`), können optional Datum/Uhrzeit (Opcode `10`) oder E/A-Daten (Opcode `08`) oder auch Steuerbefehle (Opcode `09`) und Befehle zur Änderung von Parametern (Opcode `21`) abgesetzt werden. Diagnose Telegramme (Opcode `03`) die anzeigen, dass die _LOGO!_ Steuerung im Parametrier- (Operation Mode `20`) oder Programmiermodus (Operation Mode `42`) ist, führen zu einem erneuten Initalisierungsabfrage `(8)`.
+Nach Abschluß der Initalsierungsroutine tauscht das _TD_ zyklisch Daten mit der _LOGO!_ Steuerung_ aus. Neben der zyklischen Übertragung von Diagnoseinformation (Opcode `03`) und Displayinformationen (Opcode `18`, `70/76-78`), können optional Datum/Uhrzeit (Opcode `10`) oder E/A-Daten (Opcode `08`) oder auch Steuerbefehle (Opcode `09`) und Befehle zur Änderung von Parametern (Opcode `21`) abgesetzt werden. Diagnose Telegramme (Opcode `03`) die anzeigen, dass die _LOGO!_ Steuerung im Parametrier- (Operation Mode `20`) oder Programmiermodus (Operation Mode `42`) ist, führen zu einem erneuten Initalisierungsabfrage (`h`).
 
 ## <a name="03"></a>Diagnose `03`
 Das _TD_-Protokoll nutzt den _Opcode_ `03`, um Diagnoseinformationen von der _LOGO!_ Kleinsteuerung zu erhalten. Der Diagnosetelegramm wird unter anderem verwendet, um den Status, Betriebszustand und benutzerspezifische Ereignisse zu erfragen. Das Text-Display (Master) fragt hierzu zyklisch (ungefähr einmal pro Sekunde) die _LOGO!_ Steuerung (Slave) ab. Die Antwort erfolgt ebenfalls mit dem _Opcode_ `03` (_Response_-Telegram) und hat ein festes Format, welches einen 7 Byte langen Informationsteil hat.
