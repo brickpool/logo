@@ -1,6 +1,6 @@
 # LOGO! TD Protokoll Referenz Handbuch
 
-Ausgabe Aj
+Ausgabe Ak
 
 Juni 2018
 
@@ -34,6 +34,7 @@ Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in
     * [Direkt Data Link Mapper (DDLM)](#ddlm)
     * [Anwendungsprotokoll (ALI)](#ali)
   * [Kapitel 3 - TD-Profile](#kapitel3)
+    * [Initialisierung `01/02`](#0102)
     * [Diagnose `03`](#03)
     * [Stop/Start `04/05`](#0405)
     * [Online-Test (I/O-Daten) `08`](#08)
@@ -338,7 +339,7 @@ ED: End Delimiter = 16h
 ----------
 
 # <a name="kapitel3"></a>Kapitel 3 - TD-Profile
-Das folgende Kapitel zeigt, wie sich das _PROFIBUS DP_ Anwendungsprotokoll für das _TD_ (folgend als _TD_-Profil bezeichnet) im _PROFIBUS-DP_ Telegramm darstellt. Auch wenn sich einige Unterschiede zwischen den jeweiligen TD-Profilen ergeben, besitzen diese doch einen übereinstimmenden Protokollaufbau. Alle Informationen werden im Telegram mit folgender Struktur gespeichert:
+Das folgende Kapitel zeigt, wie sich das _PROFIBUS DP_ Anwendungsprotokoll für das _TD_ (folgend als _TD_-Profil bezeichnet) im _PROFIBUS_ Telegramm darstellt. Auch wenn sich einige Unterschiede zwischen den jeweiligen TD-Profilen ergeben, besitzen diese doch einen übereinstimmenden Protokollaufbau. Alle Informationen werden im Telegram mit folgender Struktur gespeichert:
 
 ```
 |<-- FDL ----------------------------------------->|
@@ -363,10 +364,67 @@ Feldname | Länge   | Verwendung
 `DU`     | n Bytes | Protokolldaten (Data Unit)
 
 Die einzelnen Felder haben folgende Bedeutung:
-* Die Bedeutung des ersten Bytes ist nicht bekannt. Die Versuchreihen zeigten hier bislang immer einen konstanten Wert von 01h an. 
+* Die Bedeutung des ersten Bytes ist nicht bekannt. Die Versuchreihen zeigten hier bislang immer einen konstanten Wert von `01` an. 
 * Das Längenfeld `BC` umfasst zwei Byte und spezifiziert die Länge der nachfolgenden Daten (inkl. Feld `OP`) in Byte. Dabei wird das MSB zuerst gespeichert. 
 * Das Feld `OP` ist ein Byte lang und beschreibt den Befehlstyp (nachfolgend auch als _Opcode_ bezeichnet). 
 * Das Datenfeld `DU` ist optional und besitzt eine variable Länge, die vom _Opcode_ abhängt und durch das Längenfeld `BC` spezifiziert wird. Im Datenfeld finden sich Werte, Parameter, (Zeiger-)Referenzen und Inhalte vom Schaltprogramm. 
+
+## <a name="0102"></a>Initialisierung `01/02`
+Das _TD_ nutzt nach Einschalten der Versorgungsspannung zur Initialisierung (mit anschließenden Betrieb) folgende Befehlesequenzen (mit _Opcode_):
+
+1. Diagnoseabfrage `03`
+2. __Init Start__ `01` \*)
+3. Parameter/Konfiguration lesen `14/30-61/78`
+4. Diagnoseabfrage `03`
+5. __Init Stop__ `02` \*)
+6. Daten Austausch `08/10/18/77`
+7. _Parametrisierung `09/21/76` (optional)_
+
+\*) __Hinweis:__ Start und Ende der Initialisierung erfolgt mittels zweier Befehle (_Opcode_ `01` und `02`).
+
+Die folgende schematische Darstellung einer _State Machine_ zeigt (mit den vier wichtigsten Zustände: _Power On/Reset_, _Parameterization_, _Configuration_, und _Data Exchange_), wie die Befehlsfolge bzw- Befehlszuordnung bei Initialisierung des _TD_ im Zusamenspiel mit der _LOGO!_ Kleinsteuerung arbeitet. 
+
+```
+      .----------------.
+      | Power On/Reset |<-.
+      '----------------'  |(1)
+              |   |       |
+           (2)|   '-------'
+              v
+      .----------------.
+.---->|    Wait_Prm    |
+|  .->|Parameterization|<-.
+|  |  '----------------'  |
+|  |          |   |       |(3)
+|  |       (4)|   '-------'
+|  |(5)       v
+|  |  .----------------.
+|  |  |    Wait_Cfg    |
+|  '--| Configuration  |<-.
+|     '----------------'  |
+|             |   |       |(6)
+|          (7)|   '-------'
+|(8)          v
+|     .----------------.
+'-----|   Data_Exch    |
+      | Data Exchange  |<-.
+      '----------------'  |
+                  |       |(9)
+                  '-------'
+```
+>Abb: _State-Machine_ der Initialisierungsprozedur
+
+### Zustand _Power On/Reset_
+Der _Power On/Reset_-Zustand ist der Anfangszustand nach dem Einschalten des _TD_. Nach Abschluss der Einschaltroutine wartet das _TD_ auf ein Diagnose Antwort-Telegramm (Opcode `03`) von der _LOGO!_ Steuerung. Das _TD_ verbleibt im Zustand `(1)` und fährt erst mit der Parametrierung fort `(2)`, sofern die _LOGO!_ Steuerung bereit ist (Opcode `03`, Programming Mode = `00`).
+
+### Zustand _Parameterization_
+In diesem Zustand wartet das _TD_ auf die positive Antwort der Initalisierungsabfrage (Opcode `01) vom _LOGO!_, dass das _TD_ die Konfiguration auslesen darf. Die _LOGO!_ Kleinsteuerung wird in diesem Zustand alle anderen Telegramme mit Ausnahme des Anforderungstelegramme für Diagnose (Opcode `03`) oder Initialisierung (Opcode `01`) ignorieren oder ablehnen `(3)`. Erst anschließend wird die _LOGO!_ Steuerung mit der Ausgabe der Konfigurationsdaten fortfahren `(4)`. 
+
+### Zustand _Configuration_
+In diesem Zustand erwartet die _LOGO!_ Steuerung Telegramme zur Konfigurationsabfrage, die das _TD_, basierend auf bereits gelieferte Inhalte, abfragt `(6)`. Anhand der zusätzlichen zyklicher Abfrage von Diagnose Telegrammen (Opcode `03`) kann das _TD_ eventuelle Konfigurationänderungen erkennen, da hierbei auch eine Checksumme mitgesendet wird. Die _LOGO!_ Steuerung akzeptiert in diesem Zustand ausschließlich Anforderungstelegramme für Diagnose (Opcode `03`) oder Konfiguration (Opcode `14`, `3c/3d`, `4x`, `5a/5b/61` und optional `81`) oder ein Ende-Telegramm (Opcode `02`), welches den Abschluss der Initialisierung anzeigt `(7)`. Ein Diagnose Telegramm (`03`) welches anzeigen, dass die _LOGO!_ Steuerung im Programmiermodus ist (Operation Mode `42`) führen zu einer erneuten Initalisierungsabfrage `(5)`.
+
+### Zustand _Data Exchange_
+Nach Abschluß der Initalsierungsroutine tauscht das _TD_ zyklisch Daten mit der _LOGO!_ Steuerung_ aus. Neben der zyklischen Übertragung von Diagnose- (Opcode `03`) und Displayinformationen (Opcode `18`, `70/76-78`), können optional Datum/Uhrzeit (Opcode `10`) oder E/A-Daten (Opcode `08`) oder auch Steuerbefehle (Opcode `09`) und Befehle zur Änderung von Parametern (Opcode `21`) abgesetzt werden. Diagnose Telegramme (Opcode `03`) die anzeigen, dass die _LOGO!_ Steuerung im Parametrier- (Operation Mode `20`) oder Programmiermodus (Operation Mode `42`) ist, führen zu einem erneuten Initalisierungsabfrage `(8)`.
 
 ## <a name="03"></a>Diagnose `03`
 Das _TD_-Protokoll nutzt den _Opcode_ `03`, um Diagnoseinformationen von der _LOGO!_ Kleinsteuerung zu erhalten. Der Diagnosetelegramm wird unter anderem verwendet, um den Status, Betriebszustand und benutzerspezifische Ereignisse zu erfragen. Das Text-Display (Master) fragt hierzu zyklisch (ungefähr einmal pro Sekunde) die _LOGO!_ Steuerung (Slave) ab. Die Antwort erfolgt ebenfalls mit dem _Opcode_ `03` (_Response_-Telegram) und hat ein festes Format, welches einen 7 Byte langen Informationsteil hat.
@@ -617,7 +675,7 @@ Wd: Wochentag; Wertebereich 00..06 (So bis Sa)
 SW: 01 = Sommerzeit; 00 = Winterzeit
 ```
 
-Beispiel Response (nur DU):
+Beispiel Response (nur _DU_):
 ```
 01    //
 00 08 // Byte Count = 8
@@ -632,8 +690,9 @@ Beispiel Response (nur DU):
 ```
 
 ## <a name="18"></a>Display Update `18`
+Der Befehl mit dem OpCode `18` wird ca. alle 0,5 Sekunden vom _TD_ aufgerufen. 
 
-Beispiel Response (nur DU, Meldetext fest, 2 Meldetexte, Block B002):
+Beispiel Response (nur _DU_, Meldetext fest, 2 Meldetexte, Block B002):
 ```
       |<-- DU --------------------------------------- ...
 0000  00 00 00 02 00 00 00 00 00 00 00 02 00 00 00 00
@@ -666,7 +725,7 @@ recv<68 00 0A 00 0A 68 7F 80 06 06 01
 36 16
 ```
 
-Darstellungsformat (Request, nur ALI):
+Darstellungsformat (Request, nur _ALI_):
 ```
 |<-- ALI ----------------------------------------------- ...
 |             |<-- DU ---------------------------------- ...
@@ -721,7 +780,7 @@ recv<68 01 AD 01 AD 68 7F 80 06 06 01
 EB 16
 ```
 
-Darstellungsformat Response (nur DU, 20 Bytes):
+Darstellungsformat Response (nur _DU_, 20 Bytes):
 ```
        |<-- DU --------------------------------------- ...
 0000   00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00
@@ -751,7 +810,7 @@ Zeiger | Beschreibung
 
 Unter Verwendung des ausgelesen Wertes ist es möglich, den Block im Speicherbereich anzusprechen. Das Register für Block B001 ist an Stelle `21..22` zu finden, der Block B002 an Stelle `23..24`, Block B003 an `25..26`, usw. Der Wert `FFFF` bedeutet, dass der Block nicht im Schaltprogramm verwendet wird.
 
-Darstellungsformat Response (nur DU, Bytes > 20):
+Darstellungsformat Response (nur _DU_, Bytes > 20):
 ```
    ... -- DU ----------------------------------------- ...
 0010   .. .. .. .. C8 00 D4 00 E0 00 EC 00 F8 00 FC 00
@@ -893,7 +952,7 @@ Position   | Anz | Beschreibung
 00C8..00C9 | 2   | (End of Record ??)
 >Tab: Adressübersicht Ausgänge und Merker
 
-Auswertung (nur DU):
+Auswertung (nur _DU_):
 ```
     |<-- DU --------------------------------------------------- ...
     80 00 0A 80 0B 80 A2 00 A3 00 FF FF FF FF FF FF FF FF FF FF
@@ -969,12 +1028,12 @@ recv< 68 01 0F 01 0F 68 7F 80 06 06 01
 0C 16
 ```
 
-Für den Aufbau von DU gibt es mehrere Randbedingungen:
+Für den Aufbau von _DU_ gibt es mehrere Randbedingungen:
 * Die ersten beide Bytes enthalten den Adressregister im Programmzeilenspeicher. Die Registerwerte werden vorab vom Textdisplay mit einem eigenem Befeh (Opcode `30`) abgefragt. 
-* Im folgenden Byte (Offset 02h) steht die Länge des Blocks im Speicher. Der Wert variiert dabei im Abhängigkeit von der Funktion des Blocks.
+* Im folgenden Byte (Offset `02`) steht die Länge des Blocks im Speicher. Der Wert variiert dabei im Abhängigkeit von der Funktion des Blocks.
 * Die Formatlänge der nachfolgenden Daten ist variabel, durch 4 teilbar, daher ggf. mit Füllbytes (Padding) aufgefüllt und darf 252 Bytes nicht überschreiten. 
 
-Auch ohne Kenntnis der Bedeutung der Datenbytes lässt sich die Struktur in DU gut erkennen:
+Auch ohne Kenntnis der Bedeutung der Datenbytes lässt sich die Struktur in _DU_ gut erkennen:
 ```
       |<-- DU --------------------------------------- ...
       |<-- B1 ------------------------------------->|
@@ -1077,7 +1136,7 @@ recv< 68 00 6D 00 6D 68 7F 80 06 06 01
 70 16
 ```
 
-Auswertung (Anhand der ersten 16 Zeichen von DU):
+Auswertung (Anhand der ersten 16 Zeichen von _DU_):
 ```
        |<-- DU --------------------------------------- ...
 0000   00 01 01 01 FF FF FF FF FF FF FF FF FF FF FF FF
@@ -1144,7 +1203,7 @@ recv< 68 01 09 01 09 68 7F 80 06 06 01
 14 16
 ```
 
-Auswertung einer Zeile (nur DU):
+Auswertung einer Zeile (nur _DU_):
 ```
        |<-- DU --------------------------------------- ...
 0000   43 31 80 20 6F 6E 20 20 20 20 20 20 20 20 20 20
