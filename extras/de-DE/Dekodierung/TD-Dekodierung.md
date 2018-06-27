@@ -1,6 +1,6 @@
 # LOGO! TD Protokoll Referenz Handbuch
 
-Ausgabe Ak
+Ausgabe Al
 
 Juni 2018
 
@@ -100,7 +100,7 @@ Bei der _TD_-Schnittstelle handelt es sich um ein kabelgebundene _PROFIBUS-DP_ V
 
 Wie beim _PROFIBUS_, der auf der TIA/EIA-485-Norm basiert, werden die Pins 3 und 8 von 9-poligen D-Sub-Stecker für die Datenleitung benutzt. Durch die galvanische Trennung im _TD_-Kabel (mittels Optokoppler) wurde das Mitführen der Masseleitung (Pin 5) und einer positiven Spannung (von 3,3V an Pin 1) notwendig. Die Spannungsversorgung vom _TD_  mit 3,3V und die inkompatbible Pin-Belegung zum _PROFIBUS_ (5V an Pin 6) macht eine Anschaltung des _TD_ an einem _PROFIBUS_-Netzwerk nicht möglich.  
 
-Bei einem _PROFIBUS_ können Bitraten von 9600 Baud bis 12 MBaud projektiert werden. Die Baudrate bei der _TD_-Schnittslle ist auf 19.200 Baud festgelegt. Bei einer Übertragungsrate von 19.200 Baud ist eine theoretische Reichweite von bis zu 1200m möglich. Das eingesetzte _TD_-Kabel weicht jedoch beim Aderdurchmesser, -querschnitt, Wellenwiderstand und Kapazitätsbelag ab. Zudem erfolgt die Spannungsversorgung der Optokoppler im _TD_-Kabel vom _TD_ mit (nur) 3,3V. Daher sind in der Paxis ohne geeignete Anpassungen nur Längen bis ca. 20m möglich. 
+Bei einem _PROFIBUS_ können Bitraten von 9600 Baud bis 12 MBaud projektiert werden. Die Baudrate bei der _TD_-Schnittslle ist auf 19.200 Baud festgelegt. Bei einer Übertragungsrate von 19.200 Baud ist eine theoretische Reichweite von bis zu 1200m möglich. Das eingesetzte _TD_-Kabel weicht jedoch beim Aderdurchmesser, -querschnitt, Wellenwiderstand und Kapazitätsbelag ab. Zudem erfolgt die Spannungsversorgung der Optokoppler im _TD_-Kabel vom _TD_ mit (nur) 3,3V. Daher sind in der Paxis ohne geeignete Anpassungen (abgesetzte 3,3V Spannungsversorgung für die Optokoppler) nur Längen bis ca. 20m möglich. 
 
 Das eingesetzte Übertragungsverfahren ist halbduplex, asynchron und zeichenorientiert. Die Daten werden innerhalb eines 11 Bit-Zeichenrahmens im NRZ-Code (Non Return to Zero) übertragen, beginnend mit einem Starbit, das logisch Null ist. Die Zeichnübertragung endet mit einem Stoppbit, das immer eine logische Eins enthält. Auf das Startbit folgt die zu übertragenden Information als Datenbits. Nach den Datenbits und vor dem Stopbit wird ein Paritätsbit gesendet. Die Zahl der Datenbits beträgt bei der _TD_-Schnittstelle 8 Bit, wobei das niederwertigste Bit (LSB) immer direkt nach dem Startbit und das höchstwertige Bit (MSB) als letztes Datenbit gesendet wird. Die Datenübertragung bedient sich des Zeichenvorrates von `00` bis `FF`. Es werden nicht einzelne Zeichen, sondern Telegramme, bestehend aus Zeichenketten, übertragen (siehe [Schicht 2](#schicht2)).
 
@@ -184,7 +184,7 @@ SD4       | `DC`       | Start Delimiter _"Token"_
 SC        | `E5`       | Single Character 
 >Tabelle: Übersicht der Telegramme
 
-Von den fünf genannten Telegrammen, wird (nach aktuellem Kenntnisstand) für die Kommunikation vom _TD_ zum _LOGO!_ nur das _SD2_ Telegramm (Telegram mit variabler Datenlänge) verwendet.
+Von den fünf genannten Telegrammen, wird (nach aktuellem Kenntnisstand) für die Kommunikation vom _TD_ zum _LOGO!_ nur das _SD2_ Telegramm (Telegramm mit variabler Datenlänge) verwendet.
 
 Folgend der Aufbau des _SD2_ Telegrams:
 ```
@@ -339,7 +339,7 @@ ED: End Delimiter = 16h
 ----------
 
 # <a name="kapitel3"></a>Kapitel 3 - TD-Profile
-Das folgende Kapitel zeigt, wie sich das _PROFIBUS DP_ Anwendungsprotokoll für das _TD_ (folgend als _TD_-Profil bezeichnet) im _PROFIBUS_ Telegramm darstellt. Auch wenn sich einige Unterschiede zwischen den jeweiligen TD-Profilen ergeben, besitzen diese doch einen übereinstimmenden Protokollaufbau. Alle Informationen werden im Telegram mit folgender Struktur gespeichert:
+Das folgende Kapitel zeigt, wie sich das _PROFIBUS DP_ Anwendungsprotokoll für das _TD_ (folgend als _TD_-Profil bezeichnet) darstellt. Auch wenn sich einige Unterschiede zwischen den jeweiligen _TD_-Telegrammen ergeben, besitzen diese doch einen übereinstimmenden Protokollaufbau. Alle Informationen werden mit folgender Struktur gespeichert:
 
 ```
 |<-- FDL ----------------------------------------->|
@@ -370,30 +370,21 @@ Die einzelnen Felder haben folgende Bedeutung:
 * Das Datenfeld `DU` ist optional und besitzt eine variable Länge, die vom _Opcode_ abhängt und durch das Längenfeld `BC` spezifiziert wird. Im Datenfeld finden sich Werte, Parameter, (Zeiger-)Referenzen und Inhalte vom Schaltprogramm. 
 
 ## <a name="0102"></a>Initialisierung `01/02`
-Das _TD_ nutzt nach Einschalten der Versorgungsspannung zur Initialisierung (mit anschließenden Betrieb) folgende Befehlesequenzen (mit _Opcode_):
+Das _TD_ nutzt nach Einschalten der Versorgungsspannung zur Initialisierung (mit anschließenden Betrieb) folgende Befehlesequenzen (mit _Opcode_). Start und Ende der Initialisierung erfolgt mittels zweier Telegramme, _Opcode_ `01` und `02`.
 
-1. Diagnoseabfrage `03`
-2. __Init Start__ `01` \*)
-3. Parameter/Konfiguration lesen `14/30-61/78`
-4. Diagnoseabfrage `03`
-5. __Init Stop__ `02` \*)
-6. Daten Austausch `08/10/18/77`
-7. _Parametrisierung `09/21/76` (optional)_
-
-\*) __Hinweis:__ Start und Ende der Initialisierung erfolgt mittels zweier Befehle (_Opcode_ `01` und `02`).
-
-Die folgende schematische Darstellung einer _State Machine_ zeigt (mit den vier wichtigsten Zustände: _Power On/Reset_, _Parameterization_, _Configuration_, und _Data Exchange_), wie die Befehlsfolge bzw- Befehlszuordnung bei Initialisierung des _TD_ im Zusamenspiel mit der _LOGO!_ Kleinsteuerung arbeitet. 
+Die folgende schematische Darstellung einer _State Machine_ zeigt (mit den vier wichtigsten Zustände: _Power On/Reset_, _Initialization_, _Configuration_, und _Data Exchange_), wie die Befehlsfolge bzw. Befehlszuordnung bei Initialisierung des _TD_ im Zusamenspiel mit der _LOGO!_ Kleinsteuerung arbeitet. 
 
 ```
       .----------------.
+      |   Wait_Start   |
       | Power On/Reset |<-.
       '----------------'  |(a)
               |   |       |
            (b)|   '-------'
               v
       .----------------.
-.---->|    Wait_Prm    |
-|  .->|Parameterization|<-.
+.---->|    Wait_Init   |
+|  .->| Initialization |<-.
 |  |  '----------------'  |
 |  |          |   |       |(c)
 |  |       (d)|   '-------'
@@ -415,23 +406,231 @@ Die folgende schematische Darstellung einer _State Machine_ zeigt (mit den vier 
 >Abb: _State-Machine_ der Initialisierungsprozedur
 
 ### Zustand _Power On/Reset_
-Der _Power On/Reset_-Zustand ist der Anfangszustand nach dem Einschalten des _TD_. Nach Abschluss der Einschaltroutine wartet das _TD_ auf ein Diagnose Antwort-Telegramm (Opcode `03`) von der _LOGO!_ Steuerung. Das _TD_ verbleibt im Zustand (`a`) und fährt erst mit der Parametrierung fort (`b`), sofern die _LOGO!_ Steuerung bereit ist (Opcode `03`, Programming Mode `00`).
+Der _Power On/Reset_-Zustand ist der Anfangszustand nach dem Einschalten des _TD_. Das _TD_ verbleibt im Zustand (`a`) und startet automatisch mit der Initalisierung (`b`), sofern das _TD_ bereit ist.
 
-### Zustand _Parameterization_
-In diesem Zustand wartet das _TD_ auf die positive Antwort der Initalisierungsabfrage (Opcode `01`) vom _LOGO!_, dass das _TD_ die Konfiguration auslesen darf. Die _LOGO!_ Kleinsteuerung wird in diesem Zustand alle anderen Telegramme mit Ausnahme des Anforderungstelegramme für Diagnose (Opcode `03`) oder Initialisierung (Opcode `01`) ignorieren oder ablehnen (`c`). Erst anschließend wird die _LOGO!_ Steuerung mit der Ausgabe der Konfigurationsdaten fortfahren (`d`). 
+### Zustand _Initialization_
+Nach Abschluss der Einschaltroutine pollt das _TD_ die _LOGO!_ Steuerung mittels Initialisierungstelegramm (_Opcode_ `01`) an. Das _TD_ wartet auf die positive Antwort der Initalisierungsabfrage (_Opcode_ `01`) vom _LOGO!_, welches dem _TD_ signalisiert, dass es die Konfiguration auslesen darf. Sofern die _LOGO!_ Kleinsteuerung die Initialisierungsanfrage (_Opcode_ `01`) innerhalb Zeit von 3 bis 5 Sekunden antwortet, wird das _TD_ mit der Abfrage der Konfigurationsdaten fortfahren (`d`). 
+
+Sollte innerhalb der oben genannten Zeit kein Antworttelegramm eingehen, geht das _TD_ davon aus, dass keine Verbindung zur _LOGO!_ bersteht und bricht die Initalisierungphase ab. 
 
 ### Zustand _Configuration_
-In diesem Zustand erwartet die _LOGO!_ Steuerung Telegramme zur Konfigurationsabfrage, die das _TD_, basierend auf bereits gelieferte Inhalte, abfragt (`f`). Anhand der zusätzlichen zyklicher Abfrage von Diagnose Telegrammen (Opcode `03`) kann das _TD_ eventuelle Konfigurationänderungen erkennen, da hierbei auch eine Checksumme mitgesendet wird. Die _LOGO!_ Steuerung akzeptiert in diesem Zustand ausschließlich Anforderungstelegramme für Diagnose (Opcode `03`) oder Konfiguration (Opcode `14`, `3c/3d`, `4x`, `5a/5b/61` und optional `81`) oder ein Ende-Telegramm (Opcode `02`), welches den Abschluss der Initialisierung anzeigt (`g`). Ein Diagnose Telegramm (Opcode `03`) welches anzeigt, dass die _LOGO!_ Steuerung im Programmiermodus ist (Operation Mode `42`) führen zu einer erneuten Initalisierungsabfrage (`e`).
+In diesem Zustand erwartet die _LOGO!_ Steuerung Telegramme zur Konfigurationsabfrage, die das _TD_ abfragt (`f`). Anhand der zusätzlichen zyklicher Abfrage von Diagnose Telegrammen (_Opcode_ `03`) kann das _TD_ eventuelle Konfigurationänderungen erkennen, da hierbei auch eine Checksumme mitgesendet wird. Die _LOGO!_ Steuerung akzeptiert in diesem Zustand ausschließlich Anforderungstelegramme für Diagnose (_Opcode_ `03`) oder Konfiguration (_Opcode_ `14`,  `3c/3d`, `4x`, `5a/5b/61` und optional `81`) oder ein Ende-Telegramm (_Opcode_ `02`), welches den Abschluss der Initialisierung anzeigt (`g`). Die Auswahl der Opcodes variiert, denn das _TD_ wählt die Konfigurationstelegramme basierend auf bereits gelieferte Inhalte.
+
+Diagnose Telegramme (_Opcode_ `03`) die anzeigen, dass die _LOGO!_ Steuerung im Parametrier- (Operation Mode `20`) oder Programmiermodus (Operation Mode `42`) ist, führen zu einem erneuten Initalisierungsabfrage.
 
 ### Zustand _Data Exchange_
-Nach Abschluß der Initalsierungsroutine tauscht das _TD_ zyklisch Daten mit der _LOGO!_ Steuerung_ aus. Neben der zyklischen Übertragung von Diagnoseinformation (Opcode `03`) und Displayinformationen (Opcode `18`, `70/76-78`), können optional Datum/Uhrzeit (Opcode `10`) oder E/A-Daten (Opcode `08`) oder auch Steuerbefehle (Opcode `09`) und Befehle zur Änderung von Parametern (Opcode `21`) abgesetzt werden. Diagnose Telegramme (Opcode `03`) die anzeigen, dass die _LOGO!_ Steuerung im Parametrier- (Operation Mode `20`) oder Programmiermodus (Operation Mode `42`) ist, führen zu einem erneuten Initalisierungsabfrage (`h`).
+Nach Abschluß der Initalsierungsroutine tauscht das _TD_ zyklisch Daten mit der _LOGO!_ Steuerung aus. Neben der zyklischen Übertragung von Diagnoseinformation (_Opcode_ `03`) und Displayinformationen (_Opcode_ `18`, `70/76-78`), können optional Datum/Uhrzeit (_Opcode_ `10`) oder E/A-Daten (_Opcode_ `08`) oder auch Steuerbefehle (_Opcode_ `09`) und Befehle zur Änderung von Parametern (_Opcode_ `21`) abgesetzt werden.
+
+Diagnose Telegramme (_Opcode_ `03`) die anzeigen, dass die _LOGO!_ Steuerung im Parametrier- (Operation Mode `20`) oder Programmiermodus (Operation Mode `42`) ist, führen zu einem erneuten Initalisierungsabfrage (`h`).
+
+Das folgende Beispiel zeigt eine vollständigige Initialisierung  mit einer einer _LOGO!_ 0BA6 Standard SPS. _TD_ und _LOGO!_ wurden gemeinsam gestartet. Das Programm verwendet Meldetexte und Blocknamen:
+```
+.----------.        .----------.
+|    TD    |        |   LOGO!  |
+|          |        |          |
+| Wait     |--(03)->| Diag-    |
+| Start    |        | nosis    |
++----------+        +----------+
+| Wait     |--(01)->| Init     | 
+| Init     |--(01)->| Start    |
+|          |--(01)->|          | 
+|          |<-(01)--|          |
++----------+        +----------+
+| Wait     |--(14)->|          |
+| Cfg      |<-(81)--|          |
+| .. .. .. |        | .. .. .. |
+|          |--(08)->| Online   |
+|          |<-(08)--| Test     |
+|          |        |          |
+|          |--(18)->| Display  |
+|          |<-(18)--| Update   |
+| .. .. .. |        | .. .. .. |
+|          |--(30)->| Address- |
+|          |<-(30)--| ing      |
+|          |        |          |
+|          |--(40)->| Con-·    | 
+|          |<-(40)--| nectors  |
+|          |        |          |
+|          |--(41)->| Program  |
+|          |<-(41)--| Memory   |
+|          |        |          |
+|          |--(42)->| Program  |
+|          |<-(42)--| Memory   |
+| .. .. .. |        | .. .. .. |
+|          |--(5a)->|          |
+|          |<-(5a)--|          |
+|          |        |          |
+|          |--(5b)->| Message  |
+|          |<-(5b)--| Text Ref.|
+|          |        |          |
+|          |--(61)->| Message  |
+|          |<-(61)--| Texts    |
+|          |        |          |
+|          |--(3c)->| Block    |
+|          |<-(3c)--| Name Ref.|
+|          |        |          |
+|          |--(3d)->| Block    |
+|          |<-(3d)--| Names    |
+| .. .. .. |        | .. .. .. |
+|          |--(70)->|          |
+|          |<-(70)--|          |
+|          |        |          |
+|          |--(10)->| Date     |
+|          |<-(10)--| Time     |
+|          |        |          |
+|          |--(03)->| Diag-    |
+|          |<-(03)--| nosis    |
+|          |        |          |
+|          |--(78)->|          |
+|          |<-(78)--|          |
+| .. .. .. |        | .. .. .. |
+|          |--(02)->| Init     |
+|          |<-(02)--| Complete |
++----------+        +----------+
+| Data     |--(18)->| Display  |
+| Exch     |<-(18)--| Update   |
+:          :        :          :
+:          :        :          :
+```
+>Abb: Beispiel Initialisierung _LOGO!_ __0BA6__ (Standard)
+
+Das zweite Beispiel zeigt eine vollständigige Initialisierung mit einer einer _LOGO!_ 0BA6 mit Erzeugerstand ES10 . Das _TD_ wurde nach hochlauf der _LOGO!_ gestartet. Das Programm verwendet nur Meldetexte. Im Unterschied zu oben wird der Opcode `14` nicht mit Fehler Opcode `81` beantwortet und die Abfrage der Blocknamen mittels Opcode `3d` fehlt. 
+```
+.----------.        .----------.
+|    TD    |        |   LOGO!  |
+|          |        |          |
+| Wait     |        |          |
+| Start    |        |          |
++----------+        +----------+
+| Wait     |--(01)->| Init     | 
+| Init     |<-(01)--| Start    |
++----------+        +----------+
+| Wait     |--(14)->|          |
+| Cfg      |<-(14)--|          |
+| .. .. .. |        | .. .. .. |
+|          |--(08)->| Online   |
+|          |<-(08)--| Test     |
+:          :        :          :
+:          :        :          :
+|          |--(3c)->| Block    |
+|          |<-(3c)--| Name Ref.|
+| .. .. .. |        | .. .. .. |
+|          |--(70)->|          |
+|          |<-(70)--|          |
+:          :        :          :
+:          :        :          :
+| .. .. .. |        | .. .. .. |
+|          |--(02)->| Init     |
+|          |<-(02)--| Complete |
++----------+        +----------+
+| Data     |--(18)->| Display  |
+| Exch     |<-(18)--| Update   |
+:          :        :          :
+:          :        :          :
+```
+>Abb: Beispiel Initialisierung _LOGO!_ __0BA6__ ES10
+
+Das folgende Beispiel zeigt eine Initialisierung nach Programmänderung (Hardware, Firmare und Programm gleich vom zweiten Beispiel). Im Unterschied zum vorherigen Beispiel wird nicht der Opcode `01` verwendet. Der Start der Initilaisierung wird durch das Diagnosetelegramm (_Opcode_ `03`) initiert. 
+```
+:          :        :          :
+:          :        :          :
+|  TD      |        |   LOGO!  |
++----------+        +----------+
+|          |--(03)->| Diag-    | PUSH
+|          |<-(03)--| nosis    | Notification
+| .. .. .. |        | .. .. .. |
+|          |--(03)->| Diag.    |
+|          |--(03)->| Diag.    |
+|          |--(03)->| Diag.    |
+| .. .. .. |        | .. .. .. |
+|          |--(03)->| Diag-    | PUSH
+|          |<-(03)--| nosis    | Complete
++----------+        +----------+
+| Wait     |--(14)->|          | 
+| Cfg      |<-(14)--|          |
+| .. .. .. |        | .. .. .. |
+:          :        :          :
+:          :        :          :
+| .. .. .. |        | .. .. .. |
+|          |--(02)->| Init     |
+|          |<-(02)--| Complete |
++----------+        +----------+
+| Data     |--(18)->| Display  |
+| Exch     |<-(18)--| Update   |
+:          :        :          :
+:          :        :          :
+```
+>Abb: Beispiel Initialisierung nach Programmaänderung
+
+Beispiel _Init Start_:
+```
+send> 68 00 09 00 09 68 80 7F 06 06 01
+01 00 01 01
+0F 16
+recv< 68 00 10 00 10 68 7F 80 06 06 01
+01 00 43 01
+0000   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0010   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0020   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0030   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0040   FF FF
+ED 16
+```
+
+Darstellungsformat _Init Start_:
+```
+                                 |<-- ALI -->|
+68 00 09 00 09 68 80 7F 06 06 01 [01 00 01 01] 0F 16
+                                 [01 [Bc ] Op]
+
+                                 |<-- ALI ---------------->|
+                                 |            |<-- DU ---->|
+68 00 10 00 10 68 7F 80 06 06 01 [01 00 43 01 FF FF FF ... ] ED 16
+                                 [01 [Bc ] Op D1 D2 D3 ... ]
+
+Bc: Byte Count (Typ Word, Big Endian)
+Op: Opcode 03h = Diagnosis
+Dn: Datenbyte an Stelle n (n = 1..66)
+    bislang immer FF; Bedeutung unbekannt
+```
+
+Beispiel _Init Complete_:
+```
+send> 68 00 09 00 09 68 80 7F 06 06 01
+01 00 02 02
+01
+12 16
+recv< 68 00 10 00 10 68 7F 80 06 06 01
+01 00 02 02
+06
+17 16
+```
+
+Darstellungsformat _Init Complete_:
+```
+                                 |<-- ALI ----->|
+                                 |           |DU|
+68 00 09 00 09 68 80 7F 06 06 01 [01 00 02 02 01] 12 16
+                                 [01 [Bc ] Op D1]
+
+                                 |<-- ALI ----->|
+                                 |           |DU|
+68 00 10 00 10 68 7F 80 06 06 01 [01 00 02 02 06] 17 16
+                                 [01 [Bc ] Op Rc]
+
+Bc: Byte Count (Typ Word, Big Endian)
+Op: Opcode 03h = Diagnosis
+D1: Datenbyte an Stelle 1
+    bislang immer 01; Bedeutung unbekannt
+Rc: Response Code 06h = Ack
+```
 
 ## <a name="03"></a>Diagnose `03`
 Das _TD_-Protokoll nutzt den _Opcode_ `03`, um Diagnoseinformationen von der _LOGO!_ Kleinsteuerung zu erhalten. Der Diagnosetelegramm wird unter anderem verwendet, um den Status, Betriebszustand und benutzerspezifische Ereignisse zu erfragen. Das Text-Display (Master) fragt hierzu zyklisch (ungefähr einmal pro Sekunde) die _LOGO!_ Steuerung (Slave) ab. Die Antwort erfolgt ebenfalls mit dem _Opcode_ `03` (_Response_-Telegram) und hat ein festes Format, welches einen 7 Byte langen Informationsteil hat.
 
 Im Informationsteil wird die Check-Summe vom Schaltprogramm mitgesendet (Byte 6 und 7). Anhand der Check-Summe kann das _TD_ erkennen, ob das bei der Initialisierung geladenen Schaltprogramm noch aktuell ist. 
 
-_Opcode_:
+Beispiel:
 ```
 send> 68 00 09 00 09 68 80 7F 06 06 01
 01 00 01 03
@@ -445,7 +644,7 @@ recv< 68 00 10 00 10 68 7F 80 06 06 01
 Darstellungsformat:
 ```
                                  |<-- ALI -->|
-68 00 09 00 09 68 80 7F 06 06 01 [01 00 01 03] 11  16
+68 00 09 00 09 68 80 7F 06 06 01 [01 00 01 03] 11 16
                                  [01 [Bc ] Op]
 
                                  |<-- ALI ----------------------->|
@@ -476,7 +675,7 @@ Chk: Schaltprogramm Checksum
 ```
 
 ## <a name="0405"></a>Stop/Start `04/05`
-Das Stoppen oder das Starten eines Programmes wird mit den _Opcode_ `04` für _Stop_ und `05` für _Start_ ausgelöst. Mit diesen Befehlen wird das in der _LOGO!_ (Slave) gespeicherte Program gestartet oder gestoppt. Sobald der Befehl im Menü ausgewählt wird, wird der _Start_ bzw. _Stop_-Befehl gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram beantwortet (z.B. Datenbyte = `06` für Ack). Die Beschreibung des Antwortcodes ist in einem eigenen Abschnitt beschrieben. 
+Mit zwei Telegrammen kann das in der _LOGO!_ Steuerung gespeicherte Schaltprogramm gestartet oder gestoppt werden. Das Stoppen der _LOGO!_ Steuerung erfolgt mit dem _Opcode_ `04` und das Starten mit dem _Opcode_ `05`. Sobald der Befehl im Menü ausgewählt wird, wird das _Start_ bzw. _Stop_-Telegramm gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegramm beantwortet (z.B. Datenbyte = `06` für Ack). Die Beschreibung des Antwortcodes ist in einem eigenen Abschnitt beschrieben. 
 
 ## <a name="08"></a>Online-Test (I/O-Daten) `08`
 Response und Request
@@ -488,8 +687,10 @@ send> 68 00 0A 00 0A 68 80 7F 06 06 01
 16 16
 recv< 68 00 35 00 35 68 7F 80 06 06 01
 01 00 2D 08
-00 00 00 ...
-XX 16
+0000   00 00 00 00 00 00 00 00 00 00 00 00 01 fa 00 00
+0010   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0020   00 00 00 00 00 00 00 00 00 00 00 00
+3D 16
 ```
 
 Darstellungsformat:
@@ -500,15 +701,15 @@ Darstellungsformat:
 
                                  |<-- ALI ---------------->|
                                  |            |<-- DU ---->|
-68 00 35 00 35 68 7F 80 06 06 01 [01 00 2D 08 00 00 00 ... ] XX 16
-                                 [01 [Bc ] Op [Pa          ]
+68 00 35 00 35 68 7F 80 06 06 01 [01 00 2D 08 00 00 00 ... ] 3D 16
+                                 [01 [Bc ] Op D1 D2 D3 ... ]
 
 Bc: Byte Count = 1
 Op: Opcode 08h = Online Test
-Pa: Parameter, siehe Tabelle folgend
+Dn: Datenbyte an Stelle n (n = 1..44), siehe Tabelle folgend
 ```
 
-Position | Parameter
+Datenbyte | Parameter
 --- | ---
 1 | Inputs 1..8
 2 | Inputs 9..16
@@ -559,7 +760,31 @@ Position | Parameter
 ## <a name="09"></a>Cursor-/Funktionstasten `09`
 Die vier Cursortasten `^`, `>`, `v` und `<` können in einem Schaltprogramm als Eingang genutzt werden. Die Eingänge der Cursortasten des _LOGO! TD_ sind mit den Eingängen der Cursortasten des _LOGO!_ Basismoduls identisch. Die Verwendung erfolgt im Modus _RUN_ mittels `ESC` + gewünschte Cursortaste `C`. Das _TD_ hat vier Funktionstasten `F1`, `F2`, `F3` und `F4` welche ebenfalls, wie die Cursortasten, im Schaltprogramm als Eingang genutzt werden können, wenn sich die _LOGO!_ Steuerung im Modus _RUN_ befindet. 
 
-Der _Request_ erfolgt mit einem Datenbyte. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram beantwortet (z.B. Datenbyte = `06` für Ack, siehe Antwortcodes im eigenen Abschnitt).
+Der _Request_ erfolgt mit einem Datenbyte. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegramm beantwortet (z.B. Datenbyte = `06` für Ack, siehe Antwortcodes im eigenen Abschnitt).
+
+Beispiel F4 off:
+```
+send> 68 00 0A 00 0A 68 // SD2; Länge = 10 Byte
+80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
+01    // 
+00 02 // Byte Count = 2
+09    // Opcode 09h (Func Key)
+24    // 24h = 0010.0100b: F4 off
+3C    // CheckSum8 Modulo 256 (DA incl. DU: 80..24)
+16    // End Delimiter
+```
+
+Beispiel F4 on:
+```
+send> 68 00 0A 00 0A 68 // SD2; Länge = 10 Byte
+80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
+01    // 
+00 02 // Byte Count = 2
+09    // Opcode 09h (Func Key)
+13    // 13h = 0001.0011b: F3 on
+2B    // CheckSum8 Modulo 256 (DA incl. DU: 80..13)
+16    // End Delimiter
+```
 
 Darstellungsformat:
 ```
@@ -595,59 +820,54 @@ Btn: Tastencode 24h = 0010.0100b
           00.0101b = C1 pressed
 ```
 
-Beispiel F4 off:
-```
-68 00 0A 00 0A 68 // SD2; Länge = 10 Byte
-80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
-01    // 
-00 02 // Byte Count = 2
-09    // Opcode 09h (Func Key)
-24    // 24h = 0010.0100b: F4 off
-3C    // CheckSum8 Modulo 256 (DA incl. DU: 80..24)
-16    // End Delimiter
-```
-
-Beispiel F4 on:
-```
-68 00 0A 00 0A 68 // SD2; Länge = 10 Byte
-80 7F 06 06 01    // SDN; DA:DSAP = 0:6; SA:SSAP = 127:1 (127 = Broadcast)
-01    // 
-00 02 // Byte Count = 2
-09    // Opcode 09h (Func Key)
-13    // 13h = 0001.0011b: F3 on
-2B    // CheckSum8 Modulo 256 (DA incl. DU: 80..13)
-16    // End Delimiter
-```
-
 Weitere Beispiele:
 ```
-// F1 on
-send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  11  29 16
-// F1 off
-send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  21  39 16
-// F2 on
-send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  12  2A 16
-// F2 off
-send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  22  3A 16
-// F3 on
-send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  13  2B 16
-// F3 off
-send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  23  3B 16
-// F4 on
-send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  14  2C 16
-// F4 off
-send>68 00 0A 00 0A 68 80 7F 06 06 01  01 00 02 09  24  3C 16
+send> 68 00 0A 00 0A 68 80 7F 06 06 01
+01 00 02 09
+11  // F1 on
+29 16
+send> 68 00 0A 00 0A 68 80 7F 06 06 01
+01 00 02 09
+21  // F1 off
+39 16
+
+send> 68 00 0A 00 0A 68 80 7F 06 06 01
+01 00 02 09
+12  // F2 on
+2A 16
+send> 68 00 0A 00 0A 68 80 7F 06 06 01
+01 00 02 09
+22  // F2 off
+3A 16
+
+send> 68 00 0A 00 0A 68 80 7F 06 06 01
+01 00 02 09
+13  // F3 on
+2B 16
+send> 68 00 0A 00 0A 68 80 7F 06 06 01
+01 00 02 09
+23  // F3 off
+3B 16
+
+send> 68 00 0A 00 0A 68 80 7F 06 06 01
+01 00 02 09
+14  // F4 on
+2C 16
+send> 68 00 0A 00 0A 68 80 7F 06 06 01
+01 00 02 09
+24  // F4 off
+3C 16
 ```
 
 ## <a name="10"></a>Uhrzeit/Datum `10`
-Der _Opcode_ `10` _Date Time_ liest die aktuelle Uhrzeit, das Datum und die Sommer-/Winterzeit aus der Hardware-Uhr der _LOGO!_ Keinsteuerung aus. Der _Request_ erfolgt ohne Daten. Das Ergebnis der Operation wird von der _LOGO_ Steuerung mit einem _Response_-Telegram beantwortet.
+Der _Opcode_ `10` _Date Time_ liest die aktuelle Uhrzeit, das Datum und die Sommer-/Winterzeit aus der Hardware-Uhr der _LOGO!_ Keinsteuerung aus. Der _Request_ erfolgt ohne Daten. Das Ergebnis der Operation wird von der _LOGO_ Steuerung mit einem _Response_-Telegramm beantwortet.
 
 Beispiel:
 ```
-send>68 00 09 00 09 68 80 7F 06 06 01
+send> 68 00 09 00 09 68 80 7F 06 06 01
 01 00 01 10
 1E 16
-recv<68 00 10 00 10 68 7F 80 06 06 01
+recv< 68 00 10 00 10 68 7F 80 06 06 01
 01 00 08 10
 10 05 12 08 02 03 01
 5A 16
@@ -675,7 +895,7 @@ Wd: Wochentag; Wertebereich 00..06 (So bis Sa)
 SW: 01 = Sommerzeit; 00 = Winterzeit
 ```
 
-Beispiel Response (nur _DU_):
+Auswertung (nur _DU_):
 ```
 01    //
 00 08 // Byte Count = 8
@@ -707,19 +927,19 @@ Beispiel Response (nur _DU_, Meldetext fest, 2 Meldetexte, Block B002):
 ## <a name="21"></a>Parametrierung `21`
 Der Befehl _Set Parameter_ `21` dient dem Einstellen der Parameter der Blöcke. Es können unter anderem Verzögerungszeiten, Schaltzeiten, Schwellwerte, Überwachungszeiten und Ein- und Ausschaltschwellen geändert werden, ohne das das Schaltprogramm geändert werden muss. 
 
-Vorteil: In der Betriebsart _Parametrieren_ arbeitet die _LOGO!_ Kleinsteuerung das Schaltprogramm weiter ab. Sobald die geänderten Parameter (in der Betriebsart _Parametrieren_) mit der Taste _OK_ quittiert wurden, wird der Befehl _Set Parameter_ gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegram (üblicherweise mit dem Datenbyte = `06` für Ack) beantwortet. 
+Vorteil: In der Betriebsart _Parametrieren_ arbeitet die _LOGO!_ Kleinsteuerung das Schaltprogramm weiter ab. Sobald die geänderten Parameter (in der Betriebsart _Parametrieren_) mit der Taste _OK_ quittiert wurden, wird der Befehl _Set Parameter_ gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegramm (üblicherweise mit dem Datenbyte = `06` für Ack) beantwortet. 
 
 __Hinweis:__ Das erfolgreiche Ändern von Parametern setzt voraus, dass die für den Block im Schaltprogramm eingestellte Schutzart dies erlaubt (Parameterschutz = `+`). 
 
 Beispiel:
 ```
-send>68 00 37 00 37 68 80 7F 06 06 01
+send> 68 00 37 00 37 68 80 7F 06 06 01
 01 00 2F 21
-00 0F 00 FC 00 14 CE 04 EC 04 FF FF FF FF FF FF
-FF FF 7F 00 00 00 00 00 21 40 0F 80 00 80 00 00
-21 40 0F 80 2C 81 00 00 21 40 0F 80 89 83
+0000   00 0F 00 FC 00 14 CE 04 EC 04 FF FF FF FF FF FF
+0010   FF FF 7F 00 00 00 00 00 21 40 0F 80 00 80 00 00
+0020   21 40 0F 80 2C 81 00 00 21 40 0F 80 89 83
 BE 16
-recv<68 00 0A 00 0A 68 7F 80 06 06 01
+recv< 68 00 0A 00 0A 68 7F 80 06 06 01
 01 00 02 21
 06
 36 16
@@ -742,13 +962,13 @@ Dn: Datenbyte an Stelle n (n = 3..Pc)
 ```
 
 ## <a name="30"></a>Adressierung `30`
-Der Befehl _Addressing_ `30` benennt die indizierten Speicherbereiche (Register) vom Programmzeilenspeicher für die Ausgänge, Merker und Funktionsblöcke. Das Ziel eines Registers ist eine Speicherzelle im Programmzeilenspeicher. Die von der _LOGO!_ Kleinsteuerung zurückgemeldeten Register werden vom _TD_ genutzt, um auf die Struktur des Schaltprogramms zu schließen, welche über den _Opcode_ `40` (und folgend) abgefragt werden. Die Position ergibt sich aus den Inhalt des jeweiligen Registers, das auf den Speicherort vom Programmzeilenspeicher verweist. 
+Das Telegramm _Addressing_ (_Opcode_ `30`) benennt die indizierten Speicherbereiche (sog. _Register_) vom Programmzeilenspeicher für die Ausgänge, Merker und Funktionsblöcke. Das Ziel eines Registers ist eine Speicherzelle im Programmzeilenspeicher. Die von der _LOGO!_ Kleinsteuerung zurückgemeldeten Register werden vom _TD_ genutzt, um auf die Struktur des Schaltprogramms zu schließen, welche über den _Opcode_ `40` (und folgend) abgefragt werden. Die Position ergibt sich aus den Inhalt des jeweiligen Registers, das auf den Speicherort vom Programmzeilenspeicher verweist. 
 
-Der _Opcode_ `30` gibt bei einer _LOGO!_ __0BA6__ 420 Bytes Netto-Daten zurück. Die ersten 20 Bytes verweisen auf (weitere) 10*20 Bytes für Ausgänge und Merker (siehe Tabelle folgend). Die nächsten 400 Bytes verweisen auf die 200 Funktionsblöcke im Programmzeilenspeicher. Der Verweis wird als 16 Bit-Offset-Adresse (Little Endian) dargestellt. 
+Das Antworttelegramm mit dem _Opcode_ `30` gibt bei einer _LOGO!_ __0BA6__ 420 Bytes Netto-Daten zurück. Die ersten 20 Bytes verweisen auf (weitere) 10*20 Bytes für Ausgänge und Merker (siehe Tabelle folgend). Die nächsten 400 Bytes verweisen auf die 200 Funktionsblöcke im Programmzeilenspeicher. Der Verweis wird als 16 Bit-Offset-Adresse (Little Endian) dargestellt. 
 
 Beispiel:
 ```
-recv<68 01 AD 01 AD 68 7F 80 06 06 01
+recv< 68 01 AD 01 AD 68 7F 80 06 06 01
 01 01 A5 30
 0000   00 00 14 00 28 00 3C 00 50 00 64 00 78 00 8C 00
 0010   A0 00 B4 00 C8 00 D4 00 E0 00 EC 00 F8 00 FC 00
@@ -885,7 +1105,7 @@ Darstellungsformat:
 Bc: Byte Count (Typ Word, Big Endian)
 Op: Opcode 3Ch = Block Name Reference
 Pc: Anzahl Parameter Bytes, Wertebereich 01..64h
-Bn: Block Nummer an Stelle n (n = 1..Pc)
+Bn: Block Nummer, Verweis n (n = 1..Pc)
 ```
 
 Position | HEX | DEC | Block
@@ -900,16 +1120,28 @@ In LOGO!Soft Comfort können für eine _LOGO!_ Kleinsteuerung der Generation __0BA
 Beispiel:
 ```
 send> 68 00 09 00 09 68 80 7F 06 06 01
-01    //
-00 01 // Byte Count = 1
-3D    // Opcode 3Dh (Block Name Memory)
+01 00 01 3D
 4B 16
 recv< 68 00 09 00 09 68 80 7F 06 06 01
-01                      //
-00 09                   // Byte Count = 9
-3D                      // Opcode 3Dh (Block Name Memory)
+01 00 09 3D
 44 69 73 70 6C 61 79 00 // ACSII = 'Display'\0
 29 16
+```
+
+Darstellungsformat:
+```
+                                 |<-- ALI -->|
+68 00 09 00 09 68 80 7F 06 06 01 [01 00 01 3D] 4B 16
+                                 [01 [Bc ] Op]
+
+                                 |<-- ALI -------------------------->|
+                                 |            |<-- DU -------------->|
+68 00 0C 00 0C 68 7F 80 06 06 01 [01 00 06 3C 44 69 73 70 6C 61 79 00] 29 16
+                                 [01 [Bc ] Op [B1                    ]
+
+Bc: Byte Count (Typ Word, Big Endian)
+Op: Opcode 3Ch = Block Name Reference
+Bn: Block Name, Verweis n (n = 1 bis max. 100)
 ```
 
 ## <a name="40"></a>Klemmenspeicher `40`
@@ -999,7 +1231,7 @@ EOR: End of Record
 Na Nb: N = Element 1-8
 
 ## <a name="41"></a>Programmzeilenspeicher `41..4x`
-Der Programmzeilenspeicher ist Teil des Schaltprogramms und wird für die Parametrisierung und korrekten Darstellung der Variablen im Meldetext vom Text-Display ausgelesen. Es werden nicht alle 200 Blöcke am Stück vom _TD_ ausgelesen. Vielmehr werden die einzelen aufeinander folgenden Speicherbereiche mittels der Opcodes `41..4x` abgefragt. 
+Der Programmzeilenspeicher ist Teil des Schaltprogramms und wird für die Parametrisierung und korrekten Darstellung der Variablen im Meldetext vom Text-Display ausgelesen. Es werden nicht alle 200 Blöcke am Stück vom _TD_ ausgelesen. Vielmehr werden die einzelen aufeinander folgenden Speicherbereiche mittels einer Telegrammgruppe (_Opcodes_ `41..4x`) abgefragt. 
 
 Beispiel:
 ```
@@ -1029,7 +1261,7 @@ recv< 68 01 0F 01 0F 68 7F 80 06 06 01
 ```
 
 Für den Aufbau von _DU_ gibt es mehrere Randbedingungen:
-* Die ersten beide Bytes enthalten den Adressregister im Programmzeilenspeicher. Die Registerwerte werden vorab vom Textdisplay mit einem eigenem Befeh (Opcode `30`) abgefragt. 
+* Die ersten beide Bytes enthalten den Adressregister im Programmzeilenspeicher. Die Registerwerte werden vorab vom Textdisplay mit einem eigenem Befeh (_Opcode_ `30`) abgefragt. 
 * Im folgenden Byte (Offset `02`) steht die Länge des Blocks im Speicher. Der Wert variiert dabei im Abhängigkeit von der Funktion des Blocks.
 * Die Formatlänge der nachfolgenden Daten ist variabel, durch 4 teilbar, daher ggf. mit Füllbytes (Padding) aufgefüllt und darf 252 Bytes nicht überschreiten. 
 
@@ -1113,18 +1345,13 @@ Dn: Datenbyte an Stelle n (n = 1..Pc-2), funktionabhängig
 ## <a name="5b"></a>Verweis auf Meldetexte `5b`
 Es können maximal 50 Meldetext vergeben werden. Jeder Verweis auf ein Meldetext ist 2 Bytes lang und ist nennt zudem den Zeichensatz 1 oder den Zeichensatz 2. 
 
-Darstellungsformat:
+Beispiel:
 ```
 send> 68 00 09 00 09 68 80 7F 06 06 01
-01    //
-00 01 // Byte Count = 1
-5B    // Opcode 5Bh (Message Text Reference)
+01 00 01 5B
 69 16 
 recv< 68 00 6D 00 6D 68 7F 80 06 06 01
-01    //
-00 65 // Byte Count = 101
-5B    // Opcode 5Bh (Message Text Reference)
-
+01 00 65 5B
 0000   00 01 01 01 FF FF FF FF FF FF FF FF FF FF FF FF
 0010   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
 0020   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
@@ -1132,7 +1359,6 @@ recv< 68 00 6D 00 6D 68 7F 80 06 06 01
 0040   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
 0050   FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
 0060   FF FF FF FF
-
 70 16
 ```
 
@@ -1173,15 +1399,10 @@ Einstellungen für Meldetexte:
 Das Folgendes Beispiel zeigt die Abfrage und die Antwort zwei aufeinander folgende Meldetexte:
 ```
 send> 68 00 09 00 09 68 80 7F 06 06 01
-01    //
-00 01 // Byte Count = 1
-61    // Opcode 61h (Message Texts)
+01 00 01 61
 6F 16
 recv< 68 01 09 01 09 68 7F 80 06 06 01
-01    //
-01 01 // Byte Count = 257
-61    // Opcode 61h (Message Texts)
-
+01 01 01 61
 0000   43 31 80 20 6F 6E 20 20 20 20 20 20 20 20 20 20  // Zeile 1 = 'C1^ on ...
 0010   20 20 20 20 20 20 20 20 20 00 00 00 00 00 00 00
 0020   20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20  // Zeile 2
@@ -1190,7 +1411,6 @@ recv< 68 01 09 01 09 68 7F 80 06 06 01
 0050   20 20 20 20 20 20 20 20 00 00 00 00 00 00 00 00
 0060   20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20  // Zeile 4
 0070   20 20 20 20 20 20 20 20 00 00 00 00 00 00 00 00
-
 0080   43 32 81 20 6F 6E 20 20 20 20 20 20 20 20 20 20  // Zeile 1 = 'C2v on ...
 0090   20 20 20 20 20 20 20 20 20 00 00 00 00 00 00 00
 00a0   20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20  // Zeile 2
@@ -1199,7 +1419,6 @@ recv< 68 01 09 01 09 68 7F 80 06 06 01
 00d0   20 20 20 20 20 20 20 20 00 00 00 00 00 00 00 00
 00e0   20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20  // Zeile 4
 00f0   20 20 20 20 20 20 20 20 00 00 00 00 00 00 00 00
-
 14 16
 ```
 
