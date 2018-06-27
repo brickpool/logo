@@ -28,6 +28,7 @@
 --  0.3.6 19.06.2018    update 0x03
 --  0.3.7 20-21.06.2018 opcode 0x5b, 0x61
 --  0.3.8 22-26.06.2018 update 0x40, opcode 0x01, 0x02, 0x18
+--  0.3.8 27.06.2018    opcode 0x14, 0x81, update "lookup disector"
 --
 -------------------------------------------------------------------------------
 
@@ -206,7 +207,7 @@ local OP_CODES = {
   [0x08] = "Online Test",
   [0x09] = "Button Key",
   [0x10] = "Date Time",
---  [0x14] = "",
+--  [0x14] = "Version",
   [0x18] = "Update Display",
   [0x21] = "Set Parameter",
   [0x30] = "Addressing",
@@ -215,14 +216,14 @@ local OP_CODES = {
   [0x40] = "Connectors",
   [0x41] = "Program Memory",
   [0x42] = "Program Memory",
---  [0x5a] = "",
+--  [0x5a] = "Message Text",
   [0x5b] = "Message Text Reference",
   [0x61] = "Message Texts",
---  [0x70] = "",
+--  [0x70] = "Display",
 --  [0x76] = "Parameter Display",
---  [0x77] = "",
---  [0x78] = "",
---  [0x81] = "",
+--  [0x77] = "Display",
+--  [0x78] = "Display",
+  [0x81] = "Error",
 }
 
 local LOGICAL_VALUE = {
@@ -747,28 +748,15 @@ local data = Dissector.get("data")
 lookup_op_code = {
   [0x01] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      if data:uint() == 0x06 then
-        tree:add(data, "Acknowledge Response (0x06)")
+      if length == 0 then return 0 end
+      if tvb(0,1):uint() == 0x06 then
+        tree:add(tvb(0,1), "Acknowledge Response (0x06)")
       else
-        tree:add(ali_fields.data, tvb(PBUS_ALI_HDR_LEN, number_of_bytes))
+        tree:add(ali_fields.data, tvb(0, length))
       end
-      return pdu_length
+      return length
     end
   },
   [0x02] = {
@@ -778,22 +766,9 @@ lookup_op_code = {
   },
   [0x03] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
-      -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      if number_of_bytes < OP_DIAGNOSIS_LEN then return 0 end
+      local length = tvb:len()
+      -- If this telegram has not enough data, then we are done here
+      if length < OP_DIAGNOSIS_LEN then return 0 end
       local offset = PBUS_ALI_HDR_LEN
       tree:add(ali_fields.operation_mode, tvb(offset, 1))
       offset = offset + 1
@@ -805,33 +780,20 @@ lookup_op_code = {
       offset = offset + 2
       tree:add(ali_fields.prg_checksum, tvb(offset, 2))
       offset = offset + 2
-      return pdu_length
+      return length
     end
   },
   [0x04] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      if data:uint() == 0x06 then
-        tree:add(data, "Acknowledge Response (0x06)")
+      if length == 0 then return 0 end
+      if tvb(0,1):uint() == 0x06 then
+        tree:add(tvb(0,1), "Acknowledge Response (0x06)")
       else
-        tree:add(ali_fields.data, data)
+        tree:add(ali_fields.data, tvb(0,length))
       end
-      return pdu_length
+      return length
     end
   },
   [0x05] = {
@@ -841,30 +803,16 @@ lookup_op_code = {
   },
   [0x08] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
+      if length == 0 then return 0 end
       if not default_settings.subdissect then
-        tree:add(pg_fields.data, tvb(PBUS_ALI_HDR_LEN
-                                     , pdu_length - PBUS_ALI_HDR_LEN))
+        -- we only display the data as bytes
+        tree:add(pg_fields.data, tvb(0,length))
       else
-        local offset = PBUS_ALI_HDR_LEN
-        local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN
-                                      , pdu_length - PBUS_ALI_HDR_LEN)
-                                  , "Data bytes")
+        -- we display all data fields as a subtree
+        local offset = 0
+        local datatree = tree:add(tvb(offset, length), "Data bytes")
 
         -- digital inputs
         local number_of_bits = 24
@@ -1046,63 +994,36 @@ lookup_op_code = {
         end
       end
 
-      return pdu_length
+      return length
     end
   },
   [0x09] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      tree:add(ali_fields.button_key, tvb(PBUS_ALI_HDR_LEN, 1))
-      return pdu_length
+      if length == 0 then return 0 end
+      tree:add(ali_fields.button_key, tvb(0,1))
+      return length
     end
   },
   [0x10] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      if data:uint() == 0x06 then
-        tree:add(data, "Acknowledge Response (0x06)")
+      if length == 0 then return 0 end
+      if tvb(0,1):uint() == 0x06 then
+        tree:add(tvb(0,1), "Acknowledge Response (0x06)")
       else
-        if number_of_bytes < OP_DATETIME_LEN then return 0 end
-        data = tvb(PBUS_ALI_HDR_LEN, OP_DATETIME_LEN)
-        local day     = data(0,1)
-        local month   = data(1,1)
-        local year    = data(2,1)
-        local minute  = data(3,1)
-        local hour    = data(4,1)
-        local weekday = data(5,1)
-        local swtime  = data(6,1)
-        local datatree = tree:add(data,
+        if length < OP_DATETIME_LEN then return 0 end
+        local dt = tvb(0,OP_DATETIME_LEN)
+        local day     = dt(0,1)
+        local month   = dt(1,1)
+        local year    = dt(2,1)
+        local minute  = dt(3,1)
+        local hour    = dt(4,1)
+        local weekday = dt(5,1)
+        local swtime  = dt(6,1)
+        local datatree = tree:add(dt,
           string.format("Date Time: 20%02d-%02d-%02d %02d:%02d"
                         , year:uint(), month:uint(), day:uint()
                         , hour:uint(), minute:uint() ))
@@ -1114,195 +1035,119 @@ lookup_op_code = {
         datatree:add(ali_fields.dt_weekday, weekday)
         datatree:add(ali_fields.dt_swtime, swtime)
       end
-      return pdu_length
+      return length
     end
   },
   [0x18] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      for offset = PBUS_ALI_HDR_LEN,pdu_length-1,4 do
+      if length == 0 then return 0 end
+      for offset = 0,length-1,4 do
         tree:add(ali_fields.data, tvb(offset, 4))
       end
-      return pdu_length
+      return length
     end
   },
   [0x21] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      if data:uint() == 0x06 then
-        tree:add(data, "Acknowledge Response (0x06)")
+      if length == 0 then return 0 end
+      if tvb(0,1):uint() == 0x06 then
+        tree:add(tvb(0,1), "Acknowledge Response (0x06)")
       else
-        local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
-                                 , string.format("Parameter (%d bytes)"
-                                                 , number_of_bytes))
+        local datatree = tree:add(tvb(0,length)
+                                  , string.format("Parameter (%d bytes)"
+                                                  , length))
         if default_settings.subdissect then
-          -- display opcode header
-          if number_of_bytes < OP_PARAM_HDR_LEN then return 0 end
-          local header      = tvb(PBUS_ALI_HDR_LEN, OP_PARAM_HDR_LEN)
+          -- display embedded header
+          if length < OP_PARAM_HDR_LEN then return 0 end
+          local header      = tvb(0, OP_PARAM_HDR_LEN)
           local block       = header(0,2)
           local register    = header(2,2)
           local byte_count  = header(4,2)
-          datatree:add(block, string.format("Block B%03d", block:uint()-9))
+          local block_num   = block:uint()-9
+          datatree:add(block, string.format("Block B%03d", block_num))
           datatree:add(ali_fields.register, register)
           datatree:add(ali_fields.byte_count, byte_count)
-          -- display opcode data
-          local length = byte_count:uint()-2
-          if number_of_bytes < OP_PARAM_HDR_LEN + length then return 0 end
-          local data = tvb(PBUS_ALI_HDR_LEN + OP_PARAM_HDR_LEN, length)
+          -- display embedded data
+          local number_of_bytes = byte_count:uint()-2
+          if length < OP_PARAM_HDR_LEN + number_of_bytes then return 0 end
+          local data = tvb(OP_PARAM_HDR_LEN, number_of_bytes)
           datatree:add(ali_fields.data, data)
         end
       end
-      return pdu_length
+      return length
     end
   },
   [0x30] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
-                               , string.format("Addressing (%d bytes)"
-                                               , number_of_bytes))
+      if length == 0 then return 0 end
+      local datatree = tree:add(tvb(0,length)
+                                , string.format("Addressing (%d bytes)"
+                                                , length))
       -- display the details if desired
       if default_settings.subdissect then
-        local offset = PBUS_ALI_HDR_LEN
         local index = 0
-        while offset + 2 <= pdu_length do
-          -- display opcode data
-          local register  = tvb(offset, 2)
-          local reg_value = register:le_uint()
-          if reg_value ~= 0xFFFF then
+        for offset = 0,length-1,2 do
+          -- display embedded data
+          local register = tvb(offset, 2)
+          if register:uint() ~= 0xFFFF then
             local subtree = datatree:add_le(ali_fields.register, register)
             if CONNECTOR_TYPES[index] ~= nil then
-              subtree:add(register, string.format("[%s]", CONNECTOR_TYPES[index]))
+              subtree:add(register, string.format("[%s]"
+                                                  , CONNECTOR_TYPES[index]))
             elseif index >= 10 then
-              subtree:add(register, string.format("[Block B%03d]", index-9))
+              local block_num = index-9
+              subtree:add(register, string.format("[Block B%03d]", block_num))
             end
           end
-          offset = offset + 2
           index = index + 1
         end
       end
-      return pdu_length
+      return length
     end
   },
   [0x3c] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
-                               , string.format("References (%d bytes)"
-                                               , number_of_bytes))
+      if length == 0 then return 0 end
+      local datatree = tree:add(tvb(0,length)
+                                , string.format("References (%d bytes)"
+                                                , length))
       -- display the details if desired
       if default_settings.subdissect then
-        local offset = PBUS_ALI_HDR_LEN
-        datatree:add(ali_fields.byte_count, tvb(offset,1))
-        offset = offset + 1
-        local index = 1
-        while offset < pdu_length do
-          -- display opcode data
+        -- display embedded header
+        local byte_count = tvb(0,1)
+        datatree:add(ali_fields.byte_count, byte_count)
+        local number_of_bytes = byte_count:uint()
+        if length < 1 + number_of_bytes then return 0 end
+        -- display embedded data
+        for offset = 1,number_of_bytes do
           local block     = tvb(offset, 1)
-          local block_no  = block:uint()-9
-          datatree:add(block, string.format("Name %d: B%03d", index, block_no))
-          offset = offset + 1
-          index = index + 1
+          local block_num = block:uint()-9
+          datatree:add(data, string.format("Name %d: B%03d", offset, block_num))
         end
       end
-      return pdu_length
+      return length
     end
   },
   [0x3d] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
-                               , string.format("Block Names (%d bytes)"
-                                               , number_of_bytes))
+      if length == 0 then return 0 end
+      local datatree = tree:add(tvb(0, length)
+                                , string.format("Block Names (%d bytes)"
+                                                , length))
       -- display the details if desired
       if default_settings.subdissect then
-        local offset = PBUS_ALI_HDR_LEN
         local index = 1
-        while offset + OP_BLK_NAME_LEN <= pdu_length do
+        for offset = 0,length-1,OP_BLK_NAME_LEN do
           -- block name text (8 bytes)
           local text = tvb(offset, OP_BLK_NAME_LEN)
           local char = text(0,1):uint()
@@ -1311,109 +1156,79 @@ lookup_op_code = {
                                              , OP_BLK_NAME_LEN, text:stringz()
                                              ))
           end
-          -- increment offset
-          offset = offset + OP_BLK_NAME_LEN
-          -- next index
           index = index + 1
         end
       end
-
-      return pdu_length
+      return length
     end
   },
   [0x40] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes),
-                      string.format("Connectors (%d bytes)", number_of_bytes))
+      if length == 0 then return 0 end
+      local datatree = tree:add(tvb(0,length)
+                                , string.format("Connectors (%d bytes)"
+                                                , length))
 
       -- display the details if desired
       if default_settings.subdissect then
-        local offset = PBUS_ALI_HDR_LEN
         local row = 0
-        while offset + OP_CONN_ROW_LEN < pdu_length do
-          -- display header (2 bytes) + data (16 bytes) + trailer (2 bytes)
+        for offset = 0,length-1,OP_CONN_ROW_LEN do
+          local header = tvb(offset, 2)
+          if header:uint() ~= 0x8000 then break end
+
+          -- display embedded data as bytes
+          -- header (2 bytes) + data (16 bytes) + trailer (2 bytes)
           local text = string.format("%s (%d bytes)",
                        CONNECTOR_TYPES[row] ~= nil and CONNECTOR_TYPES[row]
                        or "Data", OP_CONN_ROW_LEN)
           local rowtree = datatree:add(tvb(offset, OP_CONN_ROW_LEN), text)
 
-          -- Determine if the connection is used in this row
+          -- determine if the connection is used in this row
           local bytes_to_consume = 16
           local is_used = false
-          for i = 2,bytes_to_consume, 2 do
-            is_used = tvb(offset+i,2):uint() ~= 0xFFFF
+          for column = 2,bytes_to_consume,2 do
+            is_used = tvb(offset + column, 2):uint() ~= 0xFFFF
             if is_used then break end
           end
+
           -- display each connector if there is a connection in this row
           if is_used then
-            for column = 2,bytes_to_consume, 2 do
-              local connector   = tvb(offset + column + 0, 1)
+            for column = 2,bytes_to_consume,2 do
+              local connector   = tvb(offset + column,     1)
               local link_type   = tvb(offset + column + 1, 1)
               local link_value  = link_type:uint()
               local subtree = rowtree:add(ali_fields.link_input, link_type)
               if link_value == 0x80 or link_value == 0xC0 then
-                local block = connector:uint()
+                local block_value = connector:uint()
+                local block_num = block_value-9
                 subtree:add(connector, string.format("Block: B%03d (0x%02x)",
-                                                      block-9, block))
+                                                      block_num, block_value))
               elseif link_value ~= 0xFF then
                 subtree:add(ali_fields.connector, connector)
               end
             end
           end
-          -- increment offset
-          offset = offset + OP_CONN_ROW_LEN
-          -- next row
           row = row + 1
         end
       end
 
-      return pdu_length
+      return length
     end
   },
   [0x41] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes),
-                      string.format("Memory (%d bytes)", number_of_bytes))
-
+      if length == 0 then return 0 end
+      local datatree = tree:add(tvb(0,length)
+                                , string.format("Memory (%d bytes)", length))
       -- display details
       if default_settings.subdissect then
-        local offset = PBUS_ALI_HDR_LEN
-        while offset + OP_PRGMEM_HDR_LEN < pdu_length do
-          -- display opcode header
+        local offset = 0
+        while offset + OP_PRGMEM_HDR_LEN < length do
+          -- display embedded header
           local header      = tvb(offset, OP_PRGMEM_HDR_LEN)
           local register    = header(0,2)
           local byte_count  = header(2,2)
@@ -1426,16 +1241,15 @@ lookup_op_code = {
           flagtree:add(ali_fields.blk_retentivity, block_param)
           flagtree:add(ali_fields.blk_protection, block_param)
           offset = offset + OP_PRGMEM_HDR_LEN
-          -- display opcode data
-          local length = byte_count:uint()-2
-          if pdu_length < offset + length then return offset end
-          data = tvb(offset, length)
+          -- display embedded data
+          local number_of_bytes = byte_count:uint()-2
+          if length < offset + number_of_bytes then return offset end
+          local data = tvb(offset, number_of_bytes)
           subtree:add(ali_fields.data, data)
-          offset = offset + length
+          offset = offset + number_of_bytes
         end
       end
-
-      return pdu_length
+      return length
     end
   },
   [0x42] = {
@@ -1445,83 +1259,51 @@ lookup_op_code = {
   },
   [0x5b] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
-                       , string.format("References (%d bytes)"
-                                       , number_of_bytes))
+      if length == 0 then return 0 end
+      local datatree = tree:add(tvb(0,length)
+                                , string.format("References (%d bytes)"
+                                                , length))
       -- display the details if desired
       if default_settings.subdissect then
-        local offset = PBUS_ALI_HDR_LEN
-        local index = 1
-        while offset + 2 <= pdu_length do
-          -- display opcode data
-          local msg_ref   = tvb(offset  , 1)
-          local char_set  = tvb(offset+1, 1)
+        for offset = 0,length-1,2 do
+          -- display embedded data
+          local msg_ref = tvb(offset, 1)
           if msg_ref:uint() ~= 0xFF then
             local subtree = datatree:add(ali_fields.msg_index, msg_ref)
+            local char_set  = tvb(offset+1, 1)
             subtree:add(ali_fields.char_set, char_set)
           end
-          offset = offset + 2
-          index = index + 1
         end
       end
-      return pdu_length
+      return length
     end
   },
   [0x61] = {
     dissect = function(tvb, pinfo, tree)
-      -- Header fields
-      if tvb:len() < PBUS_ALI_HDR_LEN then return 0 end
-      -- 01 + Byte Count (16bit Big Endian)
-      local number_of_bytes = tvb(1,2):uint()-1
-      tree:add(ali_fields.header, tvb(0,1))
-      tree:add(ali_fields.byte_count, tvb(1,2))
-      -- Operation Code + ...
-      local op_code = tvb(3,1):uint()
-      tree:add(ali_fields.op_code, tvb(3,1))
+      local length = tvb:len()
       -- If this telegram has no data, then we are done here
-      if number_of_bytes == 0 then return PBUS_ALI_HDR_LEN end
-
-      -- Payload fields
-      local pdu_length = PBUS_ALI_HDR_LEN + number_of_bytes
-      if tvb:len() < pdu_length then return 0 end
-      -- ... Data + ...
-      local data = tvb(PBUS_ALI_HDR_LEN, 1)
-      local datatree = tree:add(tvb(PBUS_ALI_HDR_LEN, number_of_bytes)
+      if length == 0 then return 0 end
+      local datatree = tree:add(tvb(0,length)
                                , string.format("Message Texts (%d bytes)"
-                                               , number_of_bytes))
+                                               , length))
       -- display the details if desired
       if default_settings.subdissect then
-        local offset = PBUS_ALI_HDR_LEN
-        local number = 0
-        while offset + OP_MSG_DISPLAY_LEN <= pdu_length do
+        local index = 0
+        for offset = 0,length-1,OP_MSG_DISPLAY_LEN do
           -- display message display
           local message = tvb(offset, OP_MSG_DISPLAY_LEN)
           local subtree = datatree:add(message
                           , string.format("Message %d (%d bytes)"
-                                          , number, OP_MSG_DISPLAY_LEN))
+                                          , index, OP_MSG_DISPLAY_LEN))
           -- display each line
           local line = 1
           for p = 0, OP_MSG_DISPLAY_LEN-1, OP_MSG_ROW_LEN do
             -- text len (24 bytes)
             local text = message(p, OP_MSG_LINE_LEN)
-            data = message(p + OP_MSG_LINE_LEN, OP_MSG_ROW_LEN
-                           - OP_MSG_LINE_LEN)
+            local data = message(p + OP_MSG_LINE_LEN
+                                 , OP_MSG_ROW_LEN - OP_MSG_LINE_LEN)
             local str = text:string()
             str = string.gsub(str, "[\0-\31]", ".")
             -- https://stackoverflow.com/questions/40861780/lua-regex-for-ascii0-127-characters
@@ -1533,14 +1315,11 @@ lookup_op_code = {
             -- increment line
             line = line + 1
           end
-          -- increment offset
-          offset = offset + OP_MSG_DISPLAY_LEN
-          -- next number
-          number = number + 1
+          -- next index
+          index = index + 1
         end
       end
-
-      return pdu_length
+      return length
     end
   },
 }
@@ -1673,8 +1452,8 @@ function LOGOTD.dissector(tvb, pinfo, tree)
 
   -- "ali_length" is the number of bytes for the ALI
   local ali_length = get_ali_length(tvb, pinfo, 0)
-  -- return 0, if the packet does not belong to your dissector
-  if ali_length == 0 then return 0 end
+  -- return 0, if the packet does not belong to our dissector
+  if ali_length < PBUS_ALI_HDR_LEN then return 0 end
 
   if length < ali_length then
     -- print Tvb as data, because we don't have the full ALI
@@ -1707,18 +1486,18 @@ function LOGOTD.dissector(tvb, pinfo, tree)
   pinfo.cols.protocol = LOGOTD.name
 
   -- add our protocol to the dissection display tree.
-  local subtree = tree:add(LOGOTD)
-  local offset = 0
-  local op_code = tvb(3,1):uint()
-  if lookup_op_code[op_code] then
-    offset = lookup_op_code[op_code].dissect(tvb, pinfo, subtree)
-  else
-    -- 01 + Byte Count (16bit Big Endian) + Operation Code + ...
-    subtree:add(ali_fields.header, tvb(0,1))
-    subtree:add(ali_fields.byte_count, tvb(1,2))
-    subtree:add(ali_fields.op_code, tvb(3,1))
-    offset = PBUS_ALI_HDR_LEN
-  end
+  local subtree     = tree:add(LOGOTD)
+  local offset      = 0
+  local pdu_length  = tvb(1,2):uint()-1
+  local op_code     = tvb(3,1):uint()
+  -- 01 + Byte Count (16bit Big Endian) + Operation Code + ...
+  subtree:add(ali_fields.header,      tvb(0,1))
+  subtree:add(ali_fields.byte_count,  tvb(1,2))
+  subtree:add(ali_fields.op_code,     tvb(3,1))
+  offset = offset + PBUS_ALI_HDR_LEN
+  
+  -- return 0, if DU length does not match to the ALI length
+  if ali_length < offset + pdu_length then return 0 end
 
   -- append the INFO column
   if string.find(tostring(pinfo.cols.info), " Len=") == nil then
@@ -1727,9 +1506,14 @@ function LOGOTD.dissector(tvb, pinfo, tree)
     else
       pinfo.cols.info:append(string.format(", OP=0x%02x", op_code))
     end
-    pinfo.cols.info:append(string.format(" Len=%d", ali_length))
+    pinfo.cols.info:append(string.format(" Len=%d", pdu_length))
   end
   
+  if lookup_op_code[op_code] and pdu_length > 0 then
+    local pdu = tvb(offset, pdu_length)
+    offset = offset + lookup_op_code[op_code].dissect(pdu, pinfo, subtree)
+  end
+
   -- if we got here, then we have only data bytes in the Tvb buffer
   data:call(tvb(offset, ali_length - offset):tvb(), pinfo, subtree)
 
