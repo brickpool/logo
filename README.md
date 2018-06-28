@@ -1,7 +1,7 @@
 # Logo33lib
 Siemens (TM) LOGO! Library for Arduino
 
-The library is based on the implementation of Settimino. The library support _LOGO!_ __0BA4__, __0BA5 and __0BA6__ via the serial programming interface (PG-interface). The library also supports the interface for the _Text Display_ (TD-interface) which is only available for the _LOGO!_ __0BA6__.
+The library is based on the implementation of Settimino. The library support _LOGO!_ __0BA4__, __0BA5__ and __0BA6__ via the serial programming interface (PG-interface). In the future the library will also support the interface for the _Text Display_ (TD-interface) which is only available for the _LOGO!_ __0BA6__.
 
 Information about the API is described in the document [LOGO! Library Reference Manual](/extras/docs/RefManual.md)
 
