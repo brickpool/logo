@@ -1,14 +1,16 @@
-# LogoPG
-Siemens (TM) LOGO! PG Library for Arduino
+# Logo33lib
+Siemens (TM) LOGO! Library for Arduino
 
-The library is based on the implementation of Settimino. Only _LOGO!_ __0BA4__ to __0BA6__ are supported via the serial programming interface. 
+The library is based on the implementation of Settimino. The library support _LOGO!_ __0BA4__, __0BA5 and __0BA6__ via the serial programming interface (PG-interface). The library also supports the interface for the _Text Display_ (TD-interface) which is only available for the _LOGO!_ __0BA6__.
 
-Information about the API is described in the document [LOGO! PG Library Reference Manual](/extras/docs/RefManual.md)
+Information about the API is described in the document [LOGO! Library Reference Manual](/extras/docs/RefManual.md)
 
-All information about the protocol is described in a separate document: [LOGO! PG Protocol Reference Guide](/extras/docs/PG-Protocol.md)
+All information about the protocols are described in separate documents:
+- [LOGO! PG Protocol Reference Guide (en)](/extras/docs/PG-Protocol.md)
+- [LOGO! TD Protocol Reference Guide (ge)](/extras/de-DE/Dekodierung/TD-Dekodierung.md)
 
 ## Releases
-The current library version is [0.5.0](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate, with patchlevel 0.
+The current library version is [0.5.0](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate, with patchlevel 0 and has implemented only the PG protocol. 
 
 ## Examples
 This directory contains the library and some examples that illustrate how the library can be used. The examples were tested with an Arduino UNO. Other hardware has not been tried.
@@ -29,9 +31,9 @@ This directory contains the library and some examples that illustrate how the li
 - For the examples, the alternative SoftwareSerial library [CustomSoftwareSerial](https://github.com/ledongthuc/CustomSoftwareSerial)
 
 ## License
-The library is licensed under the [GNU Lesser General Public License v3.0](/LICENSE). However, LogoLib distributes and uses code from other Open Source Projects that have their own licenses. 
+The library is licensed under the [GNU Lesser General Public License v3.0](/LICENSE). However, Logo33lib distributes and uses code from other Open Source Projects that have their own licenses. 
 
 ## Credits
-LogoPG is created by J. Schneider.
+Logo33lib is created by J. Schneider.
 
 Special thanks go to Davide Nardella for creating [Snap7](http://snap7.sourceforge.net/) and [Settimino](http://settimino.sourceforge.net/), Nei Seng for the analysis of the __0BA5__ and Jan Breuer for his [SerialPCAP](https://github.com/j123b567/SerialPCAP).
