@@ -1,11 +1,11 @@
 # LOGO! TD Protokoll Referenz Handbuch
 
-Ausgabe Al
+Ausgabe Am
 
 Juni 2018
 
 ## Vorwort
-Mit der Einführung der 7. _LOGO!_ Generation __0BA6__ im Jahre 2008 hat _Siemens_ die Möglichkeit geschaffen ein abgesetztes Text-Display via seriellen Kabel anzuschalten. Durch Einsatz des Displays wurden die Einsatzgebiete der _LOGO!_ Kleinsteuerung erweitert. Das Display bietet neben dem Anzeigen von Meldungen auch die Bedienung und Parametrisierung im Betriebsmodus _RUN_. Leider wurde das verwendete Kommuikationsprotokoll von _Siemens_ nicht offengelegt, daher ist diese Funktionserweiterung für die Anschaltung an andere Kommunikationsnetz bislang unmöglich. In Versuchsreihen konnte ein Teil des Protokolls entschlüsselt werden. Die Ergebnisse wurden in Form des vorliegenden Handbuches dokumentiert. 
+Mit der Einführung der 7. _LOGO!_ Generation __0BA6__ im Jahre 2008 hat _Siemens_ die Möglichkeit geschaffen ein abgesetztes Text-Display via seriellen Kabel anzuschalten. Durch Einsatz des Displays wurden die Einsatzgebiete der _LOGO!_ Kleinsteuerung erweitert. Das Display bietet neben dem Anzeigen von Meldungen auch die Bedienung und Parametrisierung im Betriebsmodus _RUN_. Leider wurde das verwendete Kommunikationsprotokoll von _Siemens_ nicht offengelegt, daher ist diese Funktionserweiterung für die Anschaltung an andere Kommunikationsnetz bislang unmöglich. In Versuchsreihen konnte ein Teil des Protokolls entschlüsselt werden. Die Ergebnisse wurden in Form des vorliegenden Handbuches dokumentiert. 
 
 Dieses Handbuch richtet sich an Personen, die mit einer Siemens _LOGO!_ Kleinsteuerung vom Typ __0BA6__ über die Schnittstelle des _Text Displays_ kommunizieren wollen. Die Schnittstelle verwendet ein _PROFIBUS_ Anwendungs-Protokoll zur Bedienung und Anzeige am _Text Displays_, welches hier als _TD_-Protokoll bezeichnet wird. In diesem Handbuch wird beschrieben, wie Nachrichten erstellt werden und wie Transaktionen mithilfe des _TD_-Protokolls ausgeführt werden.
 
@@ -20,7 +20,7 @@ Wertvolle Informationen zum _PROFIBUS_ finden Sie in den folgenden Veröffentlich
   * [PROFIBUS feldbusse.de](http://www.feldbusse.de/Profibus/profibus.shtml)
   * [PROFIBUS Wikipedia](http://de.wikipedia.org/wiki/Profibus)
 
-Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in den folgenden Veröffentlichungen:
+Informationen zu RS485 und deren Anschaltung an ein Mikrocontroller finden Sie in den folgenden Veröffentlichungen:
   * [MAX485 RS-485 Modul](http://github.com/brickpool/Grove/blob/master/Communication/RS485/MAX485_RS-485_Module.md)
   * [An Arduino and RS485](http://pskillenrules.blogspot.com/2009/08/arduino-and-rs485.html)
 
@@ -33,7 +33,7 @@ Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in
   * [Kapitel 2 - TD-Protokoll](#kapitel2)
     * [Direkt Data Link Mapper (DDLM)](#ddlm)
     * [Anwendungsprotokoll (ALI)](#ali)
-  * [Kapitel 3 - TD-Profile](#kapitel3)
+  * [Kapitel 3 - TD-Telegramme](#kapitel3)
     * [Initialisierung `01/02`](#0102)
     * [Diagnose `03`](#03)
     * [Stop/Start `04/05`](#0405)
@@ -56,10 +56,15 @@ Informationen zu RS485 und deren Anschaltung an ein Mcrocontroller finden Sie in
 ----------
 
 # <a name="kapitel1"></a>Kapitel 1 - TD-Schnittstelle
-Bei der _TD_-Schnittstelle (TD = Text Display) handelt es sich um eine Anwendung, die sich an den industriellen _PROFIBUS-DP_ Feldbusstandard anlehnt. Der Feldbus verbindet die Feldebene (hier _TD_) mit den prozessnahen Komponenten (hier _LOGO!_ Kleinsteuerung), wobei diese Variante speziell für die Kommunikation zwischen _TD_ und den _LOGO!_ ausgelegt ist, um einen vereinfachten Einsatz ermöglichen.
+Die _TD_-Schnittstelle basiert auf einem _PROFIBUS_ (PROcess FIeld BUS). Bei einem _PROFIBUS_ handelt sich eine erprobte Technologie, die für die Feldbus-Kommunikation in der Automatisierungstechnik verwendet wird. Der Feldbus verbindet die Feldebene (hier _TD_) mit den prozessnahen Komponenten (hier _LOGO!_ Kleinsteuerung), wobei die hier eingesetzte Variante speziell für die Kommunikation zwischen _TD_ und _LOGO!_ optimiert wurde.
+
+Um ein _TD_ an ein _LOGO!_ anzuschließen und darüber Daten auszutauschen, ist es nicht unbedingt erforderlich, dass der _PROFIBUS_ und der Feldbus vollständig verstanden wird, denn die _TD_-Schnittstelle stellt kein vollständiges _PROFIBUS_-Netzwerk dar. 
 
 ## <a name="profibus"></a>PROFIBUS
-_PROFIBUS_ (PROcess FIeld BUS) ist ein Standard für die Feldbus-Kommunikation in der Automatisierungstechnik. Es handelt sich eine vollständige und erprobte Technologie, welche sich bereits bewährt hat und daher zur Anbindung des _TD_ mittels der Variante PROFIBUS-DP (DP = Dezentrale Peripherie) genutzt wird: 
+_PROFIBUS_ wurde Ende der 80er Jahre entwickelt und anschließend als Deutsche Norm DIN 19 245 und als europäische Norm EN 50 170 standardisiert. Ziel war es die völlige Unabhängigkeit des Anwenderprogrammes von der Realisierung der Datenübertragung über den Bus. Das Anwenderprogramm benutzt das Kommunikationssystem mit Hilfe sogenannter Dienste (z.B. "send and request data with reply" mit den Dienstprimitiven _request_, _indication_, _response_ und _confirmation_).
+
+Die Protokollarchitektur von _PROFIBUS_ orientiert sich am _ISO/OSI_ (Standard ISO 7498, Open System Interconnection) Referenz Modell. In diesem Modell übernimmt jeder Layer genau definierte Aufgaben. Wobei die Schichten 3 bis 6 nicht realisiert sind.
+
 ```
 .------------------.-----------------.-----------------.
 | PROFIBUS-FMS     | PROFIBUS-DP     | PROFIBUS-PA     |
@@ -72,7 +77,7 @@ _PROFIBUS_ (PROcess FIeld BUS) ist ein Standard für die Feldbus-Kommunikation in
 |......................................................|
 | Schicht 7: (FMS) | Schicht 7: (DDLM)                 |
 | Fieldbus Message | Direct Data Layer Mapper          |
-| Spefification    |                                   |
+| Specification    |                                   |
 +------------------'-----------------------------------+
 |               Schicht 3 bis 6: leer                  |
 +------------------------------------------------------+
@@ -81,28 +86,24 @@ _PROFIBUS_ (PROcess FIeld BUS) ist ein Standard für die Feldbus-Kommunikation in
 | Schicht 1: EN 50 170 (RS485)       | IEC 1158-2      |
 '------------------------------------'-----------------'
 ```
->Abb: Varianten vom PROFIBUS
-
-_PROFIBUS_ wurde Ende der 80er Jahre entwickelt und anschließend als Deutsche Norm DIN 19 245 und als europäische Norm EN 50 170 standardistert. Ziel war es die völlige Unabhängigkeit des Anwenderprogrammes von der Realisierung der Datenübertragung über den Bus. Das Anwenderprogramm benutzt das Kommunikationssystem mit Hilfe sogenannter Dienste (z.B. "send and request data with reply" mit den Dienstprimitiven _request_, _indication_, _response_ und _confirmation_).
-
-Das Kommunikationssystem ist nach dem sogenannten ISO/OSI Schichtenmodell (Standard ISO 7498, Open System Interconnection) aufgebaut. Wobei die Schichten 3 bis 6 nicht realisiert sind.
+>Abb.: Varianten vom PROFIBUS
 
 _PROFIBUS_ unterscheidet folgende Gerätetypen:
 - Master-Geräte: Ein Master darf Nachrichten ohne externe Aufforderung aussenden
 - Slave-Geräte: Sie dürfen nur empfangene Nachrichten quittieren oder auf Anfrage eines Masters Nachrichten an diesen übermitteln. 
 
-Um ein _TD_ an ein _LOGO!_ anzuschließen und darüber Daten auszutauschen, ist es nicht unbedingt erforderlich, dass der _PROFIBUS_ und der Feldbus vollständig verstanden wird. Da nur eine Kommunikation mit dem _LOGO!_ geplant ist, ist dies eine sehr einfaches Variante, denn die _TD_-Schnittstelle soll kein vollständiges PROFIBUS-Netzwerk darstellen. 
+Für die Kommunikation mit dem _LOGO!_ (die Kleinsteuerung arbeitet als Slave) wird eine vereinfachte Variante vom _PROFIBUS_ genutzt. 
 
 ## <a name="rs485"></a>RS-485
-Die Protokollarchitektur von _PROFIBUS_ orientiert sich am _ISO/OSI_ Referenz Modell. In diesem Modell übernimmt jeder Layer genau definierte Aufgaben. Layer 1 (Physical Layer) definiert die physikalische Übertragungstechnik. Der Einsatzbereich eines Feldbus-Systems wird wesentlich durch die Wahl des Übertragungs-Mediums und der physikalischen Busschnittstelle bestimmt.
+Die Beschreibung erfolgt nach dem oben genannten ISO/OSI Schichtenmodell aufgebaut. Layer 1 (Physical Layer) definiert die physikalische Übertragungstechnik. Der Einsatzbereich eines Feldbus-Systems wird wesentlich durch die Wahl des Übertragungs-Mediums und der physikalischen Busschnittstelle bestimmt.
 
-Bei der _TD_-Schnittstelle handelt es sich um ein kabelgebundene _PROFIBUS-DP_ Variante. Die Anschaltung auf Layer 1 folgt dem Standard TIA/EIA-485. Die Datenübertragung erfolgt über ein abgeschirmtes, verdrilltes Leiterpaar. RS-485 gilt als sehr störfest, ermöglicht Übertragungsraten bis 12 MBaud und ist ein wichtiger Standard in industriellen Feldbus-Anwendungen und ist daher auch beim _PROFIBUS-DP_ als Grundversion für Anwendungen im Bereich der Fertigungstechnik, Gebäudeleittechnik und Antriebstechnik festgelegt.
+Bei der _TD_-Schnittstelle handelt es sich um eine kabelgebundene _PROFIBUS-DP_ (DP = Dezentrale Peripherie) Variante, wo die Anschaltung auf Layer 1 nach Standard TIA/EIA-485 erfolgt. RS-485 gilt als sehr störfest, ermöglicht Übertragungsraten bis 12 MBaud und ist ein wichtiger Standard in industriellen Feldbus-Anwendungen und ist daher auch beim _PROFIBUS-DP_ als Grundversion für Anwendungen im Bereich der Fertigungstechnik, Gebäudeleittechnik und Antriebstechnik festgelegt.
 
-Wie beim _PROFIBUS_, der auf der TIA/EIA-485-Norm basiert, werden die Pins 3 und 8 von 9-poligen D-Sub-Stecker für die Datenleitung benutzt. Durch die galvanische Trennung im _TD_-Kabel (mittels Optokoppler) wurde das Mitführen der Masseleitung (Pin 5) und einer positiven Spannung (von 3,3V an Pin 1) notwendig. Die Spannungsversorgung vom _TD_  mit 3,3V und die inkompatbible Pin-Belegung zum _PROFIBUS_ (5V an Pin 6) macht eine Anschaltung des _TD_ an einem _PROFIBUS_-Netzwerk nicht möglich.  
+Die Datenübertragung erfolgt über ein abgeschirmtes, verdrilltes Leiterpaar. Wie beim _PROFIBUS_ werden hierfür die Pins 3 und 8 von 9-poligen D-Sub-Stecker benutzt. Durch die galvanische Trennung im _TD_-Kabel (mittels Optokoppler) wird jedoch zusätzlich das Mitführen der Masseleitung (Pin 5) und einer positiven Spannung (von 3,3V an Pin 1) notwendig. Die Spannungsversorgung vom _TD_  mit 3,3V und die inkompatible Pin-Belegung zum _PROFIBUS_ (5V an Pin 6) macht daher eine Anschaltung des _TD_ an einem _PROFIBUS_-Netzwerk nicht möglich.  
 
-Bei einem _PROFIBUS_ können Bitraten von 9600 Baud bis 12 MBaud projektiert werden. Die Baudrate bei der _TD_-Schnittslle ist auf 19.200 Baud festgelegt. Bei einer Übertragungsrate von 19.200 Baud ist eine theoretische Reichweite von bis zu 1200m möglich. Das eingesetzte _TD_-Kabel weicht jedoch beim Aderdurchmesser, -querschnitt, Wellenwiderstand und Kapazitätsbelag ab. Zudem erfolgt die Spannungsversorgung der Optokoppler im _TD_-Kabel vom _TD_ mit (nur) 3,3V. Daher sind in der Paxis ohne geeignete Anpassungen (abgesetzte 3,3V Spannungsversorgung für die Optokoppler) nur Längen bis ca. 20m möglich. 
+Bei einem _PROFIBUS_ können Bitraten von 9600 Baud bis 12 MBaud projektiert werden. Die Baudrate bei der _TD_-Schnittstelle ist jedoch auf 19.200 Baud festgelegt. Bei einer Übertragungsrate von 19.200 Baud ist eine theoretische Reichweite von bis zu 1200m möglich. Das eingesetzte _TD_-Kabel weicht jedoch beim Aderdurchmesser, -querschnitt, Wellenwiderstand und Kapazitätsbelag ab. Zudem erfolgt die Spannungsversorgung der Optokoppler im _TD_-Kabel vom _TD_ mit (nur) 3,3V. Daher sind in der Praxis, ohne geeignete Anpassungen (z.B. abgesetzte 3,3V Spannungsversorgung für die Optokoppler), nur Längen bis ca. 20m möglich. 
 
-Das eingesetzte Übertragungsverfahren ist halbduplex, asynchron und zeichenorientiert. Die Daten werden innerhalb eines 11 Bit-Zeichenrahmens im NRZ-Code (Non Return to Zero) übertragen, beginnend mit einem Starbit, das logisch Null ist. Die Zeichnübertragung endet mit einem Stoppbit, das immer eine logische Eins enthält. Auf das Startbit folgt die zu übertragenden Information als Datenbits. Nach den Datenbits und vor dem Stopbit wird ein Paritätsbit gesendet. Die Zahl der Datenbits beträgt bei der _TD_-Schnittstelle 8 Bit, wobei das niederwertigste Bit (LSB) immer direkt nach dem Startbit und das höchstwertige Bit (MSB) als letztes Datenbit gesendet wird. Die Datenübertragung bedient sich des Zeichenvorrates von `00` bis `FF`. Es werden nicht einzelne Zeichen, sondern Telegramme, bestehend aus Zeichenketten, übertragen (siehe [Schicht 2](#schicht2)).
+Das eingesetzte Übertragungsverfahren ist halbduplex, asynchron und zeichenorientiert. Die Daten werden innerhalb eines 11 Bit-Zeichenrahmens im NRZ-Code (Non Return to Zero) übertragen, beginnend mit einem Startbit, das logisch Null ist. Die Zeichenübertragung endet mit einem Stoppbit, das immer eine logische Eins enthält. Auf das Startbit folgt die zu übertragenden Information als Datenbits. Nach den Datenbits und vor dem Stoppbit wird ein Paritätsbit gesendet. Die Zahl der Datenbits beträgt bei der _TD_-Schnittstelle 8 Bit, wobei das niederwertigste Bit (LSB) immer direkt nach dem Startbit und das höchstwertige Bit (MSB) als letztes Datenbit gesendet wird. Die Datenübertragung bedient sich des Zeichenvorrates von `00` bis `FF`. Es werden nicht einzelne Zeichen, sondern Telegramme, bestehend aus Zeichenketten, übertragen (siehe [Schicht 2](#schicht2)).
 
 ```
 |<-- Übertragungsrahmen ------------------------------------->|
@@ -112,7 +113,7 @@ Das eingesetzte Übertragungsverfahren ist halbduplex, asynchron und zeichenorien
      : LSB                                       MSB :
      |<-- Informations-Byte ------------------------>|
 ```
->Abb: Informations-Byte im 11 Bit-Übertragungsrahmen von Schicht 1
+>Abb.: Informations-Byte im 11 Bit-Übertragungsrahmen von Schicht 1
 
 Bedeutung der Abkürzungen: 
 - ST: Startbit (immer logisch `0`)
@@ -120,12 +121,12 @@ Bedeutung der Abkürzungen:
 - P: Paritätsbit
 - SP: Stoppbit (immer logisch `1`)
 
-Zusammgefasst lautet die Spezifikation für die Kommunikation über die TD-Schnittstelle:
+Zusammen gefasst lautet die Spezifikation für die Kommunikation über die TD-Schnittstelle:
 
 ### Kabel / Stecker:
 - 4-adrig
-- TD; SUB-D 9-pol Buchse; mänlich (m)
-- LOGO! propitärer 6-pol Stecker; weiblich (f)
+- TD; SUB-D 9-pol Buchse; männlich (m)
+- LOGO! proprietärer 6-pol Stecker; weiblich (f)
 
 ### Belegung _LOGO!_ 6 pol:
 - [x] GND Masse; Pin 1
@@ -150,23 +151,23 @@ Zusammgefasst lautet die Spezifikation für die Kommunikation über die TD-Schnitt
 - 19200 Baud
 - 1 Start bit
 - 8 Databits, LSB zuerst
-- 1 bit für gerade Pärität (E)
+- 1 bit für gerade Parität (E)
 - 1 Stop bit
 
 ### Kodierung:
 - 8-bit binary, hexadecimal 0-9, A-F
 
 ## <a name="fdl"></a>Fieldbus Data Link (FDL)
-_PROFIBUS_ verwendet ein einheitliches Buszugriffsprotokoll (Fieldbus Data Link = FDL). Es ist der Schicht 2 des OSI-Referenzmodells zugeordnet. Es beinhaltet auch die Funktionen der Datensicherung sowie die Abwicklung der Übertragungsprotokolle und der Telegramme. Die Buszugriffssteuerung (Medium Access Control = MAC) legt das Verfahren fest, zu welchem Zeitpunkt ein Busteilnehmer Daten senden kann. _PROFIBUS_ berücksichtigt hierbei zwei Buszugriffssteuerung:
+_PROFIBUS_ verwendet ein einheitliches Buszugriffsprotokoll (Fieldbus Data Link = FDL). Es ist der Schicht 2 des OSI-Referenzmodells zugeordnet. Es beinhaltet auch die Funktionen der Datensicherung sowie die Abwicklung der Übertragungsprotokolle und der Telegramme. Die Buszugriffssteuerung (Medium Access Control = MAC) legt das Verfahren fest, zu welchem Zeitpunkt ein Busteilnehmer Daten senden kann. _PROFIBUS_ berücksichtigt hierbei zwei Buszugriffssteuerungen:
 - Token-Passing-Verfahren für die Kommunikation zwischen Automatisierungsgeräten (Master).
 - Master-Slave-Verfahren für die Kommunikation zwischen einem Automatisierungsgerät (Master) und den Peripheriegeräten (Slaves) 
 
 Im Folgenden betrachten wir nur das Master-Slave-Verfahren, da nur dieses an der _TD_-Schnittstelle angewandt wird. Der Master (_TD_) hat hierbei die Möglichkeit, Nachrichten an ein Slave (_LOGO!_) zu übermitteln bzw. Nachrichten vom Slave abzuholen. 
 
-Eine weitere Aufgabe des Buszugriffsprotokolls (FDL) ist die Datensicherung. Die Telegramme nutzen mehere Mechanismen um eine hohe Datenübertragungssicherheit zu gewährleisten. Dies wird durch die Anwendung bzw. Auswahl von Start- und Endezeichen, Synchronisierung, Paritätsbit und Kontrollbyte erreicht. 
+Eine weitere Aufgabe des Buszugriffsprotokolls (FDL) ist die Datensicherung. Die Telegramme nutzen mehrere Mechanismen um eine hohe Datenübertragungssicherheit zu gewährleisten. Dies wird durch die Anwendung bzw. Auswahl von Start- und Endezeichen, Synchronisierung, Paritätsbit und Kontrollbyte erreicht. 
 
 ### Telegramme
-Ein PROFIBUS-Telegramm besteht aus dem Telegrammheader, den Nutzdaten, einem Sicherungsbyte und dem End-Delimiter (Ausnahme: Tokentelegramm)
+Ein PROFIBUS-Telegramm besteht aus dem Telegrammheader, den Nutzdaten, einem Sicherungsbyte und dem End-Delimiter (Ausnahme: Token-Telegramm)
 
 Folgende Telegramme sind für das _PROFIBUS_-Buszugriffsprotokoll (FDL) definiert:
 - SD1: Format mit fester Informationsfeldlänge ohne Daten (L = 3) 
@@ -193,7 +194,7 @@ Folgend der Aufbau des _SD2_ Telegrams:
 '-----'----'-----'-----'----'----'----'--- ~ ~ ---'-----'----'
 |<-- FDL --------------------------------------------------->|
 ```
->Abb: _SD2_ Telegramm von Schicht 2
+>Abb.: _SD2_ Telegramm von Schicht 2
 
 Die Länge des Datenfeldes beträgt maximal 65528 Bytes.
 
@@ -201,14 +202,14 @@ Bedeutung der Abkürzungen:
 - SD2: Startbyte (Start Delimiter) _"variable Datenlänge"_, Code `68`
 - DA: Zieladressbyte (Destination Address)
 - SA: Quelladressbyte Source Address 
-- FC: Kontrollbyte (Frame Control) zur Festlegung des Telegramtyps (_Senden_, _Anfordern_, _Quitieren_, etc.)
+- FC: Kontrollbyte (Frame Control) zur Festlegung des Telegramtyps (_Senden_, _Anfordern_, _Quittieren_, etc.)
 - FCS: Sicherungsbyte (Frame Check Sequence)
 - LE: Längenword (Length), Wertebereich (4 bis 65531)
 - LEr: Wiederholung (Length repeated) des Längenword zur Sicherung
 - ED: Endebyte (End Delimiter), Code `16`
 
 ### Adressierung
-Das PROFIBUS-Buszugriffsprotokoll arbeitet verbindungslos. Es ermöglicht neben der Punkt-zu-Punkt-Datenübertragung auch Mehrpunktübertragung z.B. via Broadcast-Kommunikation. Der Adressbereich für _DA_ und _SA_ (Ident-Nummer bzw. Stationsadresse) ist von 0 bis 126. Die Adresse 127 steht für eine Multi- bzw. Broadcast-Adresse. Die _TD_-Schnitstelle nutzt die Broadcast-Kommunikation, obwohl physikalisch eine direkte Verbindung vorliegt. 
+Das PROFIBUS-Buszugriffsprotokoll arbeitet verbindungslos. Es ermöglicht neben der Punkt-zu-Punkt-Datenübertragung auch Mehrpunktübertragung z.B. via Broadcast-Kommunikation. Der Adressbereich für _DA_ und _SA_ (Ident-Nummer bzw. Stationsadresse) ist von 0 bis 126. Die Adresse 127 steht für eine Multi- bzw. Broadcast-Adresse. Die _TD_-Schnittstelle nutzt die Broadcast-Kommunikation, obwohl physikalisch eine direkte Verbindung vorliegt. 
 
 ### Dienste der Schicht 2
 Das PROFIBUS-Buszugriffsprotokoll (FDL) stellt den _PROFIBUS_-Anwendungsprotokollen folgende Dienste zur Verfügung:
@@ -217,14 +218,14 @@ Das PROFIBUS-Buszugriffsprotokoll (FDL) stellt den _PROFIBUS_-Anwendungsprotokol
 - SRD (Send and Request Data with Reply)
 - CSRD (Cyclic SRD)
 
-Von den vier möglichen Diensten werden von _PROFIBUS-DP_ nur die Dienste _SDN_ und _SRD_ genutzt. Für die Kommunikation vom _TD_ zum _LOGO!_ wird ausschließlich der _SDN_ Dienst (`06`) verwendet. Hierbei sendet das _TD_ eine unquittierte Nachricht an die _LOGO!_ Kleinsteuerung.
+Von den vier möglichen Diensten werden von _PROFIBUS-DP_ nur die Dienste _SDN_ und _SRD_ genutzt. Für die Kommunikation vom _TD_ zum _LOGO!_ wird ausschließlich der _SDN_ Dienst (`06`) verwendet. Hierbei sendet das _TD_ eine auf Schicht 2 nicht zu quittiertende Nachricht an die _LOGO!_ Kleinsteuerung.
 
 ----------
 
 # <a name="kapitel2"></a>Kapitel 2 - TD-Protokoll
-Im Bereich der seriellen Übertrageung haben sich eine Reihe von Formaten etabliert. Das für das Text-Display eingesetzte Protokoll (kurz TD-Protokoll) wurde maßgeblich vom _PROFIBUS DP_ Protokoll beeinflußt. Das _PROFIBUS_ Protokoll wird, von vielen Firmen bzw. Produkten unterstützt. Für die Entwickler lag es wohl nahe, auf etablierte Verfahren zu setzen, da _Siemens_ maßgeblich an der Standardisierung vom _PROFIBUS_ mitgewirkt hatte. Dieses Kapitel behandeln den am PROFIBUS DP Standard angelehnten Protokollanteil. 
+Im Bereich der seriellen Übertragung haben sich eine Reihe von Formaten etabliert. Das für das Text-Display eingesetzte Protokoll wurde maßgeblich vom _PROFIBUS-DP_ Protokoll beeinflußt. Die _PROFIBUS_ Protokolle werden von vielen Firmen bzw. Produkten unterstützt. Für die Entwickler lag es wohl nahe, auf ein etabliertes Verfahren zu setzen, oder weil _Siemens_ maßgeblich an der Standardisierung vom _PROFIBUS_ mitgewirkt hatte. Dieses Kapitel behandelt den am _PROFIBUS-DP_ Standard angelehnten Protokollanteil. 
 
-## <a name="ddlm"></a>Direkt Data Link Mapper (DDLM)
+## <a name="ddlm"></a>Direct Data Link Mapper (DDLM)
 Das Höchstwertiges Bit (MSB) in _DA_ oder _SA_ zeigt an, ob eine Adresserweiterung via Dienstzugangspunkt (Service Access Point = SAPs) im Datenfeld vorliegt. Die PROFIBUS-Dienstzugangspunkte (SAP) sind in den Bytes (vom Datenfeld) _DSAP_ oder _SSAP_ vermerkt. 
 
 ```
@@ -241,7 +242,7 @@ Das Höchstwertiges Bit (MSB) in _DA_ oder _SA_ zeigt an, ob eine Adresserweiteru
                                            :
                                            |<---- Schicht 7 -------- /~
 ```
->Abb: Adresserweiterung vom Buszugriffsprotokoll (Schicht 2 = _FDL_) mit Dienstzugangspunkten (Schicht 7 = _DDLM_)
+>Abb.: Adresserweiterung vom Buszugriffsprotokoll (Schicht 2 = _FDL_) mit Dienstzugangspunkten (Schicht 7 = _DDLM_)
 
 Das _TD_ nutzt für _DA_ die Adresserweiterung, d.h. das _TD_-Protokoll nutzt ein Anwendungsprotokoll oberhalb vom _DDLM_ mit Dienstzugangspunkt (SAP). Die Dienste der Schicht 7 (DDLM) werden über die Adresserweiterung angezeigt und über Dienstzugangspunkte der Schicht 7 aufgerufen. 
 
@@ -253,7 +254,7 @@ PROFIBUS-DP kennt die folgenden Gerätetypen:
 - DP-Master Klasse 2 (DPM2): Bediengerät, Konfigurationstool
 - Slave 
 
-Das _TD_ ist ein Bediengerät und somit dem Gerätetyp _DPM2_ zugeordnet. Die _LOGO!_ Kleinsteuerng ist der Slave. Folgend die Darstellung des Dienstumfanges vom _TD_:
+Das _TD_ ist ein Bediengerät und somit dem Gerätetyp _DPM2_ zugeordnet. Die _LOGO!_ Kleinsteuerung ist der Slave. Folgend die Darstellung des Dienstumfanges vom _TD_:
 ```
 .------.    .-------.     .------.
 | DPM1 |    | Slave |     | DPM2 |
@@ -264,11 +265,11 @@ Das _TD_ ist ein Bediengerät und somit dem Gerätetyp _DPM2_ zugeordnet. Die _LOG
 |      |    |       |     |      |
 '------'    '-------'     '------'
 ```
->Abb: _TD DDLM_ Dienst (_DSAP_ 6 und _SSAP_ 1)
+>Abb.: _TD DDLM_ Dienst (_DSAP_ 6 und _SSAP_ 1)
 
 
 ## <a name="ali"></a>TD-Anwendungsprotokoll (ALI)
-Die vom _TD_ genutzten _DDLM_-Dienste versehen ihre Daten mit einem eigenen Schicht-7-Rahmen: dem _TD_-Anwendungsprotokoll. Da keine Objekte und keine Objektlisten im _DDML_ existieren, wird die Kennzeichnung der Daten in anderer Weise durchgeführt.  
+Die vom _TD_ genutzten _DDLM_-Dienste versehen ihre Daten mit einem eigenen Schicht-7-Rahmen: dem _TD_-Anwendungsprotokoll. Da keine Objekte und keine Objektlisten im _DDML_ existieren, wird die Kennzeichnung der Daten im _TD_-Anwendungsprotokoll durchgeführt (siehe folgendes Kapitel). 
 
 ```
 |<-- FDL ----------------------------------------------------->|
@@ -282,7 +283,7 @@ Die vom _TD_ genutzten _DDLM_-Dienste versehen ihre Daten mit einem eigenen Schi
                                    '------'------'-----'
                                    |<-- DDLM --------->|
 ```
->Abb: _DDLM_ eingebettet in Telegramm
+>Abb.: _DDLM_ eingebettet in Telegramm
 
 Beispiel:
 ```
@@ -338,8 +339,8 @@ ED: End Delimiter = 16h
 
 ----------
 
-# <a name="kapitel3"></a>Kapitel 3 - TD-Profile
-Das folgende Kapitel zeigt, wie sich das _PROFIBUS DP_ Anwendungsprotokoll für das _TD_ (folgend als _TD_-Profil bezeichnet) darstellt. Auch wenn sich einige Unterschiede zwischen den jeweiligen _TD_-Telegrammen ergeben, besitzen diese doch einen übereinstimmenden Protokollaufbau. Alle Informationen werden mit folgender Struktur gespeichert:
+# <a name="kapitel3"></a>Kapitel 3 - TD-Telegramme
+Dieses Kapitel beschreibt die unterschiedlichen Befehle des _TD_-Anwendungsprotokolls (folgend als _TD_-Telegramm bezeichnet). Auch wenn sich einige Unterschiede zwischen den jeweiligen _TD_-Telegrammen ergeben, besitzen diese doch einen übereinstimmenden Protokollaufbau. Alle Informationen werden mit folgender Struktur gespeichert:
 
 ```
 |<-- FDL ----------------------------------------->|
@@ -352,9 +353,9 @@ Das folgende Kapitel zeigt, wie sich das _PROFIBUS DP_ Anwendungsprotokoll für d
                        .----.----.----.----.
                        | NU | BC | OP | DU |
                        '----'----'----'----'
-                       |<-- TD-Profil ---->|
+                       |<-- TD-Telegr. -->|
 ```
->Abb: _TD_-Anwendungsprotokoll eingebettet im PROFIBUS DDLM Rahmen
+>Abb.: _TD_-Anwendungsprotokoll eingebettet im _PROFIBUS DDLM_ Rahmen
 
 Feldname | Länge   | Verwendung
 ---------|---------|---------------------------
@@ -364,15 +365,15 @@ Feldname | Länge   | Verwendung
 `DU`     | n Bytes | Protokolldaten (Data Unit)
 
 Die einzelnen Felder haben folgende Bedeutung:
-* Die Bedeutung des ersten Bytes ist nicht bekannt. Die Versuchreihen zeigten hier bislang immer einen konstanten Wert von `01` an. 
-* Das Längenfeld `BC` umfasst zwei Byte und spezifiziert die Länge der nachfolgenden Daten (inkl. Feld `OP`) in Byte. Dabei wird das MSB zuerst gespeichert. 
+* Die Bedeutung des ersten Bytes ist nicht bekannt. Die Versuchsreihen zeigten hier bislang immer einen konstanten Wert von `01` an. 
+* Das Längenfeld `BC` umfasst zwei Byte und spezifiziert die Länge der nachfolgenden Daten (inkl. Feld `OP`) in Byte. Dabei wird das höherwertige Byte zuerst gespeichert (Big Endian). 
 * Das Feld `OP` ist ein Byte lang und beschreibt den Befehlstyp (nachfolgend auch als _Opcode_ bezeichnet). 
 * Das Datenfeld `DU` ist optional und besitzt eine variable Länge, die vom _Opcode_ abhängt und durch das Längenfeld `BC` spezifiziert wird. Im Datenfeld finden sich Werte, Parameter, (Zeiger-)Referenzen und Inhalte vom Schaltprogramm. 
 
 ## <a name="0102"></a>Initialisierung `01/02`
-Das _TD_ nutzt nach Einschalten der Versorgungsspannung zur Initialisierung (mit anschließenden Betrieb) folgende Befehlesequenzen (mit _Opcode_). Start und Ende der Initialisierung erfolgt mittels zweier Telegramme, _Opcode_ `01` und `02`.
+Das _TD_ nutzt nach Einschalten der Versorgungsspannung zur Initialisierung (mit anschließenden Betrieb) folgende Befehlssequenzen (mit _Opcode_). Start und Ende der Initialisierung erfolgt mittels zweier Telegramme, _Opcode_ `01` und `02`.
 
-Die folgende schematische Darstellung einer _State Machine_ zeigt (mit den vier wichtigsten Zustände: _Power On/Reset_, _Initialization_, _Configuration_, und _Data Exchange_), wie die Befehlsfolge bzw. Befehlszuordnung bei Initialisierung des _TD_ im Zusamenspiel mit der _LOGO!_ Kleinsteuerung arbeitet. 
+Die folgende schematische Darstellung einer _State Machine_ zeigt (mit den vier wichtigsten Zustände: _Power On/Reset_, _Initialization_, _Configuration_, und _Data Exchange_), wie die Befehlsfolge bzw. Befehlszuordnung bei Initialisierung des _TD_ im Zusammenspiel mit der _LOGO!_ Kleinsteuerung arbeitet. 
 
 ```
       .----------------.
@@ -403,27 +404,27 @@ Die folgende schematische Darstellung einer _State Machine_ zeigt (mit den vier 
                   |       |(i)
                   '-------'
 ```
->Abb: _State-Machine_ der Initialisierungsprozedur
+>Abb.: _State-Machine_ der Initialisierungsprozedur
 
 ### Zustand _Power On/Reset_
-Der _Power On/Reset_-Zustand ist der Anfangszustand nach dem Einschalten des _TD_. Das _TD_ verbleibt im Zustand (`a`) und startet automatisch mit der Initalisierung (`b`), sofern das _TD_ bereit ist.
+Der _Power On/Reset_-Zustand ist der Anfangszustand nach dem Einschalten des _TD_. Das _TD_ verbleibt im Zustand (`a`) und startet automatisch mit der Initialisierung (`b`), sofern das _TD_ bereit ist.
 
 ### Zustand _Initialization_
 Nach Abschluss der Einschaltroutine pollt das _TD_ die _LOGO!_ Steuerung mittels Initialisierungstelegramm (_Opcode_ `01`) an. Das _TD_ wartet auf die positive Antwort der Initalisierungsabfrage (_Opcode_ `01`) vom _LOGO!_, welches dem _TD_ signalisiert, dass es die Konfiguration auslesen darf. Sofern die _LOGO!_ Kleinsteuerung die Initialisierungsanfrage (_Opcode_ `01`) innerhalb Zeit von 3 bis 5 Sekunden antwortet, wird das _TD_ mit der Abfrage der Konfigurationsdaten fortfahren (`d`). 
 
-Sollte innerhalb der oben genannten Zeit kein Antworttelegramm eingehen, geht das _TD_ davon aus, dass keine Verbindung zur _LOGO!_ bersteht und bricht die Initalisierungphase ab. 
+Sollte innerhalb der oben genannten Zeit kein Antworttelegramm eingehen, geht das _TD_ davon aus, dass keine Verbindung zur _LOGO!_ besteht und bricht die Initialisierungsphase ab. 
 
 ### Zustand _Configuration_
-In diesem Zustand erwartet die _LOGO!_ Steuerung Telegramme zur Konfigurationsabfrage, die das _TD_ abfragt (`f`). Anhand der zusätzlichen zyklicher Abfrage von Diagnose Telegrammen (_Opcode_ `03`) kann das _TD_ eventuelle Konfigurationänderungen erkennen, da hierbei auch eine Checksumme mitgesendet wird. Die _LOGO!_ Steuerung akzeptiert in diesem Zustand ausschließlich Anforderungstelegramme für Diagnose (_Opcode_ `03`) oder Konfiguration (_Opcode_ `14`,  `3c/3d`, `4x`, `5a/5b/61` und optional `81`) oder ein Ende-Telegramm (_Opcode_ `02`), welches den Abschluss der Initialisierung anzeigt (`g`). Die Auswahl der Opcodes variiert, denn das _TD_ wählt die Konfigurationstelegramme basierend auf bereits gelieferte Inhalte.
+In diesem Zustand erwartet die _LOGO!_ Steuerung Telegramme zur Konfigurationsabfrage, die das _TD_ abfragt (`f`). Anhand der zusätzlichen zyklischer Abfrage von Diagnose Telegrammen (_Opcode_ `03`) kann das _TD_ eventuelle Konfigurationsänderungen erkennen, da hierbei auch eine Checksumme mitgesendet wird. Die _LOGO!_ Steuerung akzeptiert in diesem Zustand ausschließlich Anforderungstelegramme für Diagnose (_Opcode_ `03`) oder Konfiguration (_Opcode_ `14`,  `3c/3d`, `4x`, `5a/5b/61` und optional `81`) oder ein Ende-Telegramm (_Opcode_ `02`), welches den Abschluss der Initialisierung anzeigt (`g`). Die Auswahl der Opcodes variiert, denn das _TD_ wählt die Konfigurationstelegramme basierend auf bereits gelieferte Inhalte.
 
-Diagnose Telegramme (_Opcode_ `03`) die anzeigen, dass die _LOGO!_ Steuerung im Parametrier- (Operation Mode `20`) oder Programmiermodus (Operation Mode `42`) ist, führen zu einem erneuten Initalisierungsabfrage.
+Diagnose Telegramme (_Opcode_ `03`) die anzeigen, dass die _LOGO!_ Steuerung im Parametrier- (Operation Mode `20`) oder Programmiermodus (Operation Mode `42`) ist, führen zu einem erneuten Initialisierungsabfrage.
 
 ### Zustand _Data Exchange_
-Nach Abschluß der Initalsierungsroutine tauscht das _TD_ zyklisch Daten mit der _LOGO!_ Steuerung aus. Neben der zyklischen Übertragung von Diagnoseinformation (_Opcode_ `03`) und Displayinformationen (_Opcode_ `18`, `70/76-78`), können optional Datum/Uhrzeit (_Opcode_ `10`) oder E/A-Daten (_Opcode_ `08`) oder auch Steuerbefehle (_Opcode_ `09`) und Befehle zur Änderung von Parametern (_Opcode_ `21`) abgesetzt werden.
+Nach Abschluss der Initialisierungsroutine tauscht das _TD_ zyklisch Daten mit der _LOGO!_ Steuerung aus. Neben der zyklischen Übertragung von Diagnoseinformation (_Opcode_ `03`) und Displayinformationen (_Opcode_ `18`, `70/76-78`), können optional Datum/Uhrzeit (_Opcode_ `10`) oder E/A-Daten (_Opcode_ `08`) oder auch Steuerbefehle (_Opcode_ `09`) und Befehle zur Änderung von Parametern (_Opcode_ `21`) abgesetzt werden.
 
-Diagnose Telegramme (_Opcode_ `03`) die anzeigen, dass die _LOGO!_ Steuerung im Parametrier- (Operation Mode `20`) oder Programmiermodus (Operation Mode `42`) ist, führen zu einem erneuten Initalisierungsabfrage (`h`).
+Diagnose Telegramme (_Opcode_ `03`) die anzeigen, dass die _LOGO!_ Steuerung im Parametrier- (Operation Mode `20`) oder Programmiermodus (Operation Mode `42`) ist, führen zu einem erneuten Initialisierungsabfrage (`h`).
 
-Das folgende Beispiel zeigt eine vollständigige Initialisierung  mit einer einer _LOGO!_ 0BA6 Standard SPS. _TD_ und _LOGO!_ wurden gemeinsam gestartet. Das Programm verwendet Meldetexte und Blocknamen:
+Das folgende Beispiel zeigt eine vollständige Initialisierung mit einer _LOGO!_ 0BA6 Standard SPS. _TD_ und _LOGO!_ wurden gemeinsam gestartet. Das Programm verwendet Meldetexte und Blocknamen:
 ```
 .----------.        .----------.
 |    TD    |        |   LOGO!  |
@@ -492,9 +493,9 @@ Das folgende Beispiel zeigt eine vollständigige Initialisierung  mit einer einer
 :          :        :          :
 :          :        :          :
 ```
->Abb: Beispiel Initialisierung _LOGO!_ __0BA6__ (Standard)
+>Abb.: Beispiel Initialisierung _LOGO!_ __0BA6__ (Standard)
 
-Das zweite Beispiel zeigt eine vollständigige Initialisierung mit einer einer _LOGO!_ 0BA6 mit Erzeugerstand ES10 . Das _TD_ wurde nach hochlauf der _LOGO!_ gestartet. Das Programm verwendet nur Meldetexte. Im Unterschied zu oben wird der Opcode `14` nicht mit Fehler Opcode `81` beantwortet und die Abfrage der Blocknamen mittels Opcode `3d` fehlt. 
+Das zweite Beispiel zeigt eine vollständige Initialisierung mit einer _LOGO!_ 0BA6 mit Erzeugerstand ES10 . Das _TD_ wurde nach Hochlauf der _LOGO!_ gestartet. Das Programm verwendet nur Meldetexte. Im Unterschied zu oben wird der Opcode `14` nicht mit Fehler Opcode `81` beantwortet und die Abfrage der Blocknamen mittels Opcode `3d` fehlt. 
 ```
 .----------.        .----------.
 |    TD    |        |   LOGO!  |
@@ -528,9 +529,9 @@ Das zweite Beispiel zeigt eine vollständigige Initialisierung mit einer einer _L
 :          :        :          :
 :          :        :          :
 ```
->Abb: Beispiel Initialisierung _LOGO!_ __0BA6__ ES10
+>Abb.: Beispiel Initialisierung _LOGO!_ __0BA6__ ES10
 
-Das folgende Beispiel zeigt eine Initialisierung nach Programmänderung (Hardware, Firmare und Programm gleich vom zweiten Beispiel). Im Unterschied zum vorherigen Beispiel wird nicht der Opcode `01` verwendet. Der Start der Initilaisierung wird durch das Diagnosetelegramm (_Opcode_ `03`) initiert. 
+Das folgende Beispiel zeigt eine Initialisierung nach Programmänderung (Hardware, Firmware und Programm gleich vom zweiten Beispiel). Im Unterschied zum vorherigen Beispiel wird nicht der Opcode `01` verwendet. Der Start der Initialisierung wird durch das Diagnosetelegramm (_Opcode_ `03`) initiiert. 
 ```
 :          :        :          :
 :          :        :          :
@@ -560,7 +561,7 @@ Das folgende Beispiel zeigt eine Initialisierung nach Programmänderung (Hardware
 :          :        :          :
 :          :        :          :
 ```
->Abb: Beispiel Initialisierung nach Programmaänderung
+>Abb.: Beispiel Initialisierung nach Programmänderung
 
 Beispiel _Init Start_:
 ```
@@ -626,9 +627,9 @@ Rc: Response Code 06h = Ack
 ```
 
 ## <a name="03"></a>Diagnose `03`
-Das _TD_-Protokoll nutzt den _Opcode_ `03`, um Diagnoseinformationen von der _LOGO!_ Kleinsteuerung zu erhalten. Der Diagnosetelegramm wird unter anderem verwendet, um den Status, Betriebszustand und benutzerspezifische Ereignisse zu erfragen. Das Text-Display (Master) fragt hierzu zyklisch (ungefähr einmal pro Sekunde) die _LOGO!_ Steuerung (Slave) ab. Die Antwort erfolgt ebenfalls mit dem _Opcode_ `03` (_Response_-Telegram) und hat ein festes Format, welches einen 7 Byte langen Informationsteil hat.
+Das _TD_-Protokoll nutzt den _Opcode_ `03`, um Diagnoseinformationen von der _LOGO!_ Kleinsteuerung zu erhalten. Das Diagnosetelegramm wird unter anderem verwendet, um den Status, Betriebszustand und benutzerspezifische Ereignisse zu erfragen. Das Text-Display (Master) fragt hierzu zyklisch (ungefähr einmal pro Sekunde) die _LOGO!_ Steuerung (Slave) ab. Die Antwort erfolgt ebenfalls mit dem _Opcode_ `03` (_Response_-Telegramm) und hat ein festes Format, welches einen 7 Byte langen Informationsteil hat.
 
-Im Informationsteil wird die Check-Summe vom Schaltprogramm mitgesendet (Byte 6 und 7). Anhand der Check-Summe kann das _TD_ erkennen, ob das bei der Initialisierung geladenen Schaltprogramm noch aktuell ist. 
+Im Informationsteil wird die Check-Summe vom Schaltprogramm mitgesendet (Byte 6 und 7). Anhand der Check-Summe kann das _TD_ erkennen, ob das bei der Initialisierung geladene Schaltprogramm noch aktuell ist. 
 
 Beispiel:
 ```
@@ -675,7 +676,8 @@ Chk: Schaltprogramm Checksum
 ```
 
 ## <a name="0405"></a>Stop/Start `04/05`
-Mit zwei Telegrammen kann das in der _LOGO!_ Steuerung gespeicherte Schaltprogramm gestartet oder gestoppt werden. Das Stoppen der _LOGO!_ Steuerung erfolgt mit dem _Opcode_ `04` und das Starten mit dem _Opcode_ `05`. Sobald der Befehl im Menü ausgewählt wird, wird das _Start_ bzw. _Stop_-Telegramm gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegramm beantwortet (z.B. Datenbyte = `06` für Ack). Die Beschreibung des Antwortcodes ist in einem eigenen Abschnitt beschrieben. 
+Mit zwei Telegrammen kann das in der _LOGO!_ Steuerung gespeicherte Schaltprogramm gestartet oder gestoppt werden. Das Stoppen der _LOGO!_ Steuerung erfolgt mit dem _Opcode_ `04` und das Starten mit dem _Opcode_ `05`. Sobald der Befehl im Menü ausgewählt wird, wird das _Start_ bzw. _Stop_-Telegramm gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegramm beantwortet (z.B. Datenbyte = `06` für Ack).
+
 
 ## <a name="08"></a>Online-Test (I/O-Daten) `08`
 Response und Request
@@ -687,7 +689,7 @@ send> 68 00 0A 00 0A 68 80 7F 06 06 01
 16 16
 recv< 68 00 35 00 35 68 7F 80 06 06 01
 01 00 2D 08
-0000   00 00 00 00 00 00 00 00 00 00 00 00 01 fa 00 00
+0000   00 00 00 00 00 00 00 00 00 00 00 00 01 FA 00 00
 0010   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 0020   00 00 00 00 00 00 00 00 00 00 00 00
 3D 16
@@ -795,7 +797,7 @@ Darstellungsformat:
 
 Bc: Byte Count (Typ Word, Big Endian)
 Op: Opcode 09h = Button Key
-Btn: Tastencode 24h = 0010.0100b
+Btn: Tasten-Code 24h = 0010.0100b
         0  0  1  0  0  1  0  0
     MSB --+--+--+--*--+--+--+-- LSB
         b7 b6 b5 b4 b3 b2 b1 b0
@@ -860,7 +862,7 @@ send> 68 00 0A 00 0A 68 80 7F 06 06 01
 ```
 
 ## <a name="10"></a>Uhrzeit/Datum `10`
-Der _Opcode_ `10` _Date Time_ liest die aktuelle Uhrzeit, das Datum und die Sommer-/Winterzeit aus der Hardware-Uhr der _LOGO!_ Keinsteuerung aus. Der _Request_ erfolgt ohne Daten. Das Ergebnis der Operation wird von der _LOGO_ Steuerung mit einem _Response_-Telegramm beantwortet.
+Der _Opcode_ `10` _Date Time_ liest die aktuelle Uhrzeit, das Datum und die Sommer-/Winterzeit aus der Hardware-Uhr der _LOGO!_ Kleinsteuerung aus. Der _Request_ erfolgt ohne Daten. Das Ergebnis der Operation wird von der _LOGO_ Steuerung mit einem _Response_-Telegramm beantwortet.
 
 Beispiel:
 ```
@@ -910,22 +912,22 @@ Auswertung (nur _DU_):
 ```
 
 ## <a name="18"></a>Display Update `18`
-Der Befehl mit dem OpCode `18` wird ca. alle 0,5 Sekunden vom _TD_ aufgerufen. 
+Das Telegramm mit dem Opcode `18` wird ca. alle 0,5 Sekunden vom _TD_ aufgerufen. 
 
 Beispiel Response (nur _DU_, Meldetext fest, 2 Meldetexte, Block B002):
 ```
       |<-- DU --------------------------------------- ...
 0000  00 00 00 02 00 00 00 00 00 00 00 02 00 00 00 00
 0010  00 00 00 02 00 00 00 00 00 00 00 01 00 00 00 00
-0020  00 00 00 00 80 81 ff ff ff ff ff ff ff ff ff ff
-0030  ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
-0040  ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
-0050  ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
-0060  ff ff ff ff 00 00 ff 00
+0020  00 00 00 00 80 81 FF FF FF FF FF FF FF FF FF FF
+0030  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0040  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0050  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0060  FF FF FF FF 00 00 FF 00
 ```
 
 ## <a name="21"></a>Parametrierung `21`
-Der Befehl _Set Parameter_ `21` dient dem Einstellen der Parameter der Blöcke. Es können unter anderem Verzögerungszeiten, Schaltzeiten, Schwellwerte, Überwachungszeiten und Ein- und Ausschaltschwellen geändert werden, ohne das das Schaltprogramm geändert werden muss. 
+Der Befehl _Set Parameter_ `21` dient dem Einstellen der Parameter der Blöcke. Es können unter anderem Verzögerungszeiten, Schaltzeiten, Schwellwerte, Überwachungszeiten und Ein- und Ausschaltschwellen geändert werden, ohne dass das Schaltprogramm geändert werden muss. 
 
 Vorteil: In der Betriebsart _Parametrieren_ arbeitet die _LOGO!_ Kleinsteuerung das Schaltprogramm weiter ab. Sobald die geänderten Parameter (in der Betriebsart _Parametrieren_) mit der Taste _OK_ quittiert wurden, wird der Befehl _Set Parameter_ gesendet. Nachdem der Befehl ausgeführt wurde, wird das Ergebnis der Operation mit einem _Response_-Telegramm (üblicherweise mit dem Datenbyte = `06` für Ack) beantwortet. 
 
@@ -964,7 +966,7 @@ Dn: Datenbyte an Stelle n (n = 3..Pc)
 ## <a name="30"></a>Adressierung `30`
 Das Telegramm _Addressing_ (_Opcode_ `30`) benennt die indizierten Speicherbereiche (sog. _Register_) vom Programmzeilenspeicher für die Ausgänge, Merker und Funktionsblöcke. Das Ziel eines Registers ist eine Speicherzelle im Programmzeilenspeicher. Die von der _LOGO!_ Kleinsteuerung zurückgemeldeten Register werden vom _TD_ genutzt, um auf die Struktur des Schaltprogramms zu schließen, welche über den _Opcode_ `40` (und folgend) abgefragt werden. Die Position ergibt sich aus den Inhalt des jeweiligen Registers, das auf den Speicherort vom Programmzeilenspeicher verweist. 
 
-Das Antworttelegramm mit dem _Opcode_ `30` gibt bei einer _LOGO!_ __0BA6__ 420 Bytes Netto-Daten zurück. Die ersten 20 Bytes verweisen auf (weitere) 10*20 Bytes für Ausgänge und Merker (siehe Tabelle folgend). Die nächsten 400 Bytes verweisen auf die 200 Funktionsblöcke im Programmzeilenspeicher. Der Verweis wird als 16 Bit-Offset-Adresse (Little Endian) dargestellt. 
+Das Antworttelegramm mit dem _Opcode_ `30` gibt bei einer _LOGO!_ __0BA6__ 420 Bytes Netto-Daten zurück. Die ersten 20 Bytes verweisen auf (weitere) 10*20 Bytes für Ausgänge und Merker (siehe Tabelle folgend). Die nächsten 400 Bytes verweisen auf die 200 Funktionsblöcke im Programmzeilenspeicher. Der Verweis wird als 16 Bit-Offset-Addresse (Little Endian) dargestellt. 
 
 Beispiel:
 ```
@@ -1012,16 +1014,16 @@ HEX (Hi,Lo): 00,00 00,14 00,28 00,3C 00,50 00,64 00,78 00,8C 00,A0 00,B4
 Dezimal:     00    20    40    60    80    100   120   140   160   180
 Speicherbedarf: 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20 -- 20
 ```
->Abb: Register Ausgänge und Merker
+>Abb.: Register Ausgänge und Merker
 
 Zeiger | Beschreibung
--------|------------------------------------
+-------|-------------------------------------
 0000   | Digitaler Ausgang 1-8
 0014   | Digitaler Ausgang 9-16
 0028   | Merker 1-8
 003C   | Merker 9-16
 0050   | Merker 17-24
-0064   | Analogausgang 1-2; Analogmerker 1-6
+0064   | Analogausgang 1-2; Analog Merker 1-6
 0078   | offener Ausgang 1-8
 008C   | offener Ausgang 9-16
 00A0   | Merker 25-27
@@ -1049,7 +1051,7 @@ HEX (Hi,Lo): 01,30 01,34 01,3C 01,44 01,4C 01,54 01,58 01,5C FF,FF 01,60
 Dezimal:     304   308   316   324   332   340   344   348   n/a   352
 Speicherbedarf:  4 --- 8 --- 8 --- 8 --- 8 --- 4 --- 4 ------ 8 ----- 12
 ```
->Abb: Register für Funktionsblöcke
+>Abb.: Register für Funktionsblöcke
 
 Zeiger | Block-Nr | Speicher
 -------|----------|---------
@@ -1145,9 +1147,9 @@ Bn: Block Name, Verweis n (n = 1 bis max. 100)
 ```
 
 ## <a name="40"></a>Klemmenspeicher `40`
-Als Klemme werden alle Anschlüsse und Zustände bezeichnet. Hierzu zählen Digitaleingänge, Analogeingänge, Digitalausgänge, Analogausgänge, Merker (inkl. Anlaufmerker), Analoge Merker, Schieberegisterbits, Cursortasten, Pegel und die Offenen Klemmen. Klemmen, die aufgrund eines Verknüpfungseinganges ein Speicherplatz besitzen, sind die Ausgänge _Q1_ bis _Q16_, _AQ1_ und _AQ2_, die Merker _M1_ bis _M24_ und _AM1_ bis _AM6_, sowie die 16 unbeschaltete Ausgänge _X1_ bis _X16_.
+Als Klemme werden alle Anschlüsse und Zustände bezeichnet. Hierzu zählen Digitaleingänge, Analogeingänge, Digitalausgänge, Analogausgänge, Merker (inkl. Anlauf Merker), Analoge Merker, Schieberegisterbits, Cursortasten, Pegel und die Offenen Klemmen. Klemmen, die aufgrund eines Verknüpfungseinganges einen Speicherplatz besitzen, sind die Ausgänge _Q1_ bis _Q16_, _AQ1_ und _AQ2_, die Merker _M1_ bis _M24_ und _AM1_ bis _AM6_, sowie die 16 unbeschalteten Ausgänge _X1_ bis _X16_.
 
-Die Verknüpfungen im Schaltprogramm auf den Eingang einer Ausgangsklemme oder eines Merkes werden mittels des Befehls `40` vom _TD_ abgefragt. 
+Die Verknüpfungen im Schaltprogramm auf den Eingang einer Ausgangsklemme oder eines Merkers werden mittels des Befehls `40` vom _TD_ abgefragt. 
 
 Beispiel:
 ```
@@ -1175,10 +1177,10 @@ E6 16
 Das Format ist einheitlich und ist als vielfache von 20 Bytes = 2 Bytes `80 00` + 16 Bytes `<Daten>` + 2 Bytes `FF FF` abgelegt.
 
 Position   | Anz | Beschreibung
------------|-----|------------------------------------
+-----------|-----|-------------------------------------
 0000..0027 | 40  | Digitaler Ausgang 1-16
 0028..0063 | 60  | Merker 1-24
-0064..0077 | 20  | Analogausgang 1-2; Analogmerker 1-6
+0064..0077 | 20  | Analogausgang 1-2; Analog Merker 1-6
 0078..009F | 40  | offener Ausgang 1-16
 00A0..00C7 | 40  | (Reserve ??)
 00C8..00C9 | 2   | (End of Record ??)
@@ -1231,7 +1233,7 @@ EOR: End of Record
 Na Nb: N = Element 1-8
 
 ## <a name="41"></a>Programmzeilenspeicher `41..4x`
-Der Programmzeilenspeicher ist Teil des Schaltprogramms und wird für die Parametrisierung und korrekten Darstellung der Variablen im Meldetext vom Text-Display ausgelesen. Es werden nicht alle 200 Blöcke am Stück vom _TD_ ausgelesen. Vielmehr werden die einzelen aufeinander folgenden Speicherbereiche mittels einer Telegrammgruppe (_Opcodes_ `41..4x`) abgefragt. 
+Der Programmzeilenspeicher ist Teil des Schaltprogramms und wird für die Parametrisierung und korrekten Darstellung der Variablen im Meldetext vom Text-Display ausgelesen. Es werden nicht alle 200 Blöcke am Stück vom _TD_ ausgelesen. Vielmehr werden die einzelnen aufeinander folgenden Speicherbereiche mittels einer Telegrammgruppe (_Opcodes_ `41..4x`) abgefragt. 
 
 Beispiel:
 ```
@@ -1261,8 +1263,8 @@ recv< 68 01 0F 01 0F 68 7F 80 06 06 01
 ```
 
 Für den Aufbau von _DU_ gibt es mehrere Randbedingungen:
-* Die ersten beide Bytes enthalten den Adressregister im Programmzeilenspeicher. Die Registerwerte werden vorab vom Textdisplay mit einem eigenem Befeh (_Opcode_ `30`) abgefragt. 
-* Im folgenden Byte (Offset `02`) steht die Länge des Blocks im Speicher. Der Wert variiert dabei im Abhängigkeit von der Funktion des Blocks.
+* Die ersten beide Bytes enthalten den Adressregister im Programmzeilenspeicher. Die Registerwerte werden vorab vom Textdisplay mit einem eigenem Telegramm (_Opcode_ `30`) abgefragt. 
+* Im folgenden Byte (Offset `02`) steht die Länge des Blocks im Speicher. Der Wert variiert dabei in Abhängigkeit von der Funktion des Blocks.
 * Die Formatlänge der nachfolgenden Daten ist variabel, durch 4 teilbar, daher ggf. mit Füllbytes (Padding) aufgefüllt und darf 252 Bytes nicht überschreiten. 
 
 Auch ohne Kenntnis der Bedeutung der Datenbytes lässt sich die Struktur in _DU_ gut erkennen:
@@ -1339,11 +1341,11 @@ Pa: Funktionsblockparameter, immer 00 bei GF
     b7: Remanenz; 1 = aktiv, 0 = nein
     b6: Parameterschutz; 0 = aktiv, 1 = inaktiv (Standard)
 
-Dn: Datenbyte an Stelle n (n = 1..Pc-2), funktionabhängig
+Dn: Datenbyte an Stelle n (n = 1..Pc-2), funktionsabhängig
 ```
 
 ## <a name="5b"></a>Verweis auf Meldetexte `5b`
-Es können maximal 50 Meldetext vergeben werden. Jeder Verweis auf ein Meldetext ist 2 Bytes lang und ist nennt zudem den Zeichensatz 1 oder den Zeichensatz 2. 
+Es können maximal 50 Meldetext vergeben werden, die indirekt adressiert werden (sog. Verweis), wobei jeder Eintrag auf ein Meldetext eine Länge von 2 Bytes hat. Das erste Byte ist ein Verweis auf den Meldetext. Das zweite Byte gibt den verwendeten Zeichensatz an. 
 
 Beispiel:
 ```
@@ -1377,12 +1379,13 @@ Rn: Verweis Meldetext
 Cn: Zeichensatz vom Meldetext
     01 = Zeichensatz 1
     02 = Zeichensatz 2
+    FF = nicht definiert
 
 Position n (n = 1..50)
 ```
 
 ## <a name="61"></a>Meldetext `61`
-Jeweils ein Meldetext belegt 128 Bytes: jeweils 4 Zeilen a 24 Bytes für `<Daten/Zeichen>` zzgl. 2 Bytes `<Header-Daten>` und 6 Bytes `00`.
+Jeweils ein Meldetext belegt 128 Bytes: 4 Zeilen a 24 Bytes für `<Daten/Zeichen>` zzgl. 2 Bytes `<Parameter-Daten>` und 6 Bytes `<Padding>` mit Wert `00`.
 
 Einstellungen für Meldetexte:
 * __En__: Ein Wechsel des Zustands von 0 auf 1 am Eingang
@@ -1396,7 +1399,7 @@ Einstellungen für Meldetexte:
 * __Q__: bleibt gesetzt, solange der Meldetext ansteht
 
 
-Das Folgendes Beispiel zeigt die Abfrage und die Antwort zwei aufeinander folgende Meldetexte:
+Das Folgende Beispiel zeigt die Abfrage und die Antwort zwei aufeinander folgende Meldetexte:
 ```
 send> 68 00 09 00 09 68 80 7F 06 06 01
 01 00 01 61
@@ -1434,14 +1437,16 @@ Auswertung einer Zeile (nur _DU_):
 
 ... -- DU -------------------- ...
    [20 00] [00 00 00 00 00 00]
-   [Pa   ] [Dn               ]
+   [Pa   ] [P1               ]
 
 Txt: maximal 24 ASCII Zeichen, aufgefüllt mit Leerzeichen (20h)
     Sonderzeichen:
       80: Pfeil nach oben '^'
       81: Pfeil nach unten 'v'
-Pa: Parameter 
-Dn: Datenbyte an Stelle n (n = 1..6)
+Pa: Parameter, Bedeutung unbekannt
+      0000: 
+      2000: 
+Pn: Füllbyte an Stelle n (n = 1..6)
 ```
 
 ----------
@@ -1449,9 +1454,9 @@ Dn: Datenbyte an Stelle n (n = 1..6)
 # Anhang
 
 ## <a name="fcs"></a>Prüfsumme
-Jedem Telegramm wird eine 8-Bit-Prüfsumme hinzugefügt. Alle Datenbytes, zum Teil auch Bytes des Rahmens, werden Modulo-256 aufsummiert. Modulo-256 bedeutet dabei, dass bei jeder Summierung der Übertrag in das Bit mit der Wertigkeit 256 einfach ignoriert wird. Die entstandene 8 Bit lange Prüfsumme wird vom Sender ins Telegramm eingefügt. Der Empfänger prüft die empfangenen Daten und führt die selbe Addition durch. Die Prüfsumme muss gleich sein.
+Jedem Telegramm wird eine 8-Bit-Prüfsumme hinzugefügt. Alle Datenbytes, und einge Bytes des Rahmens, werden Modulo-256 aufsummiert. Modulo-256 bedeutet dabei, dass bei jeder Summierung der Übertrag in das Bit mit der Wertigkeit 256 einfach ignoriert wird. Die entstandene 8 Bit lange Prüfsumme wird vom Sender ins Telegramm eingefügt. Der Empfänger prüft die empfangenen Daten und führt die gleiche Operation durch. Die Prüfsumme muss gleich sein.
 
-Die Implementierung ist einfach, da nur eine 8-Bit-Prüfsumme für eine Folge von hexadezimalen Bytes berechnet werden muss. Wir verwenden eine Funktion `F(bval, cval)`, die ein Datenbyte und einen Prüfwert eingibt und einen neu berechneten Prüfwert ausgibt. Der Anfangswert für `cval` ist 0. Die Prüfsumme kann mit der folgenden Beispielfunktion (in _C_-Sprache) berechnet werden, die wir für jedes Byte des Datenfelds wiederholt aufrufen. Die 8-Bit-Prüfsumme ist das Zweierkomplement der Summe aller Bytes.
+Die Implementierung ist einfach, da nur eine 8-Bit-Prüfsumme für eine Folge von hexadezimalen Bytes berechnet werden muss. Als Beispiel verwenden wir eine Funktion `F(bval, cval)`, die ein Datenbyte und einen Prüfwert eingibt und einen neu berechneten Prüfwert ausgibt. Der Anfangswert für `cval` ist Null. Die Prüfsumme kann mit der folgenden Beispielfunktion (in _C_-Sprache) berechnet werden, die wir für jedes Byte des Datenfelds wiederholt aufrufen. Die 8-Bit-Prüfsumme ist das Zweierkomplement der Summe aller Bytes.
 
 ```
 int F_chk_8( int bval, int cval )
@@ -1459,11 +1464,11 @@ int F_chk_8( int bval, int cval )
   return ( bval ^ cval ) % 256;
 }
 ```
->Abb: Implementation der 8-Bit-Prüfsumme in _C_
+>Abb.: Implementation der 8-Bit-Prüfsumme in _C_
 
 
 ## <a name="ttl"></a>RS485-TTL-Anschaltung
-TTL Anschaltung (z.B für Anschaltung an ein Microcontroller) via _MAX RS485 Module_  [HCMODU0081](http://hobbycomponents.com/wired-wireless/663-max485-rs485-transceiver-module). Das Modul ist von LC Electronic. Der Zugriff auf den Bus wird nicht automatisch vom Modul erledigt, sondern über die beiden "enable" Eingänge RE ("Receiver enabled" = high bei Daten empfangen) und DE ("Driver enable" = low bei Daten senden) gesteuert. Die Anschlüsse an P1 haben TTL-Pegel, die Anschlüsse an P2 sind für die Versorgung des Moduls und hat zudem die A-B-Anschlüsse für die Anschaltung an den RS485-BUS. 
+TTL Anschaltung (z.B für Anschaltung an einen Mikrocontroller) via _MAX RS485 Module_  [HCMODU0081](http://hobbycomponents.com/wired-wireless/663-max485-rs485-transceiver-module). Das Modul ist von LC Electronic. Der Zugriff auf den Bus wird nicht automatisch vom Modul erledigt, sondern über die beiden "enable" Eingänge RE ("Receiver enabled" = _high_ bei Daten empfangen) und DE ("Driver enable" = _low_ bei Daten senden) gesteuert. Die Anschlüsse an P1 haben TTL-Pegel, die Anschlüsse an P2 sind für die Versorgung des Moduls und haben zudem die A-B-Anschlüsse für die Anschaltung an den RS485-BUS. 
 
 ### Belegung P1 (links):
 - [x] DI: Driver Input (TTL-pin Tx); Pin 1
@@ -1509,7 +1514,7 @@ VCC <<--o-------||------o--| GND
         |    C1 = 10uF  |
         '-------||------'
 ```
->Abb: _MAX RS485 Module_ Schaltung
+>Abb.: _MAX RS485 Module_ Schaltung
 
 Zu beachten ist das R7 (120 Ohm) eine passive Bus-Terminierung vornimmt, die eventuell so nicht gewünscht ist (z.B. wegen hohem Stromverbrauch, oder Terminierung am falschen Ort) und R7 dann ggf. ausgelötet oder ersetzt werden muss, um zum Beispiel einen Kondensator in Reihe zum Abschlusswiderstand einzubringen, damit im Ruhezustand der Strom annähernd Null geht. Zusätzlich könnten die Wiederstände R5 und R6 (sog. "local bias resistors") für ein RS485-Netzwerk ungeeignet sein, um wirksam undefinierte Buspegel bei inaktiven Leitungstreibern zu kompensieren, da die Werte in einigen Anwendungsfällen zu hoch sind.
 
@@ -1539,11 +1544,11 @@ _|_
 ===
 GND
 ```
->Abb: Abschlusswiderstand mit BIAS-Netzwerk
+>Abb.: Abschlusswiderstand mit BIAS-Netzwerk
 
-__Hinweis:__ \*) Kondensator C mit 100nF ist optional und wird eingesetzt, um im Ruhezustand den Stromverbrauch auf Null abzusenken.
+__Hinweis:__ \*) Kondensator C mit 100nF ist optional und wird eingesetzt, um im Ruhezustand den Stromverbrauch auf null abzusenken.
 
-Folgend beispielhaft die Anschaltung des Moduls an den RS485-BUS, die Versorgungsspannung und einen Microcontroller:
+Folgend beispielhaft die Anschaltung des Moduls an den RS485-BUS, die Versorgungsspannung und einen Mikrocontroller:
 ```
 Rx Out --<--.  .--------------------------------------.  .-->> 5V
             '--| o RO :##:   ___   :##: # .---. VCC o |--' 
@@ -1553,7 +1558,7 @@ Rx Out --<--.  .--------------------------------------.  .-->> 5V
             .--| o DI :##:  :###:  :##: # '---' GND o |--. 
 Tx Out -->--'  '--------------------------------------'  '--|> GND
 ```
->Abb: _MAX RS485 Module_ Anschaltung
+>Abb.: _MAX RS485 Module_ Anschaltung
 
-__Hinweis:__ \*) Tx/Rx Dir: _high_ um Datem zu senden und _low_ um Datem zu empfangen
+__Hinweis:__ \*) Tx/Rx Dir: _high_ um Daten zu senden und _low_ um Daten zu empfangen
 
