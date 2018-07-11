@@ -3,11 +3,9 @@ Siemens (TM) LOGO! Library for Arduino
 
 The library is based on the implementation of Settimino. The library support _LOGO!_ __0BA4__, __0BA5__ and __0BA6__ via the serial programming interface (PG-interface). In the future the library will also support the interface for the _Text Display_ (TD-interface) which is only available for the _LOGO!_ __0BA6__.
 
-Information about the API is described in the document [LOGO! Library Reference Manual](/extras/docs/RefManual.md)
+Information about the API is described in the document [LOGO! Library Reference Manual](/extras/docs/RefManual.md).
 
-All information about the protocols are described in separate documents:
-- [LOGO! PG Protocol Reference Guide (en)](/extras/docs/PG-Protocol.md)
-- [LOGO! TD Protocol Reference Guide (ge)](/extras/de-DE/Dekodierung/TD-Dekodierung.md)
+All information about the protocols and details to the LOGO! PLC are described in the Wiki [Logo33lib](http://github.com/brickpool/logo/wiki).
 
 ## Releases
 The current library version is [0.5.0](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate, with patchlevel 0 and has implemented only the PG protocol. 
