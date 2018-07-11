@@ -29,6 +29,7 @@
 --  0.3.7 20-21.06.2018 opcode 0x5b, 0x61
 --  0.3.8 22-26.06.2018 update 0x40, opcode 0x01, 0x02, 0x18
 --  0.3.8 27.06.2018    opcode 0x14, 0x81, update "lookup disector"
+--  0.3.9 11.07.2018    bug fixing 0x03
 --
 -------------------------------------------------------------------------------
 
@@ -769,7 +770,7 @@ lookup_op_code = {
       local length = tvb:len()
       -- If this telegram has not enough data, then we are done here
       if length < OP_DIAGNOSIS_LEN then return 0 end
-      local offset = PBUS_ALI_HDR_LEN
+      local offset = 0
       tree:add(ali_fields.operation_mode, tvb(offset, 1))
       offset = offset + 1
       tree:add(ali_fields.data, tvb(offset, 1))
