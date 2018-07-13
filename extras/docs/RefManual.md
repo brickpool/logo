@@ -16,7 +16,7 @@ Refer to the following publications for details about the application programmin
   * [Snap7 Reference manual](http://snap7.sourceforge.net/) published by Davide Nardella
 
 Refer to the following publication for details about the protocol using the PG-Interface:
-  * [LOGO! PG Protocol Reference Guide](https://github.com/brickpool/logo/blob/master/extras/docs/PG-Protocol.md) published by J. Schneider
+  * [LOGO! PG Protocol Reference Guide](http://github.com/brickpool/logo/wiki/PG-Protocol) published by J. Schneider
 
 ## Contents
 
