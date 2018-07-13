@@ -1,8 +1,8 @@
 # LOGO! PG Library Reference Manual
 
-Rev. Ag
+Rev. Ah
 
-March 2018
+Juli 2018
 
 ## Preface
 Siemens (TM) LOGO! library for Arduino. 
@@ -197,7 +197,7 @@ typedef struct {
 ```
 
 The Order code is a null terminated _C_ string such as `6ED1052-xxx00-0BA6`.
-Please note, for the _LOGO!_ __0BA4__ device and in Operation mode _STOP_ , the firmware can not be read out (V1 to V3 have a value of `0`).
+Please note, for the _LOGO!_ __0BA4__ device and in Operation mode _RUN_, the firmware can not be read out (V1 to V3 have a value of `0`).
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
