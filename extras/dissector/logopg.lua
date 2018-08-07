@@ -33,6 +33,7 @@
 --  0.5.6 01-02.05.2018   bug fixing
 --  0.5.7 06.06.2018      bug fixing transaction_id and update INFO colum
 --  0.5.8 14.06.2018      bug fixing NumberOfSetBits in 0x551111
+--  0.5.9 07.08.2018      bug fixing maximum size, update identifier
 --
 -------------------------------------------------------------------------------
 
@@ -58,7 +59,7 @@ local DEBUG = debug_level.LEVEL_4
 local default_settings = {
   debug_level   = DEBUG,
   subdissect    = true,   -- display data as tree info in wireshark
-  max_msg_len   = 2000+7, -- this is the maximum size of a message
+  max_msg_len   = 3800+9, -- this is the maximum size of a message
   address_len   = 2,      -- address field is 2 bytes
   ident_number  = 0,      -- ident_number is unknown (0)
   value         = 1,      -- start value for message counting
@@ -128,7 +129,8 @@ local IDENTIFIERS = {
   [0x40] = "0BA4",
   [0x42] = "0BA5",
   [0x43] = "0BA6",
-  [0x44] = "0BA6",
+  [0x44] = "0BA6.ES3",
+  [0x45] = "0BA6.ES10",
 }
 
 pg_fields.transaction_id  = ProtoField.uint16("LOGOPG.transaction_id",
