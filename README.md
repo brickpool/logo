@@ -24,7 +24,7 @@ This directory contains the library and some examples that illustrate how the li
 - _LOGO!_ controller version __0BA4__, __0BA5__ or __0BA6__, e.g. part number `6ED1052-1MD00-0BA6`
 - _LOGO!_ PC cable, part number `6ED1057-1AA00-0BA0`
 - Arduino board, e.g. [UNO](http://www.arduino.cc/)
-- [DTE-Interface](/extras/docs/DTE-Interface.md) for connection to the Arduino board
+- [DTE-Interface](https://github.com/brickpool/logo/wiki/DTE-Interface) for connection to the Arduino board
 - Arduino Time Library [TimeLib](https://github.com/PaulStoffregen/Time)
 - For the examples, the alternative SoftwareSerial library [CustomSoftwareSerial](https://github.com/ledongthuc/CustomSoftwareSerial)
 
