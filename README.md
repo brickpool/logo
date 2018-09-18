@@ -1,7 +1,7 @@
 # Logo33lib
 Siemens (TM) LOGO! Library for Arduino
 
-The library is based on the implementation of Settimino. The library support _LOGO!_ __0BA4__, __0BA5__ and __0BA6__ via the serial programming interface (PG-interface). In the future the library will also support the interface for the _Text Display_ (TD-interface) which is only available for the _LOGO!_ __0BA6__.
+The library is based on the implementation of [Settimino](http://settimino.sourceforge.net/). The library support _LOGO!_ __0BA4__, __0BA5__ and __0BA6__ via the serial programming interface (PG-interface). In the future the library will also support the interface for the _Text Display_ (TD-interface) which is only available for the _LOGO!_ __0BA6__ and __0BA7__.
 
 Information about the API is described in the document [LOGO! Library Reference Manual](/extras/docs/RefManual.md).
 
@@ -34,4 +34,4 @@ The library is licensed under the [GNU Lesser General Public License v3.0](/LICE
 ## Credits
 Logo33lib is created by J. Schneider.
 
-Special thanks go to Davide Nardella for creating [Snap7](http://snap7.sourceforge.net/) and [Settimino](http://settimino.sourceforge.net/), Nei Seng for the analysis of the __0BA5__ and Jan Breuer for his [SerialPCAP](https://github.com/j123b567/SerialPCAP).
+Special thanks go to Davide Nardella for creating [Snap7](http://snap7.sourceforge.net/) and [Settimino](http://settimino.sourceforge.net/) and Nei Seng for the analysis of the __0BA5__.
