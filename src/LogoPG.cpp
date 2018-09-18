@@ -1,5 +1,5 @@
 /*
-   LogoPG library, Version 0.5.0-rc1
+   LogoPG library, Version 0.5.1-rc1
 
    Portion copyright (c) 2018 by Jan Schneider
 
@@ -1130,7 +1130,7 @@ int LogoClient::NegotiatePduLength()
   IdentNo = PDU.H[PDURequested - 1];
   switch (IdentNo) {
     case 0x40:
-    // 0BA4
+      // 0BA4
     case 0x42:
       // 0BA5
       PDULength = PduSize0BA4;
@@ -1138,9 +1138,11 @@ int LogoClient::NegotiatePduLength()
       Mapping = VM_MAP_923_983_0BA4;
       break;
     case 0x43:
-    // 0BA6
+      // 0BA6
     case 0x44:
       // 0BA6.ES3
+    case 0x45:
+      // 0BA6.ES10
       PDULength = PduSize0BA6;
       AddrLength = AddrSize0BA6;
       Mapping = VM_MAP_923_983_0BA6;
