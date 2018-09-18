@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## 0.5.1 - 2018-09-18
+### Added
+- Support of 0BA6.ES10
+
 ## [0.5.0] - 2018-03-29
 ### Added
 - CHANGELOG.md added to the project folder
