@@ -9,7 +9,6 @@ Thumbs.db
 
 # Ignore directory with old versions
 /00_old/
-/extras/docs/00_old/
 
 # Ignore document directory
 /01_doc/
