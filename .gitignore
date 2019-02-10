@@ -13,6 +13,9 @@ Thumbs.db
 # Ignore document directory
 /01_doc/
 
+# Ignore withdrawn documents
+/02_withdrawn/
+
 # Ignore some sketches
 /src/src.ino
 
