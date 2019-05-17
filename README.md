@@ -8,7 +8,7 @@ Information about the API is described in the document [LOGO! Library Reference 
 All information about the protocols and details to the _LOGO!_ PLC are described in the [Logo33lib wiki!](http://github.com/brickpool/logo/wiki).
 
 ## Releases
-The current library version is [0.5.0](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate, with patchlevel 0 and has implemented only the PG protocol. 
+The current library version is [0.5.1](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate, with patchlevel 1 and has implemented only the PG protocol.
 
 ## Examples
 This directory contains the library and some examples that illustrate how the library can be used. The examples were tested with an Arduino UNO. Other hardware has not been tried.
