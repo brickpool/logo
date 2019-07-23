@@ -1,8 +1,8 @@
 # LOGO! PG Library Reference Manual
 
-Rev. Ah
+Rev. Ai
 
-Juli 2018
+Juli 2019
 
 ## Preface
 Siemens (TM) LOGO! library for Arduino. 
@@ -73,21 +73,21 @@ Returns a `0` on success or an `Error` code (see Errors Code List [below](#error
 ### <a name="connect-to"></a>LogoClient.ConnectTo(Stream \*Interface)
 Connects the Client to the hardware connected via the serial port.
 
-- `Interface` Stream object for example "Serial"
+ - `Interface` Stream object for example "Serial"
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
 ### <a name="set-connection-params"></a>LogoClient.SetConnectionParams(Stream \*Interface)
 Links the Client to a stream object.
 
-- `Interface` Stream object for example "Serial"
+ - `Interface` Stream object for example "Serial"
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
 ### <a name="set-connection-type"></a>LogoClient.SetConnectionType(type)
 Sets the connection resource type, i.e the way in which the Clients connects to the _LOGO!_ device.
 
-- `type`
+ - `type`
 
 Connection Type | Value | Description
 --- | --- | --- 
@@ -197,7 +197,7 @@ typedef struct {
 ```
 
 The Order code is a null terminated _C_ string such as `6ED1052-xxx00-0BA6`.
-Please note, for the _LOGO!_ __0BA4__ device and in Operation mode _RUN_, the firmware can not be read out (V1 to V3 have a value of `0`).
+Please note, for the _LOGO!_ __0BA4__ device and in operation mode _RUN_, the firmware can not be read out (V1 to V3 have a value of `0`).
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
@@ -209,12 +209,12 @@ __Note:__ All data transfer functions handle this information by themselves and 
 ## <a name="control-functions"></a>API - PLC control functions
 
 ### <a name="plc-start"></a>LogoClient.PlcStart()
-Puts the _LOGO!_ device in RUN mode.
+Puts the _LOGO!_ device in operation mode _RUN_.
 
 Returns a `0` on success and when the _LOGO!_ device is already running, otherwise an `Error` code (see Errors Code List [below](#error-codes)).
 
 ### <a name="plc-stop"></a>LogoClient.PlcStop()
-Puts the _LOGO!_ device in STOP mode.
+Puts the _LOGO!_ device in operation mode _STOP_.
 
 Returns a `0` on success and when the _LOGO!_ device is already stopped, otherwise an `Error` code (see Errors Code List [below](#error-codes)).
 
@@ -234,7 +234,7 @@ LogoCpuStatusStop | 0x04 | The CPU is stopped.
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
 ## <a name="security-functions"></a>API - Security functions
-The password protects the circuit program in LOGO!. Editing values and parameters, or viewing the circuit program in LOGO!, or uploading the circuit program from LOGO! is only possible after you have entered the password. 
+The password protects the circuit program in _LOGO!_. Editing values and parameters, or viewing the circuit program in _LOGO!_, or uploading the circuit program from _LOGO!_ is only possible after you have entered the password. 
 
 __Note:__ Depending on the protection level, each library function is checked before the command can be executed. Regardless of the protection level, diagnostic functions and reading of the variable table are possible. 
 
@@ -274,11 +274,20 @@ Field Values:
 
 Protection  | Values | Description
 --- | --- | --- 
-`sch_schal` | 1,2,3 | Protection level set with the mode selector (1:STOP, 2:RUN, 3:RUN and password set)
-`sch_par` | 0,1 | Password level (0: no password or cannot be determined)
-`sch_rel` | 0,1,2,3 | Valid protection level of the CPU
-`bart_sch` | 1,3 | Mode selector setting (1:RUN, 3:STOP, 0:undefined or cannot be determined)
-`anl_sch` | 0 | Startup switch setting (0:undefined, does not exist or cannot be determined)
+`sch_schal` | 1,2,3 | Protection level set by the operating mode switch (1:STOP, 2:RUN, 3:STOP and password set)
+`sch_par` | 0,1,3 | Parameterized protection level (1:no protection, 3: write/read protection, 0: no password or cannot be determined)
+`sch_rel` | 0,1,2,3 | Valid protection level of the CPU (level 1-3, 0: cannot be determined)
+`bart_sch` | 1,3 | Position of the operating mode switch (1:RUN, 3:STOP, 0:undefined or cannot be determined)
+`anl_sch` | 0 | Position of the startup mode switch (0:undefined, does not exist or cannot be determined)
+
+__Remarks:__
+Only the operating modes _RUN_ and _STOP_ are comparable to the position of the operating mode switch (value `bart_sch`).
+
+The program can only be accessed in operation mode _STOP_ if no password has been set. The _LOGO!_ does not use protection levels, but protection level `1` (no protection) and `3` (read/write protection) are comparable (value `sch_par`). Please note, we use protection level `2` for the operating mode _RUN_, because the _LOGO!_ configuration can not be read out in this operating state (value `sch_schal`).
+
+There is no startup mode switch for the _LOGO!_. Therefore, the value for `anl_sch` is always `0`.
+
+Further information about the `SFC 51` system function can be found in the _SIMATIC S7_ Online Help.
 
 ## <a name="properties"></a>API - Properties
 
