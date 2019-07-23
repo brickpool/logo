@@ -828,9 +828,11 @@ int LogoClient::GetOrderCode(TOrderCode *Info)
       Info->Code[Size_OC - 2] = '5';
       break;
     case 0x43:
-    // 0BA6
+      // 0BA6
     case 0x44:
       // 0BA6.ES3
+    case 0x45:
+      // 0BA6.ES10
       Info->Code[Size_OC - 2] = '6';
       break;
     default:
@@ -897,20 +899,28 @@ int LogoClient::GetProtection(TProtection *Protection)
 
   if (Status == LogoCpuStatusStop)
   {
-    Protection->sch_schal = 1;  // Protection level set with the mode selector = STOP
     byte pw;
     if (ReadByte(ADDR_PW_R_SET, &pw) == 0 && pw == 0x40)
-      Protection->sch_par = 1;  // Password level
-    Protection->sch_rel = 3;    // Set valid protection level
-    Protection->bart_sch = 3;   // Mode selector setting = STOP
+    {
+      Protection->sch_schal = 3;  // Protection level set with the mode selector = STOP and password set
+      Protection->sch_par = 3;    // write/read protection
+      Protection->sch_rel = 3;    // Set valid protection level
+    }
+    else
+    {
+      Protection->sch_schal = 1;  // Protection level set with the mode selector = STOP
+      Protection->sch_par = 1;    // no protection
+      Protection->sch_rel = 1;    // Set valid protection level
+    }
+    Protection->bart_sch = 3;     // Mode selector setting = STOP
     // anl_sch = 0;
   } 
   else 
   {
-    Protection->sch_schal = 2;  // Protection level set with the mode selector = RUN
+    Protection->sch_schal = 2;    // Protection level set with the mode selector = RUN
     // sch_par = 0;
-    Protection->sch_rel = 2;    // Set valid protection level
-    Protection->bart_sch = 1;   // Mode selector setting = STOP
+    Protection->sch_rel = 2;      // Set valid protection level
+    Protection->bart_sch = 1;     // Mode selector setting = RUN
     // anl_sch = 0;
   }
 
