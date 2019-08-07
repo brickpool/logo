@@ -280,7 +280,7 @@ Protection  | Values | Description
 `bart_sch` | 1,3 | Position of the operating mode switch (1:RUN, 3:STOP, 0:undefined or cannot be determined)
 `anl_sch` | 0 | Position of the startup mode switch (0:undefined, does not exist or cannot be determined)
 
-__Remarks:__
+__Remarks:__  
 Only the operating modes _RUN_ and _STOP_ are comparable to the position of the operating mode switch (value `bart_sch`).
 
 The program can only be accessed in operation mode _STOP_ if no password has been set. The _LOGO!_ does not use protection levels, but protection level `1` (no protection) and `3` (read/write protection) are comparable (value `sch_par`). Please note, we use protection level `2` for the operating mode _RUN_, because the _LOGO!_ configuration can not be read out in this operating state (value `sch_schal`).

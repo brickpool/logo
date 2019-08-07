@@ -1,32 +1,32 @@
 /*
- * LogoPG library, Version 0.5.0-rc1
- * 
- * Portion copyright (c) 2018 by Jan Schneider
- * 
+ * LogoPG library, Version 0.5.1-rc2
+ *
+ * Portion copyright (c) 2018,2019 by Jan Schneider
+ *
  * LogoPG provided a library under ARDUINO to read data from a
  * Siemens(tm) LOGO! PLC via the serial programing interface.
  * Only LOGO 0BA4 to 0BA6 are supported.
- * 
+ *
  ***********************************************************************
  *
  * This file is based on the implementation of SETTIMINO Version 1.1.0
  * The project SETTIMINO is an ARDUINO Ethernet communication library
  * for S7 Siemens(tm) PLC
- * 
+ *
  * Copyright (c) of SETTIMINO 2013 by Davide Nardella
- * 
+ *
  * SETTIMINO is free software: we can redistribute it and/or modify
  * it under the terms of the Lesser GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License.
- * 
+ *
  * Please visit http://settimino.sourceforge.net/ for more information
  * of SETTIMINO
- * 
+ *
  ***********************************************************************
  *
  * Changelog: https://github.com/brickpool/logo/blob/master/CHANGELOG.md
- * 
+ *
 */
 
 #ifndef LogoPG_h_
@@ -74,7 +74,7 @@
 
 // PDU related constants
 #define AddrSize0BA4   2    // Size of Address for 0BA4
-#define AddrSize0BA6   4    // Size of Address for 0BA4
+#define AddrSize0BA6   4    // Size of Address for 0BA6
 #define PduSize0BA4   70    // Fetch Data PDU size for 0BA4 and 0BA5
 #define PduSize0BA6   80    // Fetch Data PDU size for 0BA6
 #define MinPduSize    70    // Minimum Fetch Data PDU size (0BA4, 0BA5)
@@ -175,8 +175,8 @@ public:
   // Extended functions
 #ifdef _EXTENDED
 /*
-	int GetDBSize(word DBNumber, size_t *Size);
-	int DBGet(word DBNumber, void *ptrData, size_t *Size);
+  int GetDBSize(word DBNumber, size_t *Size);
+  int DBGet(word DBNumber, void *ptrData, size_t *Size);
 */
   // Control functions
   int PlcStart();       // start PLC

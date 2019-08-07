@@ -1,32 +1,32 @@
 /*
-   LogoPG library, Version 0.5.1-rc1
-
-   Portion copyright (c) 2018 by Jan Schneider
-
-   LogoPG provided a library under ARDUINO to read data from a
-   Siemens(tm) LOGO! PLC via the serial programing interface.
-   Only LOGO 0BA4 to 0BA6 are supported.
-
+ * LogoPG library, Version 0.5.1-rc2
+ *
+ * Portion copyright (c) 2018,2019 by Jan Schneider
+ *
+ * LogoPG provided a library under ARDUINO to read data from a
+ * Siemens(tm) LOGO! PLC via the serial programing interface.
+ * Only LOGO 0BA4 to 0BA6 are supported.
+ *
  ***********************************************************************
-
-   This file is based on the implementation of SETTIMINO Version 1.1.0
-   The project SETTIMINO is an ARDUINO Ethernet communication library
-   for S7 Siemens(tm) PLC
-
-   Copyright (c) of SETTIMINO 2013 by Davide Nardella
-
-   SETTIMINO is free software: we can redistribute it and/or modify
-   it under the terms of the Lesser GNU General Public License as
-   published by the Free Software Foundation, either version 3 of the
-   License.
-
-   Please visit http://settimino.sourceforge.net/ for more information
-   of SETTIMINO
-
+ *
+ * This file is based on the implementation of SETTIMINO Version 1.1.0
+ * The project SETTIMINO is an ARDUINO Ethernet communication library
+ * for S7 Siemens(tm) PLC
+ *
+ * Copyright (c) of SETTIMINO 2013 by Davide Nardella
+ *
+ * SETTIMINO is free software: we can redistribute it and/or modify
+ * it under the terms of the Lesser GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License.
+ *
+ * Please visit http://settimino.sourceforge.net/ for more information
+ * of SETTIMINO
+ *
  ***********************************************************************
-
-   Changelog: https://github.com/brickpool/logo/blob/master/CHANGELOG.md
-
+ *
+ * Changelog: https://github.com/brickpool/logo/blob/master/CHANGELOG.md
+ *
 */
 
 #include "Arduino.h"
@@ -127,6 +127,9 @@ const PROGMEM char ORDER_CODE[Size_OC] = "6ED1052-xxx00-0BAx";
 #define VM_NDEF_AREA2 1003  // not defined area #2
 #define VM_END        1023  // last valid address
 
+#define VM_FIRST      VM_0BA7_AREA  // first address for access
+#define VM_LAST       VM_DDT_AREA   // last address for access
+
 // Store mapping in flash (program) memory instead of SRAM
 
 /*
@@ -218,11 +221,11 @@ bool LogoHelper::BitAt(void *Buffer, int ByteIndex, byte BitIndex)
 
 bool LogoHelper::BitAt(int ByteIndex, int BitIndex)
 {
-  if (ByteIndex < VM_0BA7_AREA || ByteIndex > VM_DDT_AREA - 1)
+  if (ByteIndex < VM_FIRST || ByteIndex > VM_LAST - 1)
     return false;
 
   // https://www.arduino.cc/reference/en/language/variables/utilities/progmem/
-  ByteIndex = pgm_read_byte_near(LogoClient::Mapping + ByteIndex - VM_0BA7_AREA);
+  ByteIndex = pgm_read_byte_near(LogoClient::Mapping + ByteIndex - VM_FIRST);
 
   if (ByteIndex > MaxPduSize - Size_RD - 1)
     return false;
@@ -238,10 +241,10 @@ byte LogoHelper::ByteAt(void *Buffer, int index)
 
 byte LogoHelper::ByteAt(int index)
 {
-  if (index < VM_0BA7_AREA || index > VM_DDT_AREA - 1)
+  if (index < VM_FIRST || index > VM_LAST - 1)
     return 0;
 
-  index = pgm_read_byte_near(LogoClient::Mapping + index - VM_0BA7_AREA);
+  index = pgm_read_byte_near(LogoClient::Mapping + index - VM_FIRST);
 
   if (index > MaxPduSize - Size_RD - 1)
     return 0;
@@ -257,11 +260,11 @@ word LogoHelper::WordAt(void *Buffer, int index)
 
 word LogoHelper::WordAt(int index)
 {
-  if (index < VM_0BA7_AREA || index > VM_DDT_AREA - 2)
+  if (index < VM_FIRST || index > VM_LAST - 2)
     return 0;
 
-  byte hi = pgm_read_byte_near(LogoClient::Mapping + index - VM_0BA7_AREA);
-  byte lo = pgm_read_byte_near(LogoClient::Mapping + index + 1 - VM_0BA7_AREA);
+  byte hi = pgm_read_byte_near(LogoClient::Mapping + index - VM_FIRST);
+  byte lo = pgm_read_byte_near(LogoClient::Mapping + index + 1 - VM_FIRST);
 
   if (hi > MaxPduSize - Size_RD - 1)
     return 0;
@@ -277,11 +280,11 @@ int LogoHelper::IntegerAt(void *Buffer, int index)
 
 int LogoHelper::IntegerAt(int index)
 {
-  if (index < VM_0BA7_AREA || index > VM_DDT_AREA - 2)
+  if (index < VM_FIRST || index > VM_LAST - 2)
     return 0;
 
-  byte hi = pgm_read_byte_near(LogoClient::Mapping + index - VM_0BA7_AREA);
-  byte lo = pgm_read_byte_near(LogoClient::Mapping + index + 1 - VM_0BA7_AREA);
+  byte hi = pgm_read_byte_near(LogoClient::Mapping + index - VM_FIRST);
+  byte lo = pgm_read_byte_near(LogoClient::Mapping + index + 1 - VM_FIRST);
 
   if (hi > MaxPduSize - Size_RD - 1)
     return 0;
@@ -334,10 +337,10 @@ void LogoClient::SetConnectionParams(Stream *Interface)
 
 void LogoClient::SetConnectionType(word ConnectionType)
 {
-  // The LOGO 0BA4 tp 0BA6 supports only the PG protocol
-  // The PG protocol is used by the software LOGO Comfort (the developing tool)
+  // The LOGO 0BA4 to 0BA6 supports only the PG protocol
+  // The PG protocol is used by the software 'LOGO! Soft Comfort' (the developing tool)
   // to perform system tasks such as program upload/download, run/stop and configuration.
-  // Other protocols are not implemented yet.
+  // Other protocols (for exapmle the TD protocol) are not implemented yet.
   if (ConnectionType != PG)
     SetLastError(errCliFunction);
   ConnType = ConnectionType;

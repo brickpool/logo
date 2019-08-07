@@ -4,7 +4,13 @@ This CHANGELOG file should help that the library becomes a standardized open sou
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] - 2018-07-23
+
+### Changed
+- Protection Level in GetProtection
+
+### Fixed
+- GetOrderCode: Support of 0BA6.ES10
 
 ## [0.5.1] - 2018-09-18
 ### Added

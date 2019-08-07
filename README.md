@@ -5,7 +5,7 @@ The library is based on the implementation of [Settimino](http://settimino.sourc
 
 Information about the API is described in the document [LOGO! Library Reference Manual](/extras/docs/RefManual.md).
 
-All information about the protocols and details to the _LOGO!_ PLC are described in the [Logo33lib wiki!](http://github.com/brickpool/logo/wiki).
+All information about the protocols and details to the _LOGO!_ PLC are described in the associated [Wiki](http://github.com/brickpool/logo/wiki).
 
 ## Releases
 The current library version is [0.5.1](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate, with patchlevel 1 and has implemented only the PG protocol.
@@ -29,9 +29,9 @@ This directory contains the library and some examples that illustrate how the li
 - For the examples, the alternative SoftwareSerial library [CustomSoftwareSerial](https://github.com/ledongthuc/CustomSoftwareSerial)
 
 ## License
-The library is licensed under the [GNU Lesser General Public License v3.0](/LICENSE). However, Logo33lib distributes and uses code from other Open Source Projects that have their own licenses. 
+The library is licensed under the [GNU Lesser General Public License v3.0](/LICENSE) (same as [Settimino](http://settimino.sourceforge.net/)). However, this library distributes and uses code from other Open Source Projects that have their own licenses. 
 
 ## Credits
-Logo33lib is created by J. Schneider.
+This library is created by J. Schneider.
 
 Special thanks go to Davide Nardella for creating [Snap7](http://snap7.sourceforge.net/) and [Settimino](http://settimino.sourceforge.net/) and Nei Seng for the analysis of the __0BA5__.
