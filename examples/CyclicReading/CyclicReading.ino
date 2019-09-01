@@ -102,7 +102,7 @@ void CheckError(int ErrNo)
   Serial.println(ErrNo, HEX);
   
   // Checks if it's a LOGO Error => we need to disconnect
-  if (ErrNo & 0x00FF)
+  if (ErrNo & 0x01FF)
   {
     Serial.println("LOGO ERROR, disconnecting.");
     LOGO.Disconnect(); 
