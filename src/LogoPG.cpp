@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.5.1-20190901
+ * LogoPG library, Version 0.5.1-rc2
  *
  * Portion copyright (c) 2018,2019 by Jan Schneider
  *
