@@ -2,7 +2,7 @@
 
 Rev. Ai
 
-Juli 2019
+September 2019
 
 ## Preface
 Siemens (TM) LOGO! library for Arduino. 
@@ -245,7 +245,7 @@ Send the password to the _LOGO!_ to meet its security level.
 
 Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
-A `password` accepted by a _LOGO!_ is an 10 chars string, a longer password will be trimmed, and a shorter one will be "right space padded". Only upper case charaters from `A` to `Z` can be used for the `password`.
+A `password` accepted by a _LOGO!_ is an 10 chars string, a longer password will be trimmed. Only upper case charaters from `A` to `Z` can be used for the `password`.
 
 ### <a name="clear-session-password"></a>LogoClient.ClearSessionPassword()
 Clears the password set for the current session.
