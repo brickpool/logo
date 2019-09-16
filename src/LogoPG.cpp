@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.5.1-rc2
+ * LogoPG library, Version 0.5.1-20190910
  *
  * Portion copyright (c) 2018,2019 by Jan Schneider
  *
@@ -35,6 +35,7 @@
 #endif
 #include "LogoPG.h"
 #include <avr/pgmspace.h>
+#include "ArduinoLog.h"
 
 // For further informations about the structures, command codes, byte arrays and their meanings
 // see http://github.com/brickpool/logo
@@ -99,9 +100,20 @@ const PROGMEM char ORDER_CODE[Size_OC] = "6ED1052-xxx00-0BAx";
 #define ADDR_OC_R_PATCH1    0x00FF1F07UL  // ASCII = _.__.X_
 #define ADDR_OC_R_PATCH2    0x00FF1F08UL  // ASCII = _.__._X
 
-#define ADDR_PW_R_SET       0x00FF48FFUL  // password exist (Y = 0x40, N = 0x00)
+#define ADDR_PWD_W_ACCESS   0x00FF4740UL  // Password access
+#define ADDR_PWD_R_MAGIC1   0x00FF1F00UL  // Password 1st magic byte (= 0x04)
+#define ADDR_PWD_R_MAGIC2   0x00FF1F01UL  // Password 2nd magic byte (= 0x00)
+#define ADDR_PWD_R_EXISTS   0x00FF48FFUL  // Password exist (Y = 0x40, N = 0x00)
+#define ADDR_PWD_R_MEM      0x00FF0566UL  // Password storage
+#define ADDR_PWD_W_OK       0x00FF4800UL  // Password ok
 
 #endif // _EXTENDED
+
+// There are 3 privilege levels ranging from 0 which is the least privileged,
+// to 15 which is most privileged.
+#define PWD_LEVEL_ZERO          0x00  // unknown, limited in operation mode RUN
+#define PWD_LEVEL_RESTRICTED    0x01  // restricted access in operation mode STOP
+#define PWD_LEVEL_FULL          0x0F  // full access in operation mode STOP
 
 // If an error has occurred, the LOGO send a negative confirmation 0x15 (NOK)
 // and then an error byte with the following codes
@@ -306,6 +318,7 @@ LogoClient::LogoClient()
   PDULength     = 0;
   PDURequested  = 0;
   AddrLength    = 0;
+  AccessMode    = PWD_LEVEL_ZERO;
   Mapping       = VM_MAP_923_983_0BA6;
   RecvTimeout   = TIMEOUT;
   StreamClient  = NULL;
@@ -319,6 +332,7 @@ LogoClient::LogoClient(Stream *Interface)
   PDULength     = 0;
   PDURequested  = 0;
   AddrLength    = 0;
+  AccessMode    = PWD_LEVEL_ZERO;
   Mapping       = VM_MAP_923_983_0BA6;
   RecvTimeout   = TIMEOUT;
   StreamClient  = Interface;
@@ -354,6 +368,8 @@ int LogoClient::ConnectTo(Stream *Interface)
 
 int LogoClient::Connect()
 {
+  
+  Log.trace(F("try to connect to %X" CR), StreamClient);
   LastError = 0;
   if (!Connected)
   {
@@ -373,6 +389,7 @@ int LogoClient::Connect()
 
 void LogoClient::Disconnect()
 {
+  Log.trace(F("disconnecting.." CR));
   if (Connected)
   {
     Connected     = false;
@@ -675,6 +692,7 @@ int LogoClient::GetPlcStatus(int *Status)
 
 int LogoClient::GetPlcDateTime(TimeElements *DateTime)
 {
+  Log.trace(F("System clock read requested" CR));
   int Status;                     // Operation mode
 
   if (DateTime == NULL)           // Exit with Error if DateTime is undefined
@@ -738,6 +756,7 @@ int LogoClient::GetPlcDateTime(time_t *DateTime)
 
 int LogoClient::SetPlcDateTime(TimeElements DateTime)
 {
+  Log.trace(F("System clock write requested" CR));
   int Status;                     // Operation mode
 
   if (!Connected)                 // Exit with Error if not connected
@@ -884,6 +903,103 @@ int LogoClient::GetOrderCode(TOrderCode *Info)
   return SetLastError(0);
 }
 
+int LogoClient::SetSessionPassword(char *password)
+{
+  int Status;                     // Operation mode
+  byte by;
+
+  Log.trace(F("Security request : Set session password" CR));
+
+  if (password == NULL)           // Exit with Error if password is undefined
+    return SetLastError(errPGInvalidPDU);
+
+  if (!Connected)                 // Exit with Error if not connected
+    return SetLastError(errPGConnect);
+
+  // By default, define zero mode
+  AccessMode = PWD_LEVEL_ZERO;
+
+  // Check operation mode
+  if (GetPlcStatus(&Status) != 0)
+    return LastError;
+
+  if (Status == LogoCpuStatusStop)
+  {
+    // Set restricted mode
+    AccessMode = PWD_LEVEL_RESTRICTED;
+  
+    // Start the sequence for reading out the password
+    if (WriteByte(ADDR_PWD_W_ACCESS, 0) != 0)
+      return LastError;
+  
+    if (ReadByte(ADDR_PWD_R_MAGIC1, &by) != 0)
+      return LastError;
+    if (by != 0x04) return SetLastError(errCliDataRead);
+  
+    if (ReadByte(ADDR_PWD_R_MAGIC2, &by) != 0)
+      return LastError;
+    if (by != 0x00) return SetLastError(errCliDataRead);
+  
+    // Check if a password exists
+    if (ReadByte(ADDR_PWD_R_EXISTS, &by) != 0)
+      return LastError;
+  
+    if (by == 0x40)                   // Password set
+    {
+      // Read 10 bytes from addr 0566
+      if (ReadBlock(ADDR_PWD_R_MEM, 10, PDU.DATA) != 0)
+        return LastError;
+  
+      // Compare the two password strings
+      if (strncmp(password, PDU.DATA, 10) != 0)
+        return SetLastError(errCliFunction);
+  
+      // Login successful
+      if (WriteByte(ADDR_PWD_W_OK, 0) != 0)
+        return LastError;
+    } 
+
+    AccessMode = PWD_LEVEL_FULL;
+  }
+
+  Log.trace(F("--> OK" CR));
+  return SetLastError(0);
+}
+
+int LogoClient::ClearSessionPassword()
+{
+  int Status;                     // Operation mode
+  byte pw;
+
+  Log.trace(F("Security request : Clear session password" CR));
+  
+  if (!Connected)                 // Exit with Error if not connected
+    return SetLastError(errPGConnect);
+
+  // By default, define zero mode
+  AccessMode = PWD_LEVEL_ZERO;
+
+  // Check operation mode
+  if (GetPlcStatus(&Status) != 0)
+    return LastError;
+
+  if (Status == LogoCpuStatusStop)
+  {
+    // Set restricted mode
+    AccessMode = PWD_LEVEL_RESTRICTED;
+  
+    // Check if a password exists
+    if (ReadByte(ADDR_PWD_R_EXISTS, &pw) != 0)
+      return LastError;
+  
+    if (pw != 0x40)                   // Password not set
+      AccessMode = PWD_LEVEL_FULL;
+  }
+
+  Log.trace(F("--> OK" CR));
+  return SetLastError(0);
+}
+
 int LogoClient::GetProtection(TProtection *Protection)
 {
   int Status;                     // Operation mode
@@ -904,7 +1020,7 @@ int LogoClient::GetProtection(TProtection *Protection)
   if (Status == LogoCpuStatusStop)
   {
     byte pw;
-    if (ReadByte(ADDR_PW_R_SET, &pw) == 0 && pw == 0x40)
+    if (ReadByte(ADDR_PWD_R_EXISTS, &pw) == 0 && pw == 0x40)
     {
       Protection->sch_schal = 3;  // Protection level set with the mode selector = STOP and password set
       Protection->sch_par = 3;    // write/read protection
@@ -933,7 +1049,62 @@ int LogoClient::GetProtection(TProtection *Protection)
 
 void LogoClient::ErrorText(int Error, char *Text, int TextLen)
 {
+  if (Text == NULL || TextLen <= 0) 
+    return;
 
+  memset(Text, 0, TextLen);
+  switch (Error)
+  {
+    case 0 :
+      strncpy_P(Text, PSTR("OK"), TextLen);
+      return;
+    case errStreamConnectionFailed :
+      strncpy_P(Text, PSTR("Stream Connection failed."), TextLen);
+      return;
+    case errStreamConnectionReset :
+      strncpy_P(Text, PSTR("Connection reset by the peer."), TextLen);
+      return;
+    case errStreamDataRecvTout :
+      strncpy_P(Text, PSTR("Data Receiving timeout."), TextLen);
+      return;
+    case errStreamDataSend :
+      strncpy_P(Text, PSTR("Stream Sending error."), TextLen);
+      return;
+    case errStreamDataRecv :
+      strncpy_P(Text, PSTR("Stream Receiving error."), TextLen);
+      return;
+    case errPGConnect :
+      strncpy_P(Text, PSTR("Connection refused by the PLC."), TextLen);
+      return;
+    case errPGInvalidPDU :
+      strncpy_P(Text, PSTR("Invalid parameters supplied to the function."), TextLen);
+      return;
+    case errCliInvalidPDU :
+      strncpy_P(Text, PSTR("Client received invalid PDU."), TextLen);
+      return;
+    case errCliSendingPDU :
+      strncpy_P(Text, PSTR("Client sending invalid PDU."), TextLen);
+      return;
+    case errCliDataRead :
+      strncpy_P(Text, PSTR("Error reading data from the PLC."), TextLen);
+      return;
+    case errCliDataWrite :
+      strncpy_P(Text, PSTR("Error writing data to the PLC."), TextLen);
+      return;
+    case errCliFunction :
+      strncpy_P(Text, PSTR("Client function refused by the PLC."), TextLen);
+      return;
+    case errCliBufferTooSmall :
+      strncpy_P(Text, PSTR("The Buffer supplied to the function is too small."), TextLen);
+      return;
+    case errCliNegotiatingPDU :
+      strncpy_P(Text, PSTR("Error negotiating the PDU length."), TextLen);
+      return;
+    default:
+      if (TextLen > 20)
+        sprintf_P(Text, PSTR("Unknown error : 0x%02x"), Error);
+      return;
+  };
 }
 
 #endif // _EXTENDED
@@ -1172,7 +1343,8 @@ int LogoClient::NegotiatePduLength()
       // 0BAx
       return SetLastError(errCliNegotiatingPDU);
   }
-
+  
+  Log.trace(F("PDU negotiated length: %d bytes" CR), PDULength);
   return SetLastError(0);
 }
 
@@ -1235,7 +1407,7 @@ int LogoClient::ReadByte(dword Addr, byte *Data)
   else if (LastPDUType == NOK)  // Request not confirmed
   {
     // Get second byte
-    if (RecvPacket(PDU.H[1], 1) != 0)
+    if (RecvPacket(&PDU.H[1], 1) != 0)
       return LastError;
 
     // Get Error Type
@@ -1283,11 +1455,87 @@ int LogoClient::WriteByte(dword Addr, byte Data)
     if (LastPDUType == NOK)     // Get Exception Code
     {
       // Get second byte
-      if (RecvPacket(PDU.H[1], 1) != 0)
+      if (RecvPacket(&PDU.H[1], 1) != 0)
         return LastError;
     }
     return SetLastError(errCliDataWrite);
   }
+
+  return SetLastError(0);
+}
+
+int LogoClient::ReadBlock(dword Addr, word ByteCount, byte *Data)
+{
+  size_t Length = 0;
+  byte Checksum = 0;
+
+  if (Data == NULL)
+    return SetLastError(errCliInvalidPDU);
+  memset(Data, 0, ByteCount);
+
+  // Send the Query message
+  memset(&PDU, 0, sizeof(PDU));
+  // Read Block Command Code
+  PDU.H[Length++] = 0x05;
+  // Address Field
+  if (AddrLength == 4)
+  {
+    PDU.H[Length++] = highByte(word(Addr >> 16));
+    PDU.H[Length++] = lowByte(word(Addr >> 16));
+  }
+  PDU.H[Length++] = highByte(word(Addr));
+  PDU.H[Length++] = lowByte(word(Addr));
+  // Number of bytes
+  PDU.H[Length++] = highByte(ByteCount);
+  PDU.H[Length++] = lowByte(ByteCount);
+  // Send Query
+  if (StreamClient->write(PDU.H, Length) != Length)
+    return SetLastError(errStreamDataSend);
+
+  // Receive the Response message
+  memset(&PDU, 0, Length);
+  // Get first byte
+  if (RecvPacket(PDU.H, 1) != 0)
+    return LastError;
+  LastPDUType = PDU.H[0];       // Store PDU Type
+
+  if (LastPDUType == ACK)       // Connection confirmed
+  {
+    // Get Data Block
+    Length = 0;                 // Init statement
+    while (Length < ByteCount)
+    {
+      PDURequested = ByteCount - Length;
+      if (PDURequested > MaxPduSize) 
+        PDURequested = MaxPduSize;
+      if (RecvPacket(Data + Length, PDURequested) != 0)
+        return LastError;
+      Length += PDURequested;   // Iteration expression 
+    }
+
+    // Get Checksum
+    if (RecvPacket(PDU.T, 1) != 0)
+      return LastError;
+
+    // Calculate Checksum (only the data field are used for this) 
+    for (int i = 0; i < ByteCount; i++)
+      Checksum = (*(Data + i) ^ Checksum) % 256;
+
+    if (PDU.T[0] != Checksum)
+      // Error, the response does not have the correct Checksum
+      return SetLastError(errCliDataRead);
+  }
+  else if (LastPDUType == NOK)  // Request not confirmed
+  {
+    // Get second byte
+    if (RecvPacket(PDU.H[1], 1) != 0)
+      return LastError;
+
+    // Get Error Type
+    return SetLastError(CpuError(PDU.H[1]));
+  }
+  else
+    return SetLastError(errCliDataRead);
 
   return SetLastError(0);
 }

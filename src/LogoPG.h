@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.5.1-20190901
+ * LogoPG library, Version 0.5.1-20190910
  *
  * Portion copyright (c) 2018,2019 by Jan Schneider
  *
@@ -191,10 +191,8 @@ public:
   // System info functions
   int GetOrderCode(TOrderCode *Info);
   // Security functions
-/*
   int SetSessionPassword(char *password);
   int ClearSessionPassword();
-*/
   int GetProtection(TProtection *Protection);
   // Miscellaneous functions
 /*
@@ -217,6 +215,7 @@ private:
   int PDULength;          // PDU length negotiated (0 if not negotiated)
   int PDURequested;       // PDU length requested by the client
   int AddrLength;         // Address length negotiated (in bytes for function sizeof)
+  int AccessMode;         // By default, LOGO! have two privileged levels: protected and full access
 
   int RecvControlResponse(size_t *Size);
   int RecvPacket(byte buf[], size_t Size);
@@ -228,6 +227,7 @@ private:
   // Low level functions
   int ReadByte(dword Addr, byte *Data);
   int WriteByte(dword Addr, byte Data);
+  int ReadBlock(dword Addr, word ByteCount, byte *Data);
   int CpuError(int Error);
 };
 
