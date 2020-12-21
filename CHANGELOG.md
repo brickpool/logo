@@ -4,7 +4,7 @@ This CHANGELOG file should help that the library becomes a standardized open sou
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2020-12-14
+## [Unreleased] - 2020-12-21
 
 ### Added
 - Low Level funtion LogoClient::ReadBlock
@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - GetOrderCode: Support of 0BA6.ES10
 - StreamConnect: Clearing serial buffer for Reconnection
+- ReadArea: VM Mapping (correct access to the program space)
 
 ## [0.5.1] - 2018-09-18
 ### Added

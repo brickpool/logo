@@ -536,7 +536,8 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
     SizeRequested = NumElements * WordSize;
     while (SizeRequested-- > 0)
     {
-      byte val = PDU.DATA[Mapping[Address++]];
+      // byte val = PDU.DATA[Mapping[Address++]]
+      byte val = PDU.DATA[pgm_read_byte_near(Mapping + Address++)];
       if (val != 0xFF)
         Target[Offset++] = val;
     }
@@ -1219,8 +1220,10 @@ int LogoClient::RecvPacket(byte buf[], size_t Size)
 
     // The next line will also notice a rollover after about 50 days.
     // https://playground.arduino.cc/Code/TimingRollover
-    if (millis() - Elapsed > RecvTimeout)
+    if (millis() - Elapsed > RecvTimeout) {
+      Log.warning(F("Timeout > %d" CR), RecvTimeout);
       break; // Timeout
+    }
   }
 
   // Here we are in timeout zone, if there's something into the buffer, it must be discarded.
