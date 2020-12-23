@@ -1,4 +1,9 @@
-#include <CustomSoftwareSerial.h>
+#ifdef ARDUINO_AVR_UNO
+  #if ARDUINO != 10805
+    #error Arduino 1.8.5 required.
+  #endif
+  #include <CustomSoftwareSerial.h>
+#endif
 
 #define BUFFER_SIZE    80
 
@@ -6,11 +11,21 @@ char receivedChars[BUFFER_SIZE*2]; // an array to store the received data
 boolean newData = false;
 byte message[BUFFER_SIZE];  // an array to store the message data
 
-const byte rxPin = 2;
-const byte txPin = 3;
-
-// set up the SoftwareSerial object
-CustomSoftwareSerial LogoSerial(rxPin, txPin);
+// set up the LogoSerial object
+#ifdef CustomSoftwareSerial_h
+  #if defined(SERIAL_8E1)
+    #undef  SERIAL_8E1
+  #endif
+  #define SERIAL_8E1  CSERIAL_8E1
+  #define rxPin       2
+  #define txPin       3
+  CustomSoftwareSerial LogoSerial(rxPin, txPin);
+#else
+  // Serial1:
+  //      rxPin       18
+  //      txPin       19
+  #define LogoSerial  Serial1
+#endif
 
 void setup() {
   // initialize digital pin LED_BUILTIN as an output and turn the LED off
@@ -24,12 +39,16 @@ void setup() {
   }
   Serial.println("Monitor is ready.");
 
-  // Init CustomSoftwareSerial
-  LogoSerial.begin(9600, CSERIAL_8E1);
+  // Init LogoSerial
+  LogoSerial.begin(9600, SERIAL_8E1);
   // Setup Time, 1s.
   delay(1000);
+#ifdef CustomSoftwareSerial_h
   if (LogoSerial.isListening())
-    Serial.println("SoftSerial is listening.");
+#else
+  if (LogoSerial)
+#endif
+    Serial.println("LogoSerial is ready.");
 }
 
 void loop()
@@ -88,6 +107,8 @@ void loop()
     printHex(message, cnt);
     Serial.println();
   }
+
+  delay(10);
 }
 
 // https://stackoverflow.com/questions/35227449/convert-ip-or-mac-address-from-string-to-byte-array-arduino-or-c

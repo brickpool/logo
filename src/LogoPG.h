@@ -1,7 +1,7 @@
 /*
- * LogoPG library, Version 0.5.1-20190910
+ * LogoPG library, Version 0.5.2-20201223
  *
- * Portion copyright (c) 2018,2019 by Jan Schneider
+ * Portion copyright (c) 2018,2020 by Jan Schneider
  *
  * LogoPG provided a library under ARDUINO to read data from a
  * Siemens(tm) LOGO! PLC via the serial programing interface.

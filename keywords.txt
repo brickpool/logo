@@ -6,56 +6,59 @@
 # Datatypes (KEYWORD1)
 #######################################
 
-LogoHelper	KEYWORD1
-LogoClient	KEYWORD1
+LogoHelper            KEYWORD1
+LogoClient            KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
 
-BitAt	KEYWORD2
-ByteAt	KEYWORD2
-WordAt	KEYWORD2
-IntegerAt	KEYWORD2
-SetConnectionParams	KEYWORD2
-SetConnectionType	KEYWORD2
-ConnectTo	KEYWORD2
-Connect	KEYWORD2
-Disconnect	KEYWORD2
-ReadArea	KEYWORD2
-GetPDULength	KEYWORD2
-PlcStart	KEYWORD2
-PlcStop	KEYWORD2
-GetPlcStatus	KEYWORD2
-GetPlcDateTime	KEYWORD2
-SetPlcDateTime	KEYWORD2
-GetOrderCode  KEYWORD2
+BitAt                 KEYWORD2
+ByteAt                KEYWORD2
+WordAt                KEYWORD2
+IntegerAt             KEYWORD2
+SetConnectionParams   KEYWORD2
+SetConnectionType     KEYWORD2
+ConnectTo             KEYWORD2
+Connect               KEYWORD2
+Disconnect            KEYWORD2
+ReadArea              KEYWORD2
+GetPDULength          KEYWORD2
+PlcStart              KEYWORD2
+PlcStop               KEYWORD2
+GetPlcStatus          KEYWORD2
+GetPlcDateTime        KEYWORD2
+SetPlcDateTime        KEYWORD2
+SetPlcSystemDateTime  KEYWORD2
+GetOrderCode          KEYWORD2
+SetSessionPassword    KEYWORD2
+ClearSessionPassword  KEYWORD2
+GetProtection         KEYWORD2
+ErrorText             KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
 #######################################
 
-LogoAreaDB	LITERAL1
+LogoAreaDB            LITERAL1
+PG                    LITERAL1
 
-PG	LITERAL1
+LogoCpuStatusUnknown  LITERAL1
+LogoCpuStatusRun      LITERAL1
+LogoCpuStatusStop     LITERAL1
 
-LogoCpuStatusUnknown	LITERAL1
-LogoCpuStatusRun	LITERAL1
-LogoCpuStatusStop	LITERAL1
+errStreamConnectionFailed LITERAL1
+errStreamConnectionReset  LITERAL1
+errStreamDataRecvTout     LITERAL1
+errStreamDataSend         LITERAL1
+errStreamDataRecv         LITERAL1
+errPGConnect              LITERAL1
+errPGInvalidPDU           LITERAL1
 
-errStreamConnectionFailed   LITERAL1
-errStreamConnectionReset   LITERAL1
-errStreamDataRecvTout   LITERAL1
-errStreamDataSend   LITERAL1
-errStreamDataRecv   LITERAL1
-errPGConnect   LITERAL1
-errPGInvalidPDU   LITERAL1
-
-errCliInvalidPDU   LITERAL1
-errCliSendingPDU   LITERAL1
-errCliDataRead   LITERAL1
-errCliDataWrite   LITERAL1
-errCliFunction   LITERAL1
-errCliBufferTooSmall   LITERAL1
-errCliNegotiatingPDU   LITERAL1
-
+errCliInvalidPDU      LITERAL1
+errCliSendingPDU      LITERAL1
+errCliDataRead        LITERAL1
+errCliDataWrite       LITERAL1
+errCliFunction        LITERAL1
+errCliBufferTooSmall  LITERAL1
+errCliNegotiatingPDU  LITERAL1

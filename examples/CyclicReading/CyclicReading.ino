@@ -1,14 +1,31 @@
-#include <CustomSoftwareSerial.h>
+#ifdef ARDUINO_AVR_UNO
+  #if ARDUINO != 10805
+    #error Arduino 1.8.5 required.
+  #endif
+  #include <CustomSoftwareSerial.h>
+#endif
+#include <ArduinoLog.h>
 #include "LogoPG.h"
-
-const byte rxPin = 2;
-const byte txPin = 3;
 
 unsigned long cycleTime;
 const unsigned long cycleDelay = 500; // min > 200ms
 
-// set up the SoftwareSerial object
-CustomSoftwareSerial LogoSerial(rxPin, txPin);
+// set up the LogoSerial object
+#ifdef CustomSoftwareSerial_h
+  #if defined(SERIAL_8E1)
+    #undef  SERIAL_8E1
+  #endif
+  #define SERIAL_8E1  CSERIAL_8E1
+  #define rxPin       2
+  #define txPin       3
+  CustomSoftwareSerial LogoSerial(rxPin, txPin);
+#else
+  // Serial1:
+  //      rxPin       18
+  //      txPin       19
+  #define LogoSerial  Serial1
+#endif
+
 // set up the LogoClient object
 LogoClient LOGO(&LogoSerial);
 
@@ -20,15 +37,24 @@ void setup() {
   }
 
   // Start the SoftwareSerial Library
-  LogoSerial.begin(9600, CSERIAL_8E1);
+  LogoSerial.begin(9600, SERIAL_8E1);
   // Setup Time, 1s.
   delay(1000); 
   Serial.println("");
   Serial.println("Cable connected");  
+#ifdef CustomSoftwareSerial_h
   if (LogoSerial.isListening())
-    Serial.println("Softserial is listening !");
+#else
+  if (LogoSerial)
+#endif
+    Serial.println("LogoSerial is ready.");
 
   cycleTime = millis();
+  // LOG_LEVEL_SILENT, LOG_LEVEL_FATAL, LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_NOTICE, LOG_LEVEL_TRACE, LOG_LEVEL_VERBOSE
+  // Note: if you want to fully remove all logging code, uncomment #define DISABLE_LOGGING in Logging.h
+  //       this will significantly reduce your project size
+  Log.begin(LOG_LEVEL_VERBOSE, &Serial);
+  Log.setPrefix(printTimestamp);
 }
 
 void loop() 
@@ -59,10 +85,8 @@ void loop()
   if (millis()-cycleTime > cycleDelay)
   {
     cycleTime = millis();
-    Serial.print(cycleTime);
-    Serial.print("ms ");
-    Serial.print("POLL DATA ... ");
     int Result = LOGO.ReadArea(LogoAreaDB, 1, VM_I01_08, 990-923, NULL);
+    Serial.print("POLL DATA ... ");
     if (Result == 0)
     {
       Serial.print("Output 8-1, 16-9, analog input 1:");
@@ -118,3 +142,8 @@ void printBinaryByte(byte value)
   }
 }
 
+void printTimestamp(Print* _logOutput) {
+  char c[12];
+  int m = sprintf(c, "%10lu ", millis());
+  _logOutput->print(c);
+}

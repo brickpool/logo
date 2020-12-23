@@ -4,22 +4,26 @@ This CHANGELOG file should help that the library becomes a standardized open sou
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2020-12-21
+## [Unreleased] - 2020-12-23
 
+## [0.5.2] - 2020-12-23
 ### Added
 - Low Level funtion LogoClient::ReadBlock
 - Security function LogoClient::SetSessionPassword
 - Security function LogoClient::ClearSessionPassword
+- Logging (library ArduinoLog)
 
 ### Changed
 - Protection Level in GetProtection
 - Update Library Reference Manual (RefManual.md) to Rev. Ai
 - DTE Interface Images
+- Update Examples for Arduino MEGA: CyclicReading, FetchDataDemo, ProtocolTester
 
 ### Fixed
 - GetOrderCode: Support of 0BA6.ES10
 - StreamConnect: Clearing serial buffer for Reconnection
 - ReadArea: VM Mapping (correct access to the program space)
+- Reduce some compiler warnings
 
 ## [0.5.1] - 2018-09-18
 ### Added
@@ -145,6 +149,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - LICENCE.md added to the project
 - README.md added to the project
 
-[Unreleased]: https://github.com/brickpool/logo/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/brickpool/logo/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/brickpool/logo/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/brickpool/logo/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/brickpool/logo/compare/v0.4.3...v0.5.0

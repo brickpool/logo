@@ -1,7 +1,7 @@
 /*
- * LogoPG library, Version 0.5.1-20190910
+ * LogoPG library, Version 0.5.2-20201223
  *
- * Portion copyright (c) 2018,2019 by Jan Schneider
+ * Portion copyright (c) 2018,2020 by Jan Schneider
  *
  * LogoPG provided a library under ARDUINO to read data from a
  * Siemens(tm) LOGO! PLC via the serial programing interface.
@@ -111,42 +111,42 @@ const PROGMEM char ORDER_CODE[Size_OC] = "6ED1052-xxx00-0BAx";
 
 // There are 3 privilege levels ranging from 0 which is the least privileged,
 // to 15 which is most privileged.
-#define PWD_LEVEL_ZERO          0x00  // unknown, limited in operation mode RUN
-#define PWD_LEVEL_RESTRICTED    0x01  // restricted access in operation mode STOP
-#define PWD_LEVEL_FULL          0x0F  // full access in operation mode STOP
+#define PWD_LEVEL_ZERO          0x00    // unknown, limited in operation mode RUN
+#define PWD_LEVEL_RESTRICTED    0x01    // restricted access in operation mode STOP
+#define PWD_LEVEL_FULL          0x0F    // full access in operation mode STOP
 
 // If an error has occurred, the LOGO send a negative confirmation 0x15 (NOK)
 // and then an error byte with the following codes
-#define cpuCodeDeviceBusy       0x01  // LOGO can not accept a telegram
-#define cpuCodeDeviceTimeOut    0x02  // Resource unavailable
-#define cpuCodeInvalidAccess    0x03  // Illegal access
-#define cpuCodeParityError      0x04  // parity error-, overflow or telegram error
-#define cpuCodeUnknownCommand   0x05  // Unknown command
-#define cpuCodeXorIncorrect     0x06  // XOR-check incorrect
-#define cpuCodeSimulationError  0x07  // Faulty on simulation
+#define cpuCodeDeviceBusy       0x01    // LOGO can not accept a telegram
+#define cpuCodeDeviceTimeOut    0x02    // Resource unavailable
+#define cpuCodeInvalidAccess    0x03    // Illegal access
+#define cpuCodeParityError      0x04    // parity error-, overflow or telegram error
+#define cpuCodeUnknownCommand   0x05    // Unknown command
+#define cpuCodeXorIncorrect     0x06    // XOR-check incorrect
+#define cpuCodeSimulationError  0x07    // Faulty on simulation
 
 // Since the millis() is unsigned long, also the testing
 // and updating the time must be done with unsigned long.
 // https://playground.arduino.cc/Code/TimingRollover
-#define TIMEOUT       500UL // set timeout between 200 and 600 ms
-#define CYCLETIME     600UL // set cycle time for function 0x13 between 190 and 600 ms
+#define TIMEOUT       500UL             // set timeout between 200 and 600 ms
+#define CYCLETIME     600UL             // set cycle time for function 0x13 between 190 and 600 ms
 
-#define VM_START      0     // first valid address
-#define VM_USER_AREA  0     // user defined area
-#define VM_NDEF_AREA1 851   // not defined area #1
-#define VM_0BA7_AREA  923   // area for 0BA7
-#define VM_DDT_AREA   984   // diagnostic, date and time area
-#define VM_NDEF_AREA2 1003  // not defined area #2
-#define VM_END        1023  // last valid address
+#define VM_START      0                 // first valid address
+#define VM_USER_AREA  0                 // user defined area
+#define VM_NDEF_AREA1 851               // not defined area #1
+#define VM_0BA7_AREA  923               // area for 0BA7
+#define VM_DDT_AREA   984               // diagnostic, date and time area
+#define VM_NDEF_AREA2 1003              // not defined area #2
+#define VM_END        1023              // last valid address
 
-#define VM_FIRST      VM_0BA7_AREA  // first address for access
-#define VM_LAST       VM_DDT_AREA   // last address for access
+#define VM_FIRST      VM_0BA7_AREA      // first address for access
+#define VM_LAST       VM_DDT_AREA       // last address for access
 
 // Store mapping in flash (program) memory instead of SRAM
 
 /*
   // VM Mapping byte 851 to 922
-  const PROGMEM byte VM_MAP_851_922[] =
+  const byte VM_MAP_851_922[] PROGMEM =
   {
                     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 851-855
   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 856-863
@@ -162,7 +162,7 @@ const PROGMEM char ORDER_CODE[Size_OC] = "6ED1052-xxx00-0BAx";
 */
 
 // VM 0BA7 Mapping for 0BA4 and 0BA5
-const PROGMEM byte VM_MAP_923_983_0BA4[] =
+const byte VM_MAP_923_983_0BA4[] PROGMEM =
 {
   0x16, 0x17, 0x18,                               // 923-925  : input 1-24
   0x21, 0x20, 0x23, 0x22, 0x25, 0x24, 0x27, 0x26, // 926-933  : analoge input 1-4
@@ -177,7 +177,7 @@ const PROGMEM byte VM_MAP_923_983_0BA4[] =
 };
 
 // VM 0BA7 Mapping for 0BA6
-const PROGMEM byte VM_MAP_923_983_0BA6[] =
+const byte VM_MAP_923_983_0BA6[] PROGMEM =
 {
   0x1E, 0x1F, 0x20,                               // 923-925  : input 1-24
   0x2B, 0x2A, 0x2D, 0x2C, 0x2F, 0x2E, 0x31, 0x30, // 926-933  : analoge input 1-4
@@ -194,7 +194,7 @@ const PROGMEM byte VM_MAP_923_983_0BA6[] =
 /*
   #ifdef _EXTENDED
   // VM Mapping for diagnostic, date and time
-  const PROGMEM byte VM_MAP_984_1002[] =
+  const byte VM_MAP_984_1002[] PROGMEM =
   {
   0xFF,                                           // 984      : Diagnostic bit array
   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,             // 985-990  : RTC (YY-MM-DD-hh:mm:ss)
@@ -203,7 +203,7 @@ const PROGMEM byte VM_MAP_923_983_0BA6[] =
   }
 
   // VM Mapping byte 1003 to 1023
-  const PROGMEM byte VM_MAP_1003_1023[] =
+  const byte VM_MAP_1003_1023[] PROGMEM =
   {
   0xFF, 0xFF, 0xFF, 0xFF,                         // 1003-1007
   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 1008-1015
@@ -237,7 +237,7 @@ bool LogoHelper::BitAt(int ByteIndex, int BitIndex)
     return false;
 
   // https://www.arduino.cc/reference/en/language/variables/utilities/progmem/
-  ByteIndex = pgm_read_byte_near(LogoClient::Mapping + ByteIndex - VM_FIRST);
+  ByteIndex = pgm_read_byte(LogoClient::Mapping + ByteIndex - VM_FIRST);
 
   if (ByteIndex > MaxPduSize - Size_RD - 1)
     return false;
@@ -256,7 +256,7 @@ byte LogoHelper::ByteAt(int index)
   if (index < VM_FIRST || index > VM_LAST - 1)
     return 0;
 
-  index = pgm_read_byte_near(LogoClient::Mapping + index - VM_FIRST);
+  index = pgm_read_byte(LogoClient::Mapping + index - VM_FIRST);
 
   if (index > MaxPduSize - Size_RD - 1)
     return 0;
@@ -275,8 +275,8 @@ word LogoHelper::WordAt(int index)
   if (index < VM_FIRST || index > VM_LAST - 2)
     return 0;
 
-  byte hi = pgm_read_byte_near(LogoClient::Mapping + index - VM_FIRST);
-  byte lo = pgm_read_byte_near(LogoClient::Mapping + index + 1 - VM_FIRST);
+  byte hi = pgm_read_byte(LogoClient::Mapping + index - VM_FIRST);
+  byte lo = pgm_read_byte(LogoClient::Mapping + index + 1 - VM_FIRST);
 
   if (hi > MaxPduSize - Size_RD - 1)
     return 0;
@@ -295,8 +295,8 @@ int LogoHelper::IntegerAt(int index)
   if (index < VM_FIRST || index > VM_LAST - 2)
     return 0;
 
-  byte hi = pgm_read_byte_near(LogoClient::Mapping + index - VM_FIRST);
-  byte lo = pgm_read_byte_near(LogoClient::Mapping + index + 1 - VM_FIRST);
+  byte hi = pgm_read_byte(LogoClient::Mapping + index - VM_FIRST);
+  byte lo = pgm_read_byte(LogoClient::Mapping + index + 1 - VM_FIRST);
 
   if (hi > MaxPduSize - Size_RD - 1)
     return 0;
@@ -319,7 +319,7 @@ LogoClient::LogoClient()
   PDURequested  = 0;
   AddrLength    = 0;
   AccessMode    = PWD_LEVEL_ZERO;
-  Mapping       = VM_MAP_923_983_0BA6;
+  Mapping       = (byte*)VM_MAP_923_983_0BA6;
   RecvTimeout   = TIMEOUT;
   StreamClient  = NULL;
 }
@@ -333,7 +333,7 @@ LogoClient::LogoClient(Stream *Interface)
   PDURequested  = 0;
   AddrLength    = 0;
   AccessMode    = PWD_LEVEL_ZERO;
-  Mapping       = VM_MAP_923_983_0BA6;
+  Mapping       = (byte*)VM_MAP_923_983_0BA6;
   RecvTimeout   = TIMEOUT;
   StreamClient  = Interface;
 }
@@ -368,18 +368,18 @@ int LogoClient::ConnectTo(Stream *Interface)
 
 int LogoClient::Connect()
 {
-  
   Log.trace(F("try to connect to %X" CR), StreamClient);
   LastError = 0;
   if (!Connected)
   {
     StreamConnect();
-    if (LastError == 0) // First stage : Stream Connection
+    if (LastError == 0)                 // First stage : Stream Connection
     {
       LogoConnect();
-      if (LastError == 0) // Second stage : PG Connection
+      if (LastError == 0)               // Second stage : PG Connection
       {
-        LastError = NegotiatePduLength(); // Third stage : PDU negotiation
+        // Third stage : PDU negotiation
+        LastError = NegotiatePduLength();
       }
     }
   }
@@ -410,8 +410,8 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
 
   pbyte Target = pbyte(ptrData);
   size_t Offset = 0;
-  const int WordSize = 1;         // DB1 element has a size of one byte
-  static unsigned long LastCycle; // variable for storing the time from the last call
+  const int WordSize = 1;               // DB1 element has a size of one byte
+  static unsigned long LastCycle;       // variable for storing the time from the last call
   // declared statically, so that it can used locally
 
   // For LOGO 0BA4 to 0BA6 the only compatible information that we can read are inputs, outputs, flags and rtc.
@@ -420,10 +420,10 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
     SetLastError(errPGInvalidPDU);
 
   // Access only allowed between 0 and 1023
-  if (Start < VM_START || Start > VM_END)
+  if ((int)Start < VM_START || Start > VM_END)
     SetLastError(errPGInvalidPDU);
 
-  if (!Connected) // Exit with Error if not connected
+  if (!Connected)                       // Exit with Error if not connected
     return SetLastError(errPGConnect);
 
   // fetch data or cyclic data read?
@@ -453,6 +453,7 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
   else
   {
     // cyclic reading of data!
+    Log.verbose(F("cyclic reading" CR));
     // If code 06 is sent to the LOGO device within 600 ms,
     // the LOGO device sends updated data (cyclic data read).
     if (StreamClient->write(LOGO_ACK, sizeof(LOGO_ACK)) != sizeof(LOGO_ACK))
@@ -476,10 +477,10 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
     PDU.H[0] = ACK;
   }
 
-  if (LastPDUType != ACK)         // Check Confirmation
+  if (LastPDUType != ACK)               // Check Confirmation
     return SetLastError(errCliFunction);
 
-  if (Length != GetPDULength())
+  if (Length != (size_t)GetPDULength())
     return SetLastError(errCliInvalidPDU);
 
   // To recognize a cycle time we save the number of milliseconds
@@ -497,7 +498,7 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
   memset(Target + Offset, 0, SizeRequested);
 
   // Skip if Start points to user defined VM memory
-  if (Start >= VM_USER_AREA && Start < VM_NDEF_AREA1)
+  if ((int)Start >= VM_USER_AREA && Start < VM_NDEF_AREA1)
   {
     MaxElements = VM_NDEF_AREA1 - Start;
     NumElements = MaxElements > TotElements ? TotElements : MaxElements;
@@ -537,7 +538,7 @@ int LogoClient::ReadArea(int Area, word DBNumber, word Start, word Amount, void 
     while (SizeRequested-- > 0)
     {
       // byte val = PDU.DATA[Mapping[Address++]]
-      byte val = PDU.DATA[pgm_read_byte_near(Mapping + Address++)];
+      byte val = PDU.DATA[pgm_read_byte(Mapping + Address++)];
       if (val != 0xFF)
         Target[Offset++] = val;
     }
@@ -592,7 +593,7 @@ int LogoClient::PlcStart()
 {
   int Status;
 
-  if (!Connected) // Exit with Error if not connected
+  if (!Connected)                       // Exit with Error if not connected
     return SetLastError(errPGConnect);
 
   if (GetPlcStatus(&Status) != 0)
@@ -607,14 +608,14 @@ int LogoClient::PlcStart()
     memset(&PDU, 0, sizeof(PDU));
 
     size_t Length;
-    RecvControlResponse(&Length);   // Get PDU response
+    RecvControlResponse(&Length);       // Get PDU response
     if (LastError)
       return LastError;
 
-    if (LastPDUType != ACK)         // Check Confirmation
+    if (LastPDUType != ACK)             // Check Confirmation
       return SetLastError(errCliFunction);
 
-    if (Length != 1)                // 1 is the expected value
+    if (Length != 1)                    // 1 is the expected value
       return SetLastError(errCliInvalidPDU);
   }
 
@@ -625,7 +626,7 @@ int LogoClient::PlcStop()
 {
   int Status;
 
-  if (!Connected) // Exit with Error if not connected
+  if (!Connected)                       // Exit with Error if not connected
     return SetLastError(errPGConnect);
 
   if (GetPlcStatus(&Status) != 0)
@@ -640,14 +641,14 @@ int LogoClient::PlcStop()
     memset(&PDU, 0, sizeof(PDU));
 
     size_t Length;
-    RecvControlResponse(&Length);   // Get PDU response
+    RecvControlResponse(&Length);       // Get PDU response
     if (LastError)
       return LastError;
 
-    if (LastPDUType != ACK)         // Check Confirmation
+    if (LastPDUType != ACK)             // Check Confirmation
       return SetLastError(errCliFunction);
 
-    if (Length != 1)                // 1 is the expected value
+    if (Length != 1)                    // 1 is the expected value
       return SetLastError(errCliInvalidPDU);
   }
 
@@ -656,7 +657,7 @@ int LogoClient::PlcStop()
 
 int LogoClient::GetPlcStatus(int *Status)
 {
-  if (!Connected) // Exit with Error if not connected
+  if (!Connected)                       // Exit with Error if not connected
     return SetLastError(errPGConnect);
 
   *Status = LogoCpuStatusUnknown;
@@ -664,17 +665,17 @@ int LogoClient::GetPlcStatus(int *Status)
   if (StreamClient->write(LOGO_MODE, sizeof(LOGO_MODE)) != sizeof(LOGO_MODE))
     return SetLastError(errStreamDataSend);
 
-  memset(&PDU, 0, sizeof(PDU));   // Setup the telegram
+  memset(&PDU, 0, sizeof(PDU));         // Setup the telegram
 
   size_t Length;
-  RecvControlResponse(&Length);   // Get PDU response
+  RecvControlResponse(&Length);         // Get PDU response
   if (LastError)
     return LastError;
 
-  if (LastPDUType != ACK)         // Check Confirmation
+  if (LastPDUType != ACK)               // Check Confirmation
     return SetLastError(errCliFunction);
 
-  if (Length != sizeof(PDU.H) + 1) // Size of Header + 1 Data Byte is the expected value
+  if (Length != sizeof(PDU.H) + 1)      // Size of Header + 1 Data Byte is the expected value
     return SetLastError(errCliInvalidPDU);
 
   switch (PDU.DATA[0]) {
@@ -694,12 +695,12 @@ int LogoClient::GetPlcStatus(int *Status)
 int LogoClient::GetPlcDateTime(TimeElements *DateTime)
 {
   Log.trace(F("System clock read requested" CR));
-  int Status;                     // Operation mode
+  int Status;                           // Operation mode
 
-  if (DateTime == NULL)           // Exit with Error if DateTime is undefined
+  if (DateTime == NULL)                 // Exit with Error if DateTime is undefined
     return SetLastError(errPGInvalidPDU);
 
-  if (!Connected)                 // Exit with Error if not connected
+  if (!Connected)                       // Exit with Error if not connected
     return SetLastError(errPGConnect);
 
   // Check operation mode
@@ -736,10 +737,10 @@ int LogoClient::GetPlcDateTime(TimeElements *DateTime)
   // clock reading day-of-week
   if (ReadByte(ADDR_CLK_RW_DOW, &DateTime->Wday) != 0)
     return LastError;
-  DateTime->Wday += 1;            // day of week, sunday is day 1
+  DateTime->Wday += 1;                  // day of week, sunday is day 1
 
-  memset(&PDU, 0, PDURequested);  // Clear the telegram
-  DateTime->Second = 0;           // set secounds to 0
+  memset(&PDU, 0, PDURequested);        // Clear the telegram
+  DateTime->Second = 0;                 // set secounds to 0
 
   return SetLastError(0);
 }
@@ -751,16 +752,16 @@ int LogoClient::GetPlcDateTime(time_t *DateTime)
   if (GetPlcDateTime(&tm) != 0)
     return LastError;
 
-  *DateTime = makeTime(tm);       // convert to time_t
+  *DateTime = makeTime(tm);             // convert to time_t
   return SetLastError(0);
 }
 
 int LogoClient::SetPlcDateTime(TimeElements DateTime)
 {
   Log.trace(F("System clock write requested" CR));
-  int Status;                     // Operation mode
+  int Status;                           // Operation mode
 
-  if (!Connected)                 // Exit with Error if not connected
+  if (!Connected)                       // Exit with Error if not connected
     return SetLastError(errPGConnect);
 
   // Check operation mode
@@ -797,7 +798,7 @@ int LogoClient::SetPlcDateTime(TimeElements DateTime)
   if (WriteByte(ADDR_CLK_W_SET, 0x00) != 0)
     return LastError;
 
-  memset(&PDU, 0, PDURequested);  // Clear the telegram
+  memset(&PDU, 0, PDURequested);        // Clear the telegram
 
   return SetLastError(0);
 }
@@ -806,7 +807,7 @@ int LogoClient::SetPlcDateTime(time_t DateTime)
 {
   TimeElements tm;
 
-  breakTime(DateTime, tm);       // break time_t into elements
+  breakTime(DateTime, tm);              // break time_t into elements
 
   if (SetPlcDateTime(tm) != 0)
     return LastError;
@@ -828,12 +829,12 @@ int LogoClient::SetPlcSystemDateTime()
 
 int LogoClient::GetOrderCode(TOrderCode *Info)
 {
-  int Status;                     // Operation mode
+  int Status;                           // Operation mode
 
-  if (Info == NULL)               // Exit with Error if Info is undefined
+  if (Info == NULL)                     // Exit with Error if Info is undefined
     return SetLastError(errPGInvalidPDU);
 
-  if (!Connected)                 // Exit with Error if not connected
+  if (!Connected)                       // Exit with Error if not connected
     return SetLastError(errPGConnect);
 
   // Set Info to predefined values
@@ -870,7 +871,7 @@ int LogoClient::GetOrderCode(TOrderCode *Info)
   if (Status != LogoCpuStatusStop)
     return SetLastError(0);
 
-  char ch;
+  byte ch;
   // reading ASCII = V
   if (ReadByte(ADDR_OC_R_ASC_V, &ch) != 0)
     return LastError;
@@ -906,15 +907,15 @@ int LogoClient::GetOrderCode(TOrderCode *Info)
 
 int LogoClient::SetSessionPassword(char *password)
 {
-  int Status;                     // Operation mode
+  int Status;                           // Operation mode
   byte by;
 
   Log.trace(F("Security request : Set session password" CR));
 
-  if (password == NULL)           // Exit with Error if password is undefined
+  if (password == NULL)                 // Exit with Error if password is undefined
     return SetLastError(errPGInvalidPDU);
 
-  if (!Connected)                 // Exit with Error if not connected
+  if (!Connected)                       // Exit with Error if not connected
     return SetLastError(errPGConnect);
 
   // By default, define zero mode
@@ -928,37 +929,37 @@ int LogoClient::SetSessionPassword(char *password)
   {
     // Set restricted mode
     AccessMode = PWD_LEVEL_RESTRICTED;
-  
+
     // Start the sequence for reading out the password
     if (WriteByte(ADDR_PWD_W_ACCESS, 0) != 0)
       return LastError;
-  
+
     if (ReadByte(ADDR_PWD_R_MAGIC1, &by) != 0)
       return LastError;
     if (by != 0x04) return SetLastError(errCliDataRead);
-  
+
     if (ReadByte(ADDR_PWD_R_MAGIC2, &by) != 0)
       return LastError;
     if (by != 0x00) return SetLastError(errCliDataRead);
-  
+
     // Check if a password exists
     if (ReadByte(ADDR_PWD_R_EXISTS, &by) != 0)
       return LastError;
-  
-    if (by == 0x40)                   // Password set
+
+    if (by == 0x40)                     // Password set
     {
       // Read 10 bytes from addr 0566
       if (ReadBlock(ADDR_PWD_R_MEM, 10, PDU.DATA) != 0)
         return LastError;
-  
+
       // Compare the two password strings
-      if (strncmp(password, PDU.DATA, 10) != 0)
+      if (strncmp(password, (const char*)PDU.DATA, 10) != 0)
         return SetLastError(errCliFunction);
-  
+
       // Login successful
       if (WriteByte(ADDR_PWD_W_OK, 0) != 0)
         return LastError;
-    } 
+    }
 
     AccessMode = PWD_LEVEL_FULL;
   }
@@ -969,12 +970,12 @@ int LogoClient::SetSessionPassword(char *password)
 
 int LogoClient::ClearSessionPassword()
 {
-  int Status;                     // Operation mode
+  int Status;                           // Operation mode
   byte pw;
 
   Log.trace(F("Security request : Clear session password" CR));
-  
-  if (!Connected)                 // Exit with Error if not connected
+
+  if (!Connected)                       // Exit with Error if not connected
     return SetLastError(errPGConnect);
 
   // By default, define zero mode
@@ -988,12 +989,12 @@ int LogoClient::ClearSessionPassword()
   {
     // Set restricted mode
     AccessMode = PWD_LEVEL_RESTRICTED;
-  
+
     // Check if a password exists
     if (ReadByte(ADDR_PWD_R_EXISTS, &pw) != 0)
       return LastError;
-  
-    if (pw != 0x40)                   // Password not set
+
+    if (pw != 0x40)                     // Password not set
       AccessMode = PWD_LEVEL_FULL;
   }
 
@@ -1003,12 +1004,12 @@ int LogoClient::ClearSessionPassword()
 
 int LogoClient::GetProtection(TProtection *Protection)
 {
-  int Status;                     // Operation mode
+  int Status;                           // Operation mode
 
-  if (Protection == NULL)         // Exit with Error if Protection is undefined
+  if (Protection == NULL)               // Exit with Error if Protection is undefined
     return SetLastError(errPGInvalidPDU);
 
-  if (!Connected)                 // Exit with Error if not connected
+  if (!Connected)                       // Exit with Error if not connected
     return SetLastError(errPGConnect);
 
   // Set Protection to predefined values
@@ -1023,25 +1024,25 @@ int LogoClient::GetProtection(TProtection *Protection)
     byte pw;
     if (ReadByte(ADDR_PWD_R_EXISTS, &pw) == 0 && pw == 0x40)
     {
-      Protection->sch_schal = 3;  // Protection level set with the mode selector = STOP and password set
-      Protection->sch_par = 3;    // write/read protection
-      Protection->sch_rel = 3;    // Set valid protection level
+      Protection->sch_schal = 3;        // Protection level set with the mode selector = STOP and password set
+      Protection->sch_par = 3;          // write/read protection
+      Protection->sch_rel = 3;          // Set valid protection level
     }
     else
     {
-      Protection->sch_schal = 1;  // Protection level set with the mode selector = STOP
-      Protection->sch_par = 1;    // no protection
-      Protection->sch_rel = 1;    // Set valid protection level
+      Protection->sch_schal = 1;        // Protection level set with the mode selector = STOP
+      Protection->sch_par = 1;          // no protection
+      Protection->sch_rel = 1;          // Set valid protection level
     }
-    Protection->bart_sch = 3;     // Mode selector setting = STOP
+    Protection->bart_sch = 3;           // Mode selector setting = STOP
     // anl_sch = 0;
-  } 
-  else 
+  }
+  else
   {
-    Protection->sch_schal = 2;    // Protection level set with the mode selector = RUN
+    Protection->sch_schal = 2;          // Protection level set with the mode selector = RUN
     // sch_par = 0;
-    Protection->sch_rel = 2;      // Set valid protection level
-    Protection->bart_sch = 1;     // Mode selector setting = RUN
+    Protection->sch_rel = 2;            // Set valid protection level
+    Protection->bart_sch = 1;           // Mode selector setting = RUN
     // anl_sch = 0;
   }
 
@@ -1050,7 +1051,7 @@ int LogoClient::GetProtection(TProtection *Protection)
 
 void LogoClient::ErrorText(int Error, char *Text, int TextLen)
 {
-  if (Text == NULL || TextLen <= 0) 
+  if (Text == NULL || TextLen <= 0)
     return;
 
   memset(Text, 0, TextLen);
@@ -1113,7 +1114,7 @@ void LogoClient::ErrorText(int Error, char *Text, int TextLen)
 // -- Private functions -------------------------------------------------
 int LogoClient::RecvControlResponse(size_t *Size)
 {
-  *Size = 0;  // Start with a size of 0
+  *Size = 0;                            // Start with a size of 0
 
   // Setup the telegram
   memset(&PDU, 0, sizeof(PDU));
@@ -1121,10 +1122,10 @@ int LogoClient::RecvControlResponse(size_t *Size)
   // Get first byte
   if (RecvPacket(PDU.H, 1) != 0)
     return LastError;
-  (*Size)++;                // Update size = 1
+  (*Size)++;                            // Update size = 1
 
-  LastPDUType = PDU.H[0];   // Store PDU Type
-  if (LastPDUType == ACK)   // Connection confirmed
+  LastPDUType = PDU.H[0];               // Store PDU Type
+  if (LastPDUType == ACK)               // Connection confirmed
   {
     // Get next Byte
     RecvPacket(&PDU.H[1], 1);
@@ -1134,12 +1135,12 @@ int LogoClient::RecvControlResponse(size_t *Size)
     else if (LastError)
       // Other error than timeout
       return LastError;
-    (*Size)++;              // Update size = 2
+    (*Size)++;                          // Update size = 2
 
-    if (PDU.H[1] != 0x55)   // Control Command Code
+    if (PDU.H[1] != 0x55)               // Control Command Code
     {
       // OK, the response has no Control Code 0x55, for example Control Commands 0x17
-      *Size = Size_RD + 1;  // Update size = 7
+      *Size = Size_RD + 1;              // Update size = 7
       // We need to align with PDU.DATA
       PDU.DATA[0] = PDU.H[1];
       PDU.H[1] = 0;
@@ -1149,7 +1150,7 @@ int LogoClient::RecvControlResponse(size_t *Size)
     // Get Function Code (2 bytes)
     if (RecvPacket(&PDU.H[2], 2) != 0)
       return LastError;
-    *Size += 2;             // Update size = 4
+    *Size += 2;                         // Update size = 4
 
     if (PDU.H[2] != 0x11 || PDU.H[3] != 0x11)
       // Error, the response does not have the expected Function Code 0x11
@@ -1158,7 +1159,7 @@ int LogoClient::RecvControlResponse(size_t *Size)
     // Get Number of Bytes and the Padding Byte (2 bytes)
     if (RecvPacket(&PDU.H[4], 2) != 0)
       return LastError;
-    *Size += 2;             // Update Size = 6
+    *Size += 2;                         // Update Size = 6
 
     // Store Number of Bytes
     size_t ByteCount = PDU.H[4];
@@ -1171,7 +1172,7 @@ int LogoClient::RecvControlResponse(size_t *Size)
     // Get the Data Block (n bytes)
     if (RecvPacket(PDU.DATA, ByteCount) != 0)
       return LastError;
-    *Size += ByteCount;     // Update Size = 6+ByteCount
+    *Size += ByteCount;                 // Update Size = 6+ByteCount
 
     // Get End Delimiter (1 byte)
     if (RecvPacket(PDU.T, 1) != 0)
@@ -1181,12 +1182,12 @@ int LogoClient::RecvControlResponse(size_t *Size)
       // Error, the response does not have the expected value 0xAA
       return SetLastError(errCliInvalidPDU);
   }
-  else if (LastPDUType == NOK)    // Request not confirmed
+  else if (LastPDUType == NOK)          // Request not confirmed
   {
     // Get next byte
     if (RecvPacket(&PDU.H[1], 1) != 0)
       return LastError;
-    *Size++;                // Update Size = 2
+    (*Size)++;                          // Update Size = 2
 
     // Get Error Type
     return SetLastError(CpuError(PDU.H[1]));
@@ -1197,8 +1198,20 @@ int LogoClient::RecvControlResponse(size_t *Size)
   return SetLastError(0);
 }
 
+/*
+#define SIZE_OF_BUFFER MaxPduSize
+*/
+
 int LogoClient::RecvPacket(byte buf[], size_t Size)
 {
+/*
+  // http://github.com/charlesdobson/circular-buffer
+  static int circularBuffer[SIZE_OF_BUFFER] = { 0 };  // Empty circular buffer
+  static int readIndex     = 0;                  // Index of the read pointer
+  static int writeIndex    = 0;                  // Index of the write pointer
+  static int bufferLength  = 0;                  // Number of values in circular buffer
+*/
+
   size_t Length = 0;
 
   /*
@@ -1206,6 +1219,26 @@ int LogoClient::RecvPacket(byte buf[], size_t Size)
     if (Size > MaxPduSize)
       return SetLastError(errCliBufferTooSmall);
   */
+
+/*
+  // Check if circular buffer contains data
+  if (bufferLength > 0)
+    Log.verbose(F("circular buffer contains data" CR));
+
+  while (Length < Size && bufferLength > 0)
+  {
+    // Output from circular buffer
+    buf[Length++] = circularBuffer[readIndex];
+
+    bufferLength--;                   // Decrease used buffer size after reading
+    readIndex++;                      // Increase readIndex position to prepare for next read
+
+    // If at last index in circular buffer, set readIndex back to 0
+    if (readIndex == SIZE_OF_BUFFER) {
+      readIndex = 0;
+    }
+  }
+*/
 
   // To recognize a timeout we save the number of milliseconds (since the Arduino began running the current program)
   unsigned long Elapsed = millis();
@@ -1229,10 +1262,17 @@ int LogoClient::RecvPacket(byte buf[], size_t Size)
   // Here we are in timeout zone, if there's something into the buffer, it must be discarded.
   if (Length < Size)
   {
+/*
+    // Clearing circular buffer
+    readIndex     = 0;
+    writeIndex    = 0;
+    bufferLength  = 0;
+*/
     // Clearing serial incomming buffer
     // http://forum.arduino.cc/index.php?topic=396450.0
-    while (StreamClient->available() > 0)
+    while (StreamClient->available() > 0) {
       StreamClient->read();
+    }
 
     if (Length > 0 && buf[Length - 1] == AA)
       // Timeout, but we have an End delimiter
@@ -1241,12 +1281,32 @@ int LogoClient::RecvPacket(byte buf[], size_t Size)
     return SetLastError(errStreamDataRecvTout);
   }
 
+/*
+  // Input additional bytes to the circular buffer
+  while (StreamClient->available()) {
+    // Check if buffer is full
+    if (bufferLength == SIZE_OF_BUFFER) {
+      Log.error(F("RX buffer is full" CR));
+      break;
+    }
+    // Write byte to address of circular buffer index
+    circularBuffer[writeIndex] = StreamClient->read();
+    bufferLength++;                     // Increase used buffer size after writing
+    writeIndex++;                       // Increase writeIndex position to prepare for next write
+
+    // If at last index in circular buffer, set writeIndex back to 0
+    if (writeIndex == SIZE_OF_BUFFER) {
+      writeIndex = 0;
+    }
+  }
+*/
+
   return SetLastError(0);
 }
 
 int LogoClient::StreamConnect()
 {
-  if (StreamClient == NULL) // Is a stream already assigned?
+  if (StreamClient == NULL)             // Is a stream already assigned?
     return SetLastError(errStreamConnectionFailed);
 
   // Clearing serial incomming buffer
@@ -1259,7 +1319,7 @@ int LogoClient::StreamConnect()
 
 int LogoClient::LogoConnect()
 {
-  if (StreamClient == NULL) // Exit with Error if stream is not assigned
+  if (StreamClient == NULL)             // Exit with Error if stream is not assigned
     return SetLastError(errStreamConnectionFailed);
 
   if (StreamClient->write(LOGO6_CR, sizeof(LOGO6_CR)) != sizeof(LOGO6_CR))
@@ -1271,7 +1331,8 @@ int LogoClient::LogoConnect()
 
   // Get 4 bytes
   RecvPacket(PDU.H, PDURequested);
-  if (LastError & errStreamDataRecvTout)       // 0BA4 and 0BA5 doesn't support a connection request
+  // 0BA4 and 0BA5 doesn't support a connection request
+  if (LastError & errStreamDataRecvTout)
   {
     if (StreamClient->write(LOGO4_CR, sizeof(LOGO4_CR)) != sizeof(LOGO4_CR))
       return SetLastError(errStreamDataSend);
@@ -1284,8 +1345,8 @@ int LogoClient::LogoConnect()
   else if (LastError)
     return SetLastError(errPGConnect);
 
-  LastPDUType = PDU.H[0];   // Store PDU Type
-  if (LastPDUType != ACK)   // Check Confirmation
+  LastPDUType = PDU.H[0];               // Store PDU Type
+  if (LastPDUType != ACK)               // Check Confirmation
     return SetLastError(errPGConnect);
 
   // Note PDU is not aligned
@@ -1305,8 +1366,9 @@ int LogoClient::NegotiatePduLength()
 
   // Get 4 bytes
   RecvPacket(PDU.H, PDURequested);
-  if (LastError & errStreamDataRecvTout)       // 0BA4 and 0BA5 doesn't support a connection request
+  if (LastError & errStreamDataRecvTout)
   {
+    // 0BA4 and 0BA5 doesn't support a connection request
     if (StreamClient->write(LOGO4_CR, sizeof(LOGO4_CR)) != sizeof(LOGO4_CR))
       return SetLastError(errStreamDataSend);
 
@@ -1318,8 +1380,8 @@ int LogoClient::NegotiatePduLength()
   else if (LastError)
     return LastError;
 
-  LastPDUType = PDU.H[0];   // Store PDU Type
-  if (LastPDUType != ACK)   // Check Confirmation
+  LastPDUType = PDU.H[0];               // Store PDU Type
+  if (LastPDUType != ACK)               // Check Confirmation
     return SetLastError(errCliNegotiatingPDU);
 
   IdentNo = PDU.H[PDURequested - 1];
@@ -1330,7 +1392,7 @@ int LogoClient::NegotiatePduLength()
       // 0BA5
       PDULength = PduSize0BA4;
       AddrLength = AddrSize0BA4;
-      Mapping = VM_MAP_923_983_0BA4;
+      Mapping = (byte*)VM_MAP_923_983_0BA4;
       break;
     case 0x43:
       // 0BA6
@@ -1340,13 +1402,13 @@ int LogoClient::NegotiatePduLength()
       // 0BA6.ES10
       PDULength = PduSize0BA6;
       AddrLength = AddrSize0BA6;
-      Mapping = VM_MAP_923_983_0BA6;
+      Mapping = (byte*)VM_MAP_923_983_0BA6;
       break;
     default:
       // 0BAx
       return SetLastError(errCliNegotiatingPDU);
   }
-  
+
   Log.trace(F("PDU negotiated length: %d bytes" CR), PDULength);
   return SetLastError(0);
 }
@@ -1368,7 +1430,7 @@ int LogoClient::ReadByte(dword Addr, byte *Data)
   // Setup the telegram
   memset(&PDU, 0, sizeof(PDU));
 
-  PDU.H[Length++] = 0x02;       // Read Byte Command Code
+  PDU.H[Length++] = 0x02;               // Read Byte Command Code
   if (AddrLength == 4)
   {
     PDU.H[Length++] = highByte(word(Addr >> 16));
@@ -1388,8 +1450,8 @@ int LogoClient::ReadByte(dword Addr, byte *Data)
   if (RecvPacket(PDU.H, 1) != 0)
     return LastError;
 
-  LastPDUType = PDU.H[0];       // Store PDU Type
-  if (LastPDUType == ACK)       // Connection confirmed
+  LastPDUType = PDU.H[0];               // Store PDU Type
+  if (LastPDUType == ACK)               // Connection confirmed
   {
     // Get next bytes
     if (RecvPacket(&PDU.H[1], PDURequested - 1) != 0)
@@ -1400,14 +1462,14 @@ int LogoClient::ReadByte(dword Addr, byte *Data)
       return SetLastError(errCliDataRead);
 
     // We should align PDU
-    if (PDURequested < sizeof(PDU.H))
+    if ((size_t)PDURequested < sizeof(PDU.H))
     {
       PDU.DATA[0] = PDU.H[PDURequested - 1];
       PDU.H[PDURequested - 1] = 0;
       PDURequested = Size_RD + 1;
     }
   }
-  else if (LastPDUType == NOK)  // Request not confirmed
+  else if (LastPDUType == NOK)          // Request not confirmed
   {
     // Get second byte
     if (RecvPacket(&PDU.H[1], 1) != 0)
@@ -1430,7 +1492,7 @@ int LogoClient::WriteByte(dword Addr, byte Data)
   // Setup the telegram
   memset(&PDU, 0, sizeof(PDU));
 
-  PDU.H[Length++] = 0x01;       // Write Byte Command Code
+  PDU.H[Length++] = 0x01;               // Write Byte Command Code
   if (AddrLength == 4)
   {
     PDU.H[Length++] = highByte(word(Addr >> 16));
@@ -1452,10 +1514,10 @@ int LogoClient::WriteByte(dword Addr, byte Data)
   if (RecvPacket(PDU.H, 1) != 0)
     return LastError;
 
-  LastPDUType = PDU.H[0];       // Store PDU Type
-  if (LastPDUType != ACK)       // Check Confirmation
+  LastPDUType = PDU.H[0];               // Store PDU Type
+  if (LastPDUType != ACK)               // Check Confirmation
   {
-    if (LastPDUType == NOK)     // Get Exception Code
+    if (LastPDUType == NOK)             // Get Exception Code
     {
       // Get second byte
       if (RecvPacket(&PDU.H[1], 1) != 0)
@@ -1500,38 +1562,38 @@ int LogoClient::ReadBlock(dword Addr, word ByteCount, byte *Data)
   // Get first byte
   if (RecvPacket(PDU.H, 1) != 0)
     return LastError;
-  LastPDUType = PDU.H[0];       // Store PDU Type
+  LastPDUType = PDU.H[0];               // Store PDU Type
 
-  if (LastPDUType == ACK)       // Connection confirmed
+  if (LastPDUType == ACK)               // Connection confirmed
   {
     // Get Data Block
-    Length = 0;                 // Init statement
+    Length = 0;                         // Init statement
     while (Length < ByteCount)
     {
       PDURequested = ByteCount - Length;
-      if (PDURequested > MaxPduSize) 
+      if (PDURequested > MaxPduSize)
         PDURequested = MaxPduSize;
       if (RecvPacket(Data + Length, PDURequested) != 0)
         return LastError;
-      Length += PDURequested;   // Iteration expression 
+      Length += PDURequested;           // Iteration expression
     }
 
     // Get Checksum
     if (RecvPacket(PDU.T, 1) != 0)
       return LastError;
 
-    // Calculate Checksum (only the data field are used for this) 
-    for (int i = 0; i < ByteCount; i++)
+    // Calculate Checksum (only the data field are used for this)
+    for (unsigned int i = 0; i < ByteCount; i++)
       Checksum = (*(Data + i) ^ Checksum) % 256;
 
     if (PDU.T[0] != Checksum)
       // Error, the response does not have the correct Checksum
       return SetLastError(errCliDataRead);
   }
-  else if (LastPDUType == NOK)  // Request not confirmed
+  else if (LastPDUType == NOK)          // Request not confirmed
   {
     // Get second byte
-    if (RecvPacket(PDU.H[1], 1) != 0)
+    if (RecvPacket(&PDU.H[1], 1) != 0)
       return LastError;
 
     // Get Error Type
@@ -1574,4 +1636,3 @@ int LogoClient::CpuError(int Error)
       return errCliInvalidPDU;
   };
 };
-

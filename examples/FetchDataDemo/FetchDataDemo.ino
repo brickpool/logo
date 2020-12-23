@@ -1,12 +1,30 @@
-#include <CustomSoftwareSerial.h>
+#ifdef ARDUINO_AVR_UNO
+  #if ARDUINO != 10805
+    #error Arduino 1.8.5 required.
+  #endif
+  #include <CustomSoftwareSerial.h>
+#endif
+#include <ArduinoLog.h>
 #include "LogoPG.h"
 
-const byte rxPin = 2;
-const byte txPin = 3;
-byte buf[1];
+byte buf[2];
 
-// set up the SoftwareSerial object
-CustomSoftwareSerial LogoSerial(rxPin, txPin);
+// set up the LogoSerial object
+#ifdef CustomSoftwareSerial_h
+  #if defined(SERIAL_8E1)
+    #undef  SERIAL_8E1
+  #endif
+  #define SERIAL_8E1  CSERIAL_8E1
+  #define rxPin       2
+  #define txPin       3
+  CustomSoftwareSerial LogoSerial(rxPin, txPin);
+#else
+  // Serial1:
+  //      rxPin       18
+  //      txPin       19
+  #define LogoSerial  Serial1
+#endif
+
 // set up the LogoClient object
 LogoClient LOGO(&LogoSerial);
 
@@ -18,13 +36,22 @@ void setup() {
   }
 
   // Start the SoftwareSerial Library
-  LogoSerial.begin(9600, CSERIAL_8E1);
+  LogoSerial.begin(9600, SERIAL_8E1);
   // Setup Time, 1s.
   delay(1000); 
   Serial.println("");
   Serial.println("Cable connected");  
+#ifdef CustomSoftwareSerial_h
   if (LogoSerial.isListening())
-    Serial.println("Softserial is listening !");
+#else
+  if (LogoSerial)
+#endif
+    Serial.println("LogoSerial is ready.");
+
+  // LOG_LEVEL_SILENT, LOG_LEVEL_FATAL, LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_NOTICE, LOG_LEVEL_TRACE, LOG_LEVEL_VERBOSE
+  // Note: if you want to fully remove all logging code, uncomment #define DISABLE_LOGGING in Logging.h
+  //       this will significantly reduce your project size
+  Log.begin(LOG_LEVEL_ERROR, &Serial);
 }
 
 void loop() 
@@ -44,11 +71,12 @@ void loop()
     if (Status == LogoCpuStatusRun)
     {
       Serial.print("FETCH DATA ... ");
-      Result = LOGO.ReadArea(LogoAreaDB, 1, VM_Q01_08, sizeof(buf), buf);
+      // read first analog input
+      Result = LOGO.ReadArea(LogoAreaDB, 1, AI_0BA7, sizeof(buf), buf);
       if (Result == 0)
       {
         Serial.print("OK: ");
-        Serial.println(buf[0], HEX);
+        Serial.println(LH.WordAt(buf, 0));
       }
       else
         CheckError(Result);
@@ -94,4 +122,3 @@ void CheckError(int ErrNo)
     LOGO.Disconnect(); 
   }
 }
-
