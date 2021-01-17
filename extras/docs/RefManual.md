@@ -2,7 +2,7 @@
 
 Rev. Aj
 
-September 2021
+Januar 2021
 
 ## Preface
 Siemens (TM) LOGO! library for Arduino. 

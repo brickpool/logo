@@ -11,7 +11,7 @@ All information about the protocols and details to the _LOGO!_ PLC are described
 The current library version is [0.5.3](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate and has implemented only the PG protocol.
 
 ## Examples
-This directory contains the library and some examples that illustrate how the library can be used. The examples were tested with an Arduino Mega (Arduino >= 1.8.5) and Arduino UNO (only Arduino 1.8.5 is supported). Other hardware has not been tried.
+This directory contains the library and some examples that illustrate how the library can be used. The examples were tested with an Arduino Mega (Arduino >= 1.8.5), Arduino UNO (only Arduino 1.8.5 is supported) and Arduino MKR WiFi 1010. Other hardware has not been tried.
 - [ProtocolTester.ino](/examples/ProtocolTester/ProtocolTester.ino) This example can mainly be used as a tester for the _LOGO!_ PG-protocol.
 - [RunStopDemo.ino](/examples/RunStopDemo/RunStopDemo.ino) A simple program which connects to the _LOGO!_ controller and switches between the operating modes _RUN_ and _STOP_.
 - [FetchDataDemo.ino](/examples/FetchDataDemo/FetchDataDemo.ino) The sample program uses the _LOGO!_ PG-protocol command _Fetch Data_.
@@ -27,7 +27,7 @@ This directory contains the library and some examples that illustrate how the li
 - [Arduino board](http://www.arduino.cc/), e.g. MEGA or UNO (only Arduino 1.8.5 is supported)
 - [DTE-Interface](https://github.com/brickpool/logo/wiki/DTE-Interface) for connection to the Arduino board
 - Arduino Time Library [TimeLib](https://github.com/PaulStoffregen/Time)
-- Simple application log library [ArduinoLog](https://github.com/thijse/Arduino-Log)
+- Only for some Examples, the simple log library [ArduinoLog](https://github.com/thijse/Arduino-Log)
 - Only for Arduino UNO, the alternative SoftwareSerial library [CustomSoftwareSerial](https://github.com/ledongthuc/CustomSoftwareSerial)
 
 ## License
