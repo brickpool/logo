@@ -1,7 +1,7 @@
 /*
- * LogoPG library, Version 0.5.2-20201223
+ * LogoPG library, Version 0.5.3-20200117
  *
- * Portion copyright (c) 2018,2020 by Jan Schneider
+ * Portion copyright (c) 2018,2020,2021 by Jan Schneider
  *
  * LogoPG provided a library under ARDUINO to read data from a
  * Siemens(tm) LOGO! PLC via the serial programing interface.
@@ -40,14 +40,15 @@
 // _EXTENDED
 
 #define _EXTENDED
+// #define _DEBUG
 
 #if defined(_NORMAL) || defined(_EXTENDED)
 #define _LOGOHELPER
 #endif
 
-#include "Arduino.h"
+#include <Arduino.h>
 #ifdef _EXTENDED
-#include "TimeLib.h"
+#include <TimeLib.h>
 #endif
 
 // Error Codes 
@@ -156,7 +157,7 @@ public:
   int LastError;    // Last Operation error
 
   // Input properties
-  unsigned long RecvTimeout; // Receving timeout in millis
+  uint16_t RecvTimeout; // Receving timeout in millis
 
   // Methods
   LogoClient();
@@ -165,19 +166,17 @@ public:
 
   // Basic functions
   void SetConnectionParams(Stream *Interface);
-  void SetConnectionType(word ConnectionType);
+  void SetConnectionType(uint16_t ConnectionType);
   int ConnectTo(Stream *Interface);
   int Connect();
   void Disconnect();
-  int ReadArea(int Area, word DBNumber, word Start, word Amount, void *ptrData);
+  int ReadArea(int Area, uint16_t DBNumber, uint16_t Start, uint16_t Amount, void *ptrData);
   int GetPDULength() { return PDULength; }
 
   // Extended functions
 #ifdef _EXTENDED
-/*
-  int GetDBSize(word DBNumber, size_t *Size);
-  int DBGet(word DBNumber, void *ptrData, size_t *Size);
-*/
+  int GetDBSize(uint16_t DBNumber, uint16_t *Size);
+  int DBGet(uint16_t DBNumber, void *ptrData, uint16_t *Size);
   // Control functions
   int PlcStart();       // start PLC
   int PlcStop();        // stop PLC
@@ -205,7 +204,7 @@ private:
   static byte* Mapping;   // PDU Data mapping to VM
 
   byte LastPDUType;       // First byte of a received message
-  word ConnType;          // Usually a PG connection
+  uint16_t ConnType;          // Usually a PG connection
   
   // We use the Stream class as a common class, 
   // so LogoClient can use HardwareSerial or CustomSoftwareSerial
@@ -217,8 +216,8 @@ private:
   int AddrLength;         // Address length negotiated (in bytes for function sizeof)
   int AccessMode;         // By default, LOGO! have two privileged levels: protected and full access
 
-  int RecvControlResponse(size_t *Size);
-  int RecvPacket(byte buf[], size_t Size);
+  int RecvControlResponse(uint16_t *Size);
+  int RecvPacket(uint8_t *buf, uint16_t Size);
   int StreamConnect();
   int LogoConnect();
   int NegotiatePduLength();
@@ -227,7 +226,7 @@ private:
   // Low level functions
   int ReadByte(dword Addr, byte *Data);
   int WriteByte(dword Addr, byte Data);
-  int ReadBlock(dword Addr, word ByteCount, byte *Data);
+  int ReadBlock(dword Addr, uint16_t ByteCount, byte *Data);
   int CpuError(int Error);
 };
 

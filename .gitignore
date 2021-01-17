@@ -18,7 +18,13 @@ Thumbs.db
 
 # Ignore some sketches
 /src/src.ino
+/src/main.cpp
 
 # Komodo files
 *.komodoproject
 /.komodotools/
+
+# PlatformIO
+.pio
+.vscode
+*.code-workspace

@@ -1,8 +1,8 @@
 # LOGO! PG Library Reference Manual
 
-Rev. Ai
+Rev. Aj
 
-September 2019
+September 2021
 
 ## Preface
 Siemens (TM) LOGO! library for Arduino. 
@@ -82,12 +82,10 @@ Links the Client to a stream object.
 
  - `Interface` Stream object for example "Serial"
 
-Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
-
-### <a name="set-connection-type"></a>LogoClient.SetConnectionType(type)
+### <a name="set-connection-type"></a>LogoClient.SetConnectionType(ConnectionType)
 Sets the connection resource type, i.e the way in which the Clients connects to the _LOGO!_ device.
 
- - `type`
+ - `ConnectionType`
 
 Connection Type | Value | Description
 --- | --- | --- 
@@ -95,8 +93,6 @@ Connection Type | Value | Description
 
 ### <a name="disconnect"></a>LogoClient.Disconnect()
 Disconnects "gracefully" the Client from the _LOGO!_ device.
-
-Returns a `0` on success or an `Error` code (see Errors Code List [below](#error-codes)).
 
 ## <a name="base-data-functions"></a>API - Base Data I/O functions
 

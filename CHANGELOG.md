@@ -4,11 +4,28 @@ This CHANGELOG file should help that the library becomes a standardized open sou
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2020-12-23
+## [Unreleased] - 2021-01-17
+
+## [0.5.3] - 2021-01-17
+### Added
+- Example SerialPlotter.ino added to the project folder
+- Updated examples for compatibility with Arduino MKR boards
+- Block oriented function LogoClient::GetDBSize
+- Block oriented function LogoClient::DBGet
+- DebugUtils in LogoPG.h and LogoPG.cpp
+
+### Changed
+- Using fixed-width integer types regardless of which Arduino is being targeted
+
+### Removed
+- ArduinoLog in LogoPG.h and LogoPG.cpp
+
+### Fixed
+- Example ProtocolTester.ino maximum indexing for receivedChars
 
 ## [0.5.2] - 2020-12-23
 ### Added
-- Low Level funtion LogoClient::ReadBlock
+- Low Level function LogoClient::ReadBlock
 - Security function LogoClient::SetSessionPassword
 - Security function LogoClient::ClearSessionPassword
 - Logging (library ArduinoLog)
@@ -17,7 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Protection Level in GetProtection
 - Update Library Reference Manual (RefManual.md) to Rev. Ai
 - DTE Interface Images
-- Update Examples for Arduino MEGA: CyclicReading, FetchDataDemo, ProtocolTester
+- Update Examples for compatibility with Arduino Mega boards
 
 ### Fixed
 - GetOrderCode: Support of 0BA6.ES10
@@ -149,7 +166,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - LICENCE.md added to the project
 - README.md added to the project
 
-[Unreleased]: https://github.com/brickpool/logo/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/brickpool/logo/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/brickpool/logo/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/brickpool/logo/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/brickpool/logo/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/brickpool/logo/compare/v0.4.3...v0.5.0

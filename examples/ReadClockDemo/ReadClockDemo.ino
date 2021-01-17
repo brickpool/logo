@@ -1,12 +1,28 @@
-#include <CustomSoftwareSerial.h>
+#ifdef ARDUINO_AVR_UNO
+  #include <CustomSoftwareSerial.h>
+#endif
 #include <TimeLib.h>
 #include "LogoPG.h"
 
-const byte rxPin = 2;
-const byte txPin = 3;
+// set up the LogoSerial object
+#ifdef CustomSoftwareSerial_h
+  #if defined(SERIAL_8E1)
+    #undef  SERIAL_8E1
+  #endif
+  #define SERIAL_8E1  CSERIAL_8E1
+  #define rxPin       2
+  #define txPin       3
+  CustomSoftwareSerial LogoSerial(rxPin, txPin);
+#else
+  // Mega board Serial1:
+  //      rxPin       19
+  //      txPin       18
+  // MKR board Serial1:
+  //      rxPin       13
+  //      txPin       14
+  #define LogoSerial  Serial1
+#endif
 
-// set up the SoftwareSerial object
-CustomSoftwareSerial LogoSerial(rxPin, txPin);
 // set up the LogoClient object
 LogoClient LOGO(&LogoSerial);
 
@@ -21,14 +37,16 @@ void setup() {
    ; // wait for serial port to connect. Needed for native USB port only
   }
 
-  // Start the SoftwareSerial Library
-  LogoSerial.begin(9600, CSERIAL_8E1);
+  // Start the LOGO Serial interface
+  LogoSerial.begin(9600, SERIAL_8E1);
   // Setup Time, 1s.
   delay(1000); 
-  Serial.println("");
-  Serial.println("Cable connected");  
+#ifdef CustomSoftwareSerial_h
   if (LogoSerial.isListening())
-    Serial.println("Softserial is listening !");
+#else
+  if (LogoSerial)
+#endif
+    Serial.println("LogoSerial is ready.");
 }
 
 void loop() 

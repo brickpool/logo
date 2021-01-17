@@ -19,9 +19,12 @@ byte buf[2];
   #define txPin       3
   CustomSoftwareSerial LogoSerial(rxPin, txPin);
 #else
-  // Serial1:
-  //      rxPin       18
-  //      txPin       19
+  // Mega board Serial1:
+  //      rxPin       19
+  //      txPin       18
+  // MKR board Serial1:
+  //      rxPin       13
+  //      txPin       14
   #define LogoSerial  Serial1
 #endif
 
@@ -35,23 +38,20 @@ void setup() {
    ; // wait for serial port to connect. Needed for native USB port only
   }
 
-  // Start the SoftwareSerial Library
+  // LOG_LEVEL_SILENT, LOG_LEVEL_FATAL, LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_NOTICE, LOG_LEVEL_TRACE, LOG_LEVEL_VERBOSE
+  // Note: set to LOG_LEVEL_SILENT if you want to use the serial plotter. This will stop the serial logging
+  Log.begin(LOG_LEVEL_SILENT, &Serial);
+
+  // Start the LOGO Serial interface
   LogoSerial.begin(9600, SERIAL_8E1);
   // Setup Time, 1s.
   delay(1000); 
-  Serial.println("");
-  Serial.println("Cable connected");  
 #ifdef CustomSoftwareSerial_h
   if (LogoSerial.isListening())
 #else
   if (LogoSerial)
 #endif
     Serial.println("LogoSerial is ready.");
-
-  // LOG_LEVEL_SILENT, LOG_LEVEL_FATAL, LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_NOTICE, LOG_LEVEL_TRACE, LOG_LEVEL_VERBOSE
-  // Note: if you want to fully remove all logging code, uncomment #define DISABLE_LOGGING in Logging.h
-  //       this will significantly reduce your project size
-  Log.begin(LOG_LEVEL_ERROR, &Serial);
 }
 
 void loop() 

@@ -8,7 +8,7 @@ Information about the API is described in the document [LOGO! Library Reference 
 All information about the protocols and details to the _LOGO!_ PLC are described in the associated [Wiki](http://github.com/brickpool/logo/wiki).
 
 ## Releases
-The current library version is [0.5.2](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate and has implemented only the PG protocol.
+The current library version is [0.5.3](https://github.com/brickpool/logo/releases). This version is not the final version, it is a release candidate and has implemented only the PG protocol.
 
 ## Examples
 This directory contains the library and some examples that illustrate how the library can be used. The examples were tested with an Arduino Mega (Arduino >= 1.8.5) and Arduino UNO (only Arduino 1.8.5 is supported). Other hardware has not been tried.
@@ -19,6 +19,7 @@ This directory contains the library and some examples that illustrate how the li
 - [ReadClockDemo.ino](/examples/ReadClockDemo/ReadClockDemo.ino) The example reads the date and time from the _LOGO!_ controller.
 - [WriteClockDemo.ino](/examples/WriteClockDemo/WriteClockDemo.ino) The example writes a date and time to the _LOGO!_ controller.
 - [PlcInfoDemo.ino](/examples/PlcInfoDemo/PlcInfoDemo.ino) The example reads the Ident Number, Firmware version and Protection level from the PLC.
+- [SerialPlotter.ino](/examples/SerialPlotter/SerialPlotter.ino) This example allowing you to natively graph data from your _LOGO!_ controller by using the Arduino Serial Plotter function.
 
 ## Dependencies
 - _LOGO!_ controller version __0BA4__, __0BA5__ or __0BA6__, e.g. part number `6ED1052-1MD00-0BA6`

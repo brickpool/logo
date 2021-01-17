@@ -21,9 +21,12 @@ byte message[BUFFER_SIZE];  // an array to store the message data
   #define txPin       3
   CustomSoftwareSerial LogoSerial(rxPin, txPin);
 #else
-  // Serial1:
-  //      rxPin       18
-  //      txPin       19
+  // Mega board Serial1:
+  //      rxPin       19
+  //      txPin       18
+  // MKR board Serial1:
+  //      rxPin       13
+  //      txPin       14
   #define LogoSerial  Serial1
 #endif
 
@@ -39,7 +42,7 @@ void setup() {
   }
   Serial.println("Monitor is ready.");
 
-  // Init LogoSerial
+  // Start the LOGO Serial interface
   LogoSerial.begin(9600, SERIAL_8E1);
   // Setup Time, 1s.
   delay(1000);
@@ -69,8 +72,8 @@ void loop()
     {
       receivedChars[ndx] = rc;
       ndx++;
-      if (ndx >= BUFFER_SIZE) {
-        ndx = BUFFER_SIZE - 1;
+      if (ndx >= sizeof(receivedChars)) {
+        ndx = sizeof(receivedChars) - 1;
       }
     }
     else 
@@ -136,5 +139,3 @@ void printHex(byte *data, size_t length) // prints 8-bit data in hex with leadin
     Serial.print(tmp); Serial.print(" ");
   }
 }
-
-

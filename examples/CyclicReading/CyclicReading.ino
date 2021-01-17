@@ -20,9 +20,12 @@ const unsigned long cycleDelay = 500; // min > 200ms
   #define txPin       3
   CustomSoftwareSerial LogoSerial(rxPin, txPin);
 #else
-  // Serial1:
-  //      rxPin       18
-  //      txPin       19
+  // Mega board Serial1:
+  //      rxPin       19
+  //      txPin       18
+  // MKR board Serial1:
+  //      rxPin       13
+  //      txPin       14
   #define LogoSerial  Serial1
 #endif
 
@@ -36,12 +39,10 @@ void setup() {
    ; // wait for serial port to connect. Needed for native USB port only
   }
 
-  // Start the SoftwareSerial Library
+  // Start the LOGO Serial interface
   LogoSerial.begin(9600, SERIAL_8E1);
   // Setup Time, 1s.
   delay(1000); 
-  Serial.println("");
-  Serial.println("Cable connected");  
 #ifdef CustomSoftwareSerial_h
   if (LogoSerial.isListening())
 #else
@@ -50,11 +51,6 @@ void setup() {
     Serial.println("LogoSerial is ready.");
 
   cycleTime = millis();
-  // LOG_LEVEL_SILENT, LOG_LEVEL_FATAL, LOG_LEVEL_ERROR, LOG_LEVEL_WARNING, LOG_LEVEL_NOTICE, LOG_LEVEL_TRACE, LOG_LEVEL_VERBOSE
-  // Note: if you want to fully remove all logging code, uncomment #define DISABLE_LOGGING in Logging.h
-  //       this will significantly reduce your project size
-  Log.begin(LOG_LEVEL_VERBOSE, &Serial);
-  Log.setPrefix(printTimestamp);
 }
 
 void loop() 
@@ -140,10 +136,4 @@ void printBinaryByte(byte value)
   {
     Serial.print((mask & value) ? '1' : '0');
   }
-}
-
-void printTimestamp(Print* _logOutput) {
-  char c[12];
-  int m = sprintf(c, "%10lu ", millis());
-  _logOutput->print(c);
 }
