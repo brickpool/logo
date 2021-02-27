@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.5.3-20200117
+ * LogoPG library, Version 0.5.3-20210129
  *
  * Portion copyright (c) 2018,2020,2021 by Jan Schneider
  *
@@ -83,6 +83,7 @@
 
 #define ACK         0x06    // Confirmation Response
 #define RUN         0x01    // Mode run
+#define RUN_P       0x20    // Parameter mode
 #define STOP        0x42    // Mode stop
 #define NOK         0x15    // Exception Response
 #define AA          0xAA    // End delimiter
@@ -204,7 +205,12 @@ private:
   static byte* Mapping;   // PDU Data mapping to VM
 
   byte LastPDUType;       // First byte of a received message
-  uint16_t ConnType;          // Usually a PG connection
+  uint16_t ConnType;      // Usually a PG connection
+
+  // parts excerpt from the system status
+  byte sch_par;           // Password level
+  byte sch_rel;           // Protection level
+  byte bart_sch;          // Operating mode
   
   // We use the Stream class as a common class, 
   // so LogoClient can use HardwareSerial or CustomSoftwareSerial
@@ -214,7 +220,6 @@ private:
   int PDULength;          // PDU length negotiated (0 if not negotiated)
   int PDURequested;       // PDU length requested by the client
   int AddrLength;         // Address length negotiated (in bytes for function sizeof)
-  int AccessMode;         // By default, LOGO! have two privileged levels: protected and full access
 
   int RecvControlResponse(uint16_t *Size);
   int RecvPacket(uint8_t *buf, uint16_t Size);

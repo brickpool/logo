@@ -1,5 +1,5 @@
 /*
- * LogoPG library, Version 0.5.3-20200117
+ * LogoPG library, Version 0.5.3-20210129
  *
  * Portion copyright (c) 2018,2020,2021 by Jan Schneider
  *
@@ -101,20 +101,22 @@ const PROGMEM char ORDER_CODE[Size_OC] = "6ED1052-xxx00-0BAx";
 #define ADDR_OC_R_PATCH1    0x00FF1F07UL  // ASCII = _.__.X_
 #define ADDR_OC_R_PATCH2    0x00FF1F08UL  // ASCII = _.__._X
 
-#define ADDR_PWD_W_ACCESS   0x00FF4740UL  // Password access
 #define ADDR_PWD_R_MAGIC1   0x00FF1F00UL  // Password 1st magic byte (= 0x04)
 #define ADDR_PWD_R_MAGIC2   0x00FF1F01UL  // Password 2nd magic byte (= 0x00)
 #define ADDR_PWD_R_EXISTS   0x00FF48FFUL  // Password exist (Y = 0x40, N = 0x00)
 #define ADDR_PWD_R_MEM      0x00FF0566UL  // Password storage
-#define ADDR_PWD_W_OK       0x00FF4800UL  // Password ok
 
 #endif // _EXTENDED
 
-// There are 3 privilege levels ranging from 0 which is the least privileged,
-// to 15 which is most privileged.
-#define PWD_LEVEL_ZERO          0x00    // unknown, limited in operation mode RUN
-#define PWD_LEVEL_RESTRICTED    0x01    // restricted access in operation mode STOP
-#define PWD_LEVEL_FULL          0x0F    // full access in operation mode STOP
+// There are 3 privilege levels ranging from 1 which is most privileged,
+// to 3 which is the least privileged.
+#define LEVEL_FULL        0x01            // full access (no protection)
+#define LEVEL_RESTRICTED  0x02            // restricted access (read protection)
+#define LEVEL_PROTECTED   0x03            // no access (read/write protection)
+
+#define ADDR_PL_W_LEVEL1    0x00FF4740UL  // Protection Level 1 (no protection)
+#define ADDR_PL_W_LEVEL2    0x00FF4800UL  // Protection Level 2 (read protection)
+#define ADDR_PL_W_LEVEL3    0x00FF4100UL  // Protection Level 3 (read/write protection)
 
 // If an error has occurred, the LOGO send a negative confirmation 0x15 (NOK)
 // and then an error byte with the following codes
@@ -389,10 +391,12 @@ LogoClient::LogoClient()
   PDULength     = 0;
   PDURequested  = 0;
   AddrLength    = 0;
-  AccessMode    = PWD_LEVEL_ZERO;
   Mapping       = (byte*)VM_MAP_923_983_0BA6;
   RecvTimeout   = TIMEOUT;
   StreamClient  = NULL;
+  sch_par       = 0;
+  sch_rel       = 0;
+  bart_sch      = 0;
 
   RETURN();
 }
@@ -407,10 +411,12 @@ LogoClient::LogoClient(Stream *Interface)
   PDULength     = 0;
   PDURequested  = 0;
   AddrLength    = 0;
-  AccessMode    = PWD_LEVEL_ZERO;
   Mapping       = (byte*)VM_MAP_923_983_0BA6;
   RecvTimeout   = TIMEOUT;
   StreamClient  = Interface;
+  sch_par       = 0;
+  sch_rel       = 0;
+  bart_sch      = 0;
 
   RETURN();
 }
@@ -972,12 +978,19 @@ int LogoClient::GetPlcStatus(int *Status)
 
   switch (PDU.DATA[0]) {
     case RUN:
+      bart_sch = 1;
+      *Status = LogoCpuStatusRun;
+      break;
+    case RUN_P:
+      bart_sch = 2;
       *Status = LogoCpuStatusRun;
       break;
     case STOP:
+      bart_sch = 3;
       *Status = LogoCpuStatusStop;
       break;
     default:
+      bart_sch = 0;
       *Status = LogoCpuStatusUnknown;
   }
 
@@ -1274,19 +1287,15 @@ int LogoClient::SetSessionPassword(char *password)
     RETURN_CODEVAL(LastError);
   }
 
-  // By default, define zero mode
-  AccessMode = PWD_LEVEL_ZERO;
-
   // Check operation mode
   TRY(GetPlcStatus(&Status));
   if (Status != LogoCpuStatusStop)
     RETURN_OK();                        // Abort, further data cannot be read
 
-  // Set restricted mode
-  AccessMode = PWD_LEVEL_RESTRICTED;
-
-  // Start the sequence for reading out the password
-  TRY(WriteByte(ADDR_PWD_W_ACCESS, 0));
+  // Start the sequence by setting CPU protection level 1
+  TRY(WriteByte(ADDR_PL_W_LEVEL1, 0));
+  sch_rel = 0;                          // Valid CPU protection level =
+                                        // undefined or cannot be determined
 
   TRY(ReadByte(ADDR_PWD_R_MAGIC1, &by));
   if (by != 0x04)
@@ -1304,24 +1313,43 @@ int LogoClient::SetSessionPassword(char *password)
 
   // Check if a password exists
   TRY(ReadByte(ADDR_PWD_R_EXISTS, &by));
-  if (by == 0x40)
-    RETURN_OK();                        // Abort, password not set
+  switch (by) {
+    // password not set
+    case 0x00:
+      DEBUG("There is no password to set or clear: the protection is OFF");
+      sch_par = 1;                      // Parameterized protection level =
+                                        // no protection
+      break;
 
-  // Read 10 bytes from addr 0566
-  TRY(ReadBlock(ADDR_PWD_R_MEM, 10, PDU.DATA));
+    // password enabled
+    case 0x40:
+      sch_par = 3;                      // Parameterized protection level =
+                                        // read/write protection
+      // Read 10 bytes from addr 0566
+      TRY(ReadBlock(ADDR_PWD_R_MEM, 10, PDU.DATA));
 
-  // Compare the two password strings
-  if (strncmp(password, (const char*)PDU.DATA, 10) != 0)
-  {
-    SET_ERROR(LastError, errCliFunction, "Invalid password");
-    RETURN_CODEVAL(LastError);
+      // Compare the two password strings
+      if (strncmp(password, (const char*)PDU.DATA, 10) != 0)
+      {
+        // Error, set CPU protection level 3
+        TRY(WriteByte(ADDR_PL_W_LEVEL3, 0));
+        sch_rel = 3;                    // Valid CPU protection level =
+                                        // read/write protection
+
+        SET_ERROR(LastError, errCliFunction, "Invalid password supplied");
+        RETURN_CODEVAL(LastError);
+      }
+      break;
+
+    // undefined
+    default:
+      SET_ERROR(LastError, errCliDataRead, "Receive unexpected data");
+      RETURN_CODEVAL(LastError);
   }
 
   // Login successful
-  TRY(WriteByte(ADDR_PWD_W_OK, 0));
-
-  AccessMode = PWD_LEVEL_FULL;
-
+  sch_rel = 1;                        // Valid CPU protection =
+                                      // read/write protection
   RETURN_OK();
 }
 
@@ -1345,22 +1373,43 @@ int LogoClient::ClearSessionPassword()
     RETURN_CODEVAL(LastError);
   }
 
-  // By default, define zero mode
-  AccessMode = PWD_LEVEL_ZERO;
+  // Start the sequence by setting CPU protection level 2
+  TRY(WriteByte(ADDR_PL_W_LEVEL2, 0));
+  sch_rel = 0;                          // Valid CPU protection =
+                                        // undefined or cannot be determined
 
   // Check operation mode
   TRY(GetPlcStatus(&Status));
   if (Status != LogoCpuStatusStop)
     RETURN_OK();                        // Abort, further data cannot be read
 
-  // Set restricted mode
-  AccessMode = PWD_LEVEL_RESTRICTED;
-
   // Check if a password exists
   TRY(ReadByte(ADDR_PWD_R_EXISTS, &pw));
-  if (pw != 0x40)                       // Password not set
-    AccessMode = PWD_LEVEL_FULL;
+  switch (pw) {
+    // password not set
+    case 0x00:
+      // Set CPU protection level 1
+      TRY(WriteByte(ADDR_PL_W_LEVEL1, 0));
+      sch_rel = 1;                      // Valid CPU protection =
+                                        // no protection
 
+      DEBUG("There is no password to set or clear: the protection is OFF");
+      break;
+
+    // password enabled
+    case 0x40:
+      // Set CPU protection level 3
+      TRY(WriteByte(ADDR_PL_W_LEVEL3, 0));
+      sch_rel = 3;                      // Valid CPU protection =
+                                        // read/write protection
+      break;
+
+    // undefined
+    default:
+      SET_ERROR(LastError, errCliDataRead, "Receive unexpected data");
+      RETURN_CODEVAL(LastError);
+  }
+  
   RETURN_OK();
 }
 
@@ -1369,16 +1418,19 @@ int LogoClient::ClearSessionPassword()
  * 
  * @param Protection argument is an C structure defined in the library:
  *  - sch_schal = 1,2,3   : Protection level set by the operating mode switch
- *                          (1:STOP, 2:RUN, 3:STOP and password set)
- *  - sch_par   = 0,1,3   : Parameterized protection level (1:no protection,
- *                          3:write/read protection, 0:no password or cannot
- *                          be determined)
+ *                          (1:no protection, 2:read protection,
+ *                          3:read/write protection)
+ *  - sch_par   = 0,1,2,3 : Parameterized protection level (1:no protection,
+ *                          2:read protection, 3:read/write protection,
+ *                          0:undefined or cannot be determined)
  *  - sch_rel   = 0,1,2,3 : Valid protection level of the CPU (level 1-3, 0:
  *                          cannot be determined)
- *  - bart_sch  = 1,3     : Position of the operating mode switch (1:RUN,
- *                          3:STOP, 0:undefined or cannot be determined)
+ *  - bart_sch  = 1,2,3   : Position of the operating mode switch (1:RUN,
+ *                          2:RUN_P, 3:STOP, 0:undefined or cannot be
+ *                          determined)
  *  - anl_sch   = 0       : Position of the startup mode switch (0:undefined,
  *                          does not exist or cannot be determined)
+ *                          
  * @return Returns a 0 on success or an Error code 
  */
 int LogoClient::GetProtection(TProtection *Protection)
@@ -1386,6 +1438,7 @@ int LogoClient::GetProtection(TProtection *Protection)
   TRACE("%p", Protection);
 
   int Status;                           // Operation mode
+  byte pw;                              // Password
 
   LastError = 0;
 
@@ -1395,47 +1448,87 @@ int LogoClient::GetProtection(TProtection *Protection)
     RETURN_CODEVAL(LastError);
   }
 
+  // Set Protection to predefined values
+  memset(Protection, 0, sizeof(TProtection));
+
   if (!Connected)                       // Exit with Error if not connected
   {
     SET_ERROR(LastError, errPGConnect, "Not connected");
     RETURN_CODEVAL(LastError);
   }
 
-  // Set Protection to predefined values
-  memset(Protection, 0, sizeof(TProtection));
-
   // Check operation mode
-  TRY(GetPlcStatus(&Status));
-  if (Status == LogoCpuStatusStop)
-  {
-    byte pw;
-
-    TRY(ReadByte(ADDR_PWD_R_EXISTS, &pw));
-    if (pw == 0x40)
-    {
+  TRY(GetPlcStatus(&Status));           // Update 'bart_sch' also
+  switch (bart_sch) {
+    // RUN
+    case 1:
       Protection->sch_schal = 3;        // Protection level set with the mode
-                                        // selector = STOP and password set
-      Protection->sch_par = 3;          // write/read protection
-      Protection->sch_rel = 3;          // Set valid protection level
-    }
-    else
-    {
-      Protection->sch_schal = 1;        // Protection level set with the mode
-                                        // selector = STOP
-      Protection->sch_par = 1;          // no protection
-      Protection->sch_rel = 1;          // Set valid protection level
-    }
-    Protection->bart_sch = 3;           // Mode selector setting = STOP
-    // anl_sch = 0;
-  }
-  else
-  {
-    Protection->sch_schal = 2;          // Protection level set with the mode
-                                        // selector = RUN
-    // sch_par = 0;
-    Protection->sch_rel = 2;            // Set valid protection level
-    Protection->bart_sch = 1;           // Mode selector setting = RUN
-    // anl_sch = 0;
+                                        // selector = write/read protection
+      Protection->sch_par   = sch_par;  // Parameterized protection level (1-3)
+   // Protection->sch_rel   = 0;        // Valid CPU protection level =
+                                        // cannot be determined
+      Protection->bart_sch  = 1;        // Mode selector setting = RUN
+   // Protection->anl_sch   = 0;        // Startup switch setting = does not
+                                        // exist
+      break;
+      
+    // RUN_P
+    case 2:
+      Protection->sch_schal = 3;        // Protection level set with the mode
+                                        // selector = write/read protection
+      Protection->sch_par   = sch_par;  // Parameterized protection level (1-3)
+   // Protection->sch_rel   = 0;        // Valid CPU protection level =
+                                        // cannot be determined
+      Protection->bart_sch  = 2;        // Mode selector setting = RUN_P
+   // Protection->anl_sch   = 0;        // Startup switch setting = does not
+                                        // exist
+      break;
+
+    // STOP
+    case 3:
+      TRY(ReadByte(ADDR_PWD_R_EXISTS, &pw));
+      switch (pw) {
+        // password not set
+        case 0x00:
+          Protection->sch_schal = 1;    // Protection level set with the mode
+                                        // selector = no protection
+          sch_par = 1;                  // Parameterized protection level =
+                                        // no protection
+          break;
+
+        // password enabled
+        case 0x40:
+          Protection->sch_schal = 3;    // Protection level set with the mode
+                                        // selector = read/write protection
+          sch_par = 3;                  // Parameterized protection level =
+                                        // write/read protection
+          break;
+
+        // undefined
+        default:
+          SET_ERROR(LastError, errCliDataRead, "Receive unexpected data");
+          RETURN_CODEVAL(LastError);
+      }
+      Protection->sch_par   = sch_par;  // Parameterized protection level (1-3)
+      Protection->sch_rel   = sch_rel;  // Valid CPU protection level (1-3)
+      Protection->bart_sch  = 3;        // Mode selector setting = STOP
+   // Protection->anl_sch   = 0;        // Startup switch setting = does not
+                                        // exist
+      break;
+
+    // undefined
+    default:
+   // Protection->sch_schal = 0;        // Protection level set with the mode
+                                        // selector = undefined
+   // Protection->sch_par   = 0;        // Parameterized protection level =
+                                        // undefined
+   // Protection->sch_rel   = 0;        // Valid CPU protection level =
+                                        // undefined
+   // Protection->bart_sch  = 0;        // Mode selector setting = undefined
+   // Protection->anl_sch   = 0;        // Startup switch setting = does not
+                                        // exist
+      SET_ERROR(LastError, errCliFunction, "Receive unexpected data");
+      RETURN_CODEVAL(LastError);
   }
 
   RETURN_OK();

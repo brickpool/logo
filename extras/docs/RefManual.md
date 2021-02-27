@@ -1,6 +1,6 @@
 # LOGO! PG Library Reference Manual
 
-Rev. Aj
+Rev. Ak
 
 Januar 2021
 
@@ -270,16 +270,16 @@ Field Values:
 
 Protection  | Values | Description
 --- | --- | --- 
-`sch_schal` | 1,2,3 | Protection level set by the operating mode switch (1:STOP, 2:RUN, 3:STOP and password set)
-`sch_par` | 0,1,3 | Parameterized protection level (1:no protection, 3: write/read protection, 0: no password or cannot be determined)
+`sch_schal` | 1,2,3 | Protection level set by the operating mode switch (1:no protection, 2:read protection, 3:read/write protection)
+`sch_par` | 0,1,2,3 | Parameterized protection level (1:full access, 2:read protection, 3:read/write protection, 0:no password, undefined or cannot be determined)
 `sch_rel` | 0,1,2,3 | Valid protection level of the CPU (level 1-3, 0: cannot be determined)
-`bart_sch` | 1,3 | Position of the operating mode switch (1:RUN, 3:STOP, 0:undefined or cannot be determined)
+`bart_sch` | 1,2,3 | Position of the operating mode switch (1:RUN, 2:RUN_P, 3:STOP, 0:undefined or cannot be determined)
 `anl_sch` | 0 | Position of the startup mode switch (0:undefined, does not exist or cannot be determined)
 
 __Remarks:__  
-Only the operating modes _RUN_ and _STOP_ are comparable to the position of the operating mode switch (value `bart_sch`).
+The _LOGO!_ does not use protection levels like a S7, but protection level `1` (no protection) to `3` (read/write protection) are comparable (value `sch_rel`).
 
-The program can only be accessed in operation mode _STOP_ if no password has been set. The _LOGO!_ does not use protection levels, but protection level `1` (no protection) and `3` (read/write protection) are comparable (value `sch_par`). Please note, we use protection level `2` for the operating mode _RUN_, because the _LOGO!_ configuration can not be read out in this operating state (value `sch_schal`).
+The _LOGO!_ configuration can only be read out in the operating mode _STOP_ (value `bart_sch`).
 
 There is no startup mode switch for the _LOGO!_. Therefore, the value for `anl_sch` is always `0`.
 
