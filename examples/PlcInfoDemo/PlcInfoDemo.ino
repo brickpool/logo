@@ -19,6 +19,9 @@
   // MKR board Serial1:
   //      rxPin       13
   //      txPin       14
+  // Leonado board Serial1:
+  //      rxPin       0
+  //      txPin       1
   #define LogoSerial  Serial1
 #endif
 
@@ -64,7 +67,7 @@ void loop()
   Result = LOGO.GetProtection(&Info);
   if (Result == 0)
   {
-    if (Info.sch_rel > 0)
+    if (Info.bart_sch > 0)
     {
       Serial.print("CPU protection level:");
       Serial.print(" sch_schal=");
@@ -74,7 +77,7 @@ void loop()
       Serial.print(", sch_rel=");
       Serial.print(Info.sch_rel);
       Serial.print(", bart_sch=");
-      Serial.println(Info.sch_rel);
+      Serial.println(Info.bart_sch);
       // 'anl_sch' is always 0
     }
   }

@@ -26,6 +26,9 @@ const unsigned long cycleDelay = 500; // min > 200ms
   // MKR board Serial1:
   //      rxPin       13
   //      txPin       14
+  // Leonado board Serial1:
+  //      rxPin       0
+  //      txPin       1
   #define LogoSerial  Serial1
 #endif
 

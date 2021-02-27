@@ -4,11 +4,23 @@ This CHANGELOG file should help that the library becomes a standardized open sou
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2021-01-17
+## [Unreleased] - 2021-02-27
+
+### Added
+- Support of three privileged levels LogoClient::SetSessionPassword, LogoClient::ClearSessionPassword
+- Parameter Mode `RUN_P` LogoClient::GetPlcStatus
+- Updated examples for compatibility with Arduino Leonado boards
+
+### Changed
+- Update Library Reference Manual (RefManual.md) to Rev. Ak
+- Protection Level in LogoClient::GetProtection
+
+### Fixed
+- Output in example PlcInfoDemo.ino
 
 ## [0.5.3] - 2021-01-17
 ### Added
-- Example SerialPlotter.ino added to the project folder
+- Example LogoClient::SerialPlotter.ino added to the project folder
 - Updated examples for compatibility with Arduino MKR boards
 - Block oriented function LogoClient::GetDBSize
 - Block oriented function LogoClient::DBGet
@@ -45,6 +57,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.5.1] - 2018-09-18
 ### Added
 - Support of 0BA6.ES10
+- Wiki Page
+
+### Changed
+- Move "Undocumented LOGO! 0BA5" to the Wiki
+- Move "LOGO! PG Protocol Reference Guide" to the Wiki
 
 ## [0.5.0] - 2018-03-29
 ### Added

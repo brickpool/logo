@@ -22,6 +22,9 @@ const unsigned long MY_TIME = 1522238400; // Mar 28 2018
   // MKR board Serial1:
   //      rxPin       13
   //      txPin       14
+  // Leonado board Serial1:
+  //      rxPin       0
+  //      txPin       1
   #define LogoSerial  Serial1
 #endif
 
@@ -153,13 +156,28 @@ void CheckError(int ErrNo)
 
 timeStatus_t LogoClockStatus()
 {
+  const uint8_t       START_WDAY = 1;
+  // Su 00:00 00-00-2000
+  const unsigned long START_TIME_0BA4 = 946598400;
   // Su 00:00 01-01-2003
-  const unsigned long START_TIME = 1041379200;
-  const uint8_t START_WDAY = 1;
+  const unsigned long START_TIME_0BA5 = 1041379200;
+  // S0 00:00 01-01-2008
+  const unsigned long START_TIME_0BA6 = 1199145600;
  
   TimeElements tm;
   if (LOGO.GetPlcDateTime(&tm) == 0) {
-    if (!(makeTime(tm) == START_TIME && tm.Wday == START_WDAY))
+    if
+    ( !
+      (
+        tm.Wday == START_WDAY
+          &&
+        (
+              makeTime(tm) == START_TIME_0BA4
+          ||  makeTime(tm) == START_TIME_0BA5
+          ||  makeTime(tm) == START_TIME_0BA6
+        )
+      )
+    )
       return timeSet;
   }
   return timeNotSet;
