@@ -1,5 +1,5 @@
 # Examples
-This directory contains the library and some examples that illustrate how the library can be used.
+This directory contains some examples that illustrate how the library can be used.
 
 - [ProtocolTester.ino](/examples/ProtocolTester/ProtocolTester.ino) This example can mainly be used as a tester for the _LOGO!_ PG-protocol.
 - [RunStopDemo.ino](/examples/RunStopDemo/RunStopDemo.ino) A simple program which connects to the _LOGO!_ controller and switches between the operating modes _RUN_ and _STOP_.
