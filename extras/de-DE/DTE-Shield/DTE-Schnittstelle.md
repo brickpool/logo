@@ -15,7 +15,7 @@ Auch bei den [RS232 Shifter von SkarkFun](https://www.sparkfun.com/products/449)
 
 Fazit: Sofern nicht zum Lötkolben gegriffen werden soll, scheint es nur wenig Auswahl an vorkonfektionierter Hardware zu geben. So habe ich nur zwei RS232 zu TTL Konverter gefunden, die den Anforderungen entprechen (DTE-Interface mit Flussteuerung):
 - Model NS-RS232-02 from [NulSom Inc.](http://www.nulsom.com/)
-- [RS232 SP3232 TTL to male serial port TTL to RS232](http://www.google.de/search?q=192090081615)
+- [SP3232 Male RS232 to TTL Converter Module](https://store.siqma.com/sp3232-male-rs232-ttl-converter-module.html)
 
 Ich habe mich entschlossen die RS232-Schnittstelle mit notwendigen Pegelwandler auf einem [Prototype-Shield](#Schaltung) unterzubringen. Nähres im folgendem Abschnitt. 
 
